@@ -114,11 +114,11 @@ int APIENTRY wWinMain(_In_     HINSTANCE hInstance,
 
     // Create a vertex and index buffer
     geometrysBuffers = CreateGeometryBuffersFromAiScene (physicalDevice,
-                                                      logicalDevice,
-                                                      queue,
-                                                      queueFamilyIndex,
-                                                      pScene,
-                                                      true);
+                                                         logicalDevice,
+                                                         queue,
+                                                         queueFamilyIndex,
+                                                         pScene,
+                                                         true);
 
     
    // CreateVertexBuffer (physicalDevice,
@@ -160,5 +160,5 @@ int APIENTRY wWinMain(_In_     HINSTANCE hInstance,
 ///    a console we create wont have the vulkan layer output present, and it wont get captured easily by vulkan configurator.
 int main ()
 {
-    return wWinMain (GetModuleHandle (NULL), NULL, GetCommandLine(), SW_SHOWNORMAL);
+    return wWinMain (GetModuleHandle (NULL), NULL, GetCommandLineW(), SW_SHOWNORMAL);
 }

@@ -32,7 +32,7 @@
 #if defined(USE_VOLK)
     #define VK_VERSION_1_3
     #define VK_KHR_swapchain
-    #include "volk.h"
+    #include <volk.h>
 #else
     #include "vulkan/vulkan.h"
 	#define VK_EXPORTED_FUNCTION(func) extern PFN_##func func;

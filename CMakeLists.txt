@@ -30,6 +30,8 @@ add_executable (StudyingVulkan "Source/StudyingVulkan.cpp"
                                "Source/Shaders/Khronos/triangle.vert"
                                "Source/Shaders/Khronos/vert.spv")
 
+set_property(TARGET StudyingVulkan PROPERTY CXX_STANDARD 17)
+
 # Variables for local use
 set (LIB_ASSIMP_NAME "assimp")
 set (LIB_VOLK_NAME    "volk" )
@@ -53,12 +55,14 @@ option( BUILD_SHARED_LIBS        ""  OFF ) #: Generation of shared libs (dll for
 option( ASSIMP_BUILD_ASSIMP_VIEW ""  OFF )
 option( ASSIMP_NO_EXPORT         ""  ON  )
 
-target_include_directories(StudyingVulkan INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/${LIB_ASSIMP_NAME}" )
-target_include_directories(StudyingVulkan INTERFACE "${EXTERNAL_LIBRARIES_DIRECTORY}/${LIB_VOLK_NAME}" )
+target_include_directories(StudyingVulkan PUBLIC "${EXTERNAL_LIBRARIES_DIRECTORY}/${LIB_ASSIMP_NAME}" )
+target_include_directories(StudyingVulkan PUBLIC "${EXTERNAL_LIBRARIES_DIRECTORY}/${LIB_VOLK_NAME}" )
 
 add_dependencies(StudyingVulkan assimp)
+add_dependencies(StudyingVulkan volk)
 
 target_link_libraries(StudyingVulkan assimp)
+target_link_libraries(StudyingVulkan volk)
 
 FetchContent_MakeAvailable( assimp 
                             volk )

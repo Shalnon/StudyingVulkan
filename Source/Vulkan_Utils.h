@@ -5,7 +5,6 @@
 #include "Vulkan_Buffer_Tools.h"
 #include "Vulkan_Synchronization.h"
 
-
 // Number of vulkan extensions we need to enable/verify driver support for
 extern uint32_t  numRequiredExtensions;
 
