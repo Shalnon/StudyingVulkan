@@ -22,16 +22,10 @@
 #define MAX_SEMAPHORE_LIST_SIZE 512
 #define MIN_SEMAPHORE_LIST_SIZE 64
 #define SEMAPHORE_LIST_GROWTH_RATE 64
-#define COORDS_PER_POSITION 3
-#define NUM_VERTICES_PER_TRIANGLE 3
-#define NUM_BYTES_PER_VERTEX_POSITION sizeof(float) * COORDS_PER_POSITION
-#define NUM_INDEX_BYTES_PER_TRIANGLE sizeof(uint32_t) * NUM_VERTICES_PER_TRIANGLE
 
 
 
 #if defined(USE_VOLK)
-    #define VK_VERSION_1_3
-    #define VK_KHR_swapchain
     #include <volk.h>
 #else
     #include "vulkan/vulkan.h"

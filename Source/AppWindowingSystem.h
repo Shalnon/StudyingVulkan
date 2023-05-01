@@ -2,7 +2,6 @@
 #define APP_WINDOWING_SYSTEM_H
 
 #include "StudyingVulkan.h"
-#include <tchar.h>
 
 #define MAX_LOADSTRING 100
 extern WCHAR     szTitle[MAX_LOADSTRING];              // The title bar text
@@ -54,37 +53,4 @@ inline void ShowConsole()
 	freopen_s(&fp, "CONOUT$", "w", stdout);
 	freopen_s(&fp, "CONOUT$", "w", stderr);
 }
-
-// Code copied from https://learn.microsoft.com/en-us/windows/win32/procthread/changing-environment-variables#example-3
-inline void PrintEnvironmentStrings()
-{
-    LPTSTR lpszVariable;
-    LPTCH lpvEnv;
-
-    // Get a pointer to the environment block. 
-
-    lpvEnv = GetEnvironmentStrings ();
-
-    // If the returned pointer is NULL, exit.
-    if (lpvEnv == NULL)
-    {
-        printf ("GetEnvironmentStrings failed (%d)\n", GetLastError ());
-        return;
-    }
-
-    // Variable strings are separated by NULL byte, and the block is 
-    // terminated by a NULL byte. 
-
-    lpszVariable = (LPTSTR)lpvEnv;
-
-    while (*lpszVariable)
-    {
-        _tprintf (TEXT ("%s\n"), lpszVariable);
-        lpszVariable += lstrlen (lpszVariable) + 1;
-    }
-    FreeEnvironmentStrings (lpvEnv);
-	return;
-}
-
-
 #endif

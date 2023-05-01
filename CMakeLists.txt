@@ -9,26 +9,21 @@ project ("StudyingVulkan")
 
 
 # Add source to this project's executable.
-add_executable (StudyingVulkan "Source/StudyingVulkan.cpp"
-                               "Source/StudyingVulkan.h"
-                               "Source/AppWindowingSystem.cpp"
+add_executable (StudyingVulkan "Source/AppWindowingSystem.cpp"
                                "Source/AppWindowingSystem.h"
-                               "Source/Asset_Tools.cpp"
-                               "Source/Asset_Tools.h"
-                               "Source/Vulkan_Buffer_Tools.h"
-                               "Source/Vulkan_Buffer_tools.cpp"
+                               "Source/Shaders/Khronos/frag.spv"
+                               "Source/Shaders/Khronos/triangle.frag"
+                               "Source/Shaders/Khronos/triangle.vert"
+                               "Source/Shaders/Khronos/vert.spv"
+                               "Source/StudyingVulkan.cpp"
+                               "Source/StudyingVulkan.h"
                                "Source/Vulkan_Synchronization.cpp"
                                "Source/Vulkan_Synchronization.h"
                                "Source/Vulkan_Utils.cpp"
                                "Source/Vulkan_Utils.h"
                                "Source/Vulkan_enum_strings.h"
-                               "Source/WinResources.aps"
                                "Source/WinResources.rc"
-                               "Source/resource.h"
-                               "Source/Shaders/Khronos/frag.spv"
-                               "Source/Shaders/Khronos/triangle.frag"
-                               "Source/Shaders/Khronos/triangle.vert"
-                               "Source/Shaders/Khronos/vert.spv")
+                               "Source/resource.h")
 
 set_property(TARGET StudyingVulkan PROPERTY CXX_STANDARD 17)
 

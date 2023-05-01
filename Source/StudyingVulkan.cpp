@@ -6,15 +6,14 @@
 #include "AppWindowingSystem.h"
 #include "resource.h"
 #include "Vulkan_Synchronization.h"
-#include "Vulkan_Buffer_Tools.h"
 
-int APIENTRY wWinMain(_In_     HINSTANCE hInstance,
-                      _In_opt_ HINSTANCE hPrevInstance,
-                      _In_     LPWSTR    lpCmdLine,
-                      _In_     int       nCmdShow)
+int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
+                     _In_opt_ HINSTANCE hPrevInstance,
+                     _In_     LPWSTR    lpCmdLine,
+                     _In_     int       nCmdShow)
 {
-  //  ShowConsole();
-    //PrintEnvironmentStrings();
+    ShowConsole();
+
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
     
@@ -34,11 +33,11 @@ int APIENTRY wWinMain(_In_     HINSTANCE hInstance,
     VkInstance    instance = InitializeVulkanAndCreateInstance();
     VkSurfaceKHR  surface  = CreateVkSurface(instance, hInstance, window_handle);
 
-    VkPhysicalDevice         physicalDevice    = VK_NULL_HANDLE; //gpu
-    VkQueue                  queue             = VK_NULL_HANDLE;
-    VkDevice                 logicalDevice     = VK_NULL_HANDLE;
-    VkPhysicalDeviceFeatures deviceFeatures    = {};
-    uint32_t                 queueFamilyIndex  = UINT32_MAX;
+    VkPhysicalDevice         physicalDevice = VK_NULL_HANDLE; //gpu
+    VkQueue                  queue          = VK_NULL_HANDLE;
+    VkDevice                 logicalDevice  = VK_NULL_HANDLE;
+    VkPhysicalDeviceFeatures deviceFeatures = {};
+    uint32_t                 queueIndex     = UINT32_MAX;
 
     const char* requiredDeviceExtensions[] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
     assert(numRequiredExtensions == sizeof(requiredDeviceExtensions) / sizeof(const char*));
@@ -51,10 +50,10 @@ int APIENTRY wWinMain(_In_     HINSTANCE hInstance,
                                  /*..VkPhysicalDevice*..........*/ &physicalDevice,
                                  /*..VkQueue*...................*/ &queue,
                                  /*..VkDevice*..................*/ &logicalDevice,
-                                 /*..uint32_t*..................*/ &queueFamilyIndex);
+                                 /*..uint32_t*..................*/ &queueIndex);
 
     // Make sure we got queue index from the above function.
-    assert (queueFamilyIndex != UINT32_MAX);
+    assert (queueIndex != UINT32_MAX);
 
     //Now that we have a device, create the semaphore list.
     VkSync::InitSemaphoreList(logicalDevice);
@@ -71,7 +70,7 @@ int APIENTRY wWinMain(_In_     HINSTANCE hInstance,
 
     InitializeSwapchain (/*.VkPhysicalDevice.............physicalDevice...............*/ physicalDevice,
                          /*.VkDevice.....................logicalDevice................*/ logicalDevice,
-                         /*.uint32_t.....................graphicsQueueIndex...........*/ queueFamilyIndex,
+                         /*.uint32_t.....................graphicsQueueIndex...........*/ queueIndex,
                          /*.VkSurfaceKHR.................surface......................*/ surface,
                          /*.uint32_t.....................numPreferredSurfaceFormats...*/ numPreferredSurfaceFormats,
                          /*.VkFormat*....................pPreferredSurfaceFormats.....*/ pPreferredSurfaceFormats,
@@ -90,6 +89,7 @@ int APIENTRY wWinMain(_In_     HINSTANCE hInstance,
                                          &actualFrameDimensions,
                                          fragmentShaderPath.c_str(),
                                          vertexShaderPath.c_str());
+
     CreateFrameBuffers(logicalDevice,
                        renderpass,
                        &actualFrameDimensions,
@@ -97,47 +97,15 @@ int APIENTRY wWinMain(_In_     HINSTANCE hInstance,
                        pPerSwapchainImageResources);
 
     uint32_t numFramesToRender = 3;
-
-    float vertex_positions[] =
-    {
-        0.5, -0.5,  0.0,
-        0.5,  0.5,  0.0,
-       -0.25,  0.5,  0.0
-    };
     
-    VkBuffer       vertexBufferHandle = VK_NULL_HANDLE;
-    VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;
-
-    const char*        pModelPath       = "C:\\Users\\shaln\\source\\repos\\StudyingVulkan\\Assets\\Models\\simple_triangle.obj";
-    const aiScene*     pScene           = aiImportFile (pModelPath, aiProcessPreset_TargetRealtime_MaxQuality);
-    GeometryBufferSet  geometrysBuffers = {};
-
-    // Create a vertex and index buffer
-    geometrysBuffers = CreateGeometryBuffersFromAiScene (physicalDevice,
-                                                         logicalDevice,
-                                                         queue,
-                                                         queueFamilyIndex,
-                                                         pScene,
-                                                         true);
-
-    
-   // CreateVertexBuffer (physicalDevice,
-   //                     logicalDevice,
-   //                     sizeof(vertex_positions),
-   //                     queueFamilyIndex,
-   //                     queue,
-   //                     vertex_positions,
-   //                     &vertexBufferHandle,
-   //                     &vertexBufferMemory);
-
     printf("executed renderloop\n");
-    for (uint32_t i = 0; i < 1; i++)
+    for (uint32_t i = 0; i < numFramesToRender; i++)
     {
-        ExecuteRenderLoop ( /*.VkDevice.....................logicalDevice................*/ logicalDevice,
+        ExecuteRenderLoop (/*.VkDevice.....................logicalDevice................*/ logicalDevice,
                             /*.VkPhysicalDevice.............physicalDevice,..............*/ physicalDevice,
                             /*.VkSwapchainKHR...............swapchain....................*/ swapchain,
                             /*.VkQueue......................queue........................*/ queue,
-                            /*.uint32_t.....................gfxQueueIdx..................*/ queueFamilyIndex,
+                            /*.uint32_t.....................gfxQueueIdx..................*/ queueIndex,
                             /*.uint32_t.....................numPreferredSwapchainFormats.*/ numPreferredSurfaceFormats,
                             /*.VkFormat*....................pPreferredSwapchainFormats...*/ pPreferredSurfaceFormats,
                             /*.VkSurfaceKHR.................surface......................*/ surface,
@@ -146,12 +114,9 @@ int APIENTRY wWinMain(_In_     HINSTANCE hInstance,
                             /*.PerSwapchainImageResources**.ppPerSwapchainImageResources.*/ &pPerSwapchainImageResources,
                             /*.uint32_t*....................pNumSwapchainImages..........*/ &numSwapChainImages,
                             /*.VkExtent2D*..................pFramebufferExtent...........*/ &actualFrameDimensions,
-                            /*.GeometryBufferSet*...........pVertexBuffers...............*/ &geometrysBuffers,
                             /*.uint32_t.....................frameIdx.....................*/ i                     );
     }
    
-    Sleep (10);
-    std::cout << "EXITING!!!!!!!!!!!!!!!!!!!!!!!\n";
     return 0;
 }
 
@@ -159,6 +124,6 @@ int APIENTRY wWinMain(_In_     HINSTANCE hInstance,
 ///   visual studio windows application subsystem, and we would need to create our own console.
 ///    a console we create wont have the vulkan layer output present, and it wont get captured easily by vulkan configurator.
 int main ()
-{
-    return wWinMain (GetModuleHandle (NULL), NULL, GetCommandLineW(), SW_SHOWNORMAL);
-}
+ {
+    return wWinMain (GetModuleHandle (NULL), NULL, GetCommandLineW (), SW_SHOWNORMAL);
+ }
