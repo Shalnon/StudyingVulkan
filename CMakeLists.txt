@@ -59,8 +59,7 @@ add_dependencies(StudyingVulkan volk)
 target_link_libraries(StudyingVulkan assimp)
 target_link_libraries(StudyingVulkan volk)
 
-FetchContent_MakeAvailable( assimp 
-                            volk )
+FetchContent_MakeAvailable( assimp volk )
 
 # Include sub-projects.
 add_subdirectory ("${EXTERNAL_LIBRARIES_DIRECTORY}")

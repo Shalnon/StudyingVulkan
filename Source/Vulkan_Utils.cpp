@@ -223,10 +223,9 @@ VkInstance InitializeVulkanAndCreateInstance()
     {
         const char* win32SurfaceExtensionName   = VK_KHR_WIN32_SURFACE_EXTENSION_NAME;
         const char* vkKhrSurfaceExtensionName   = VK_KHR_SURFACE_EXTENSION_NAME;
-        const char* vkKhrSwapchainExtensionName = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
         uint32_t           numLayers = 0;
         const char* const* ppEnabledLayerNames = 0;
-        const char*        ppExtensionNames[]      = {vkKhrSurfaceExtensionName , win32SurfaceExtensionName };//,, vkKhrSwapchainExtensionName };
+        const char*        ppExtensionNames[]      = { vkKhrSurfaceExtensionName , win32SurfaceExtensionName };
         VkApplicationInfo  applicationInfo =
         {
             /*VkStructureType....sType......................*/ VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -419,7 +418,7 @@ bool CreatePhysicalDeviceAndQueue(VkInstance                instance,
         /*....const.char*.const*.................ppEnabledLayerNames.........*/ 0,
         /*....uint32_t...........................enabledExtensionCount.......*/ numnRequiredExtensions,
         /*....const.char*.const*.................ppEnabledExtensionNames.....*/ ppRequiredDeviceExtensionNames,
-        /*....const.VkPhysicalDeviceFeatures*....pEnabledFeatures............*/ &physicalDeviceFeatures
+        /*....const.VkPhysicalDeviceFeatures*....pEnabledFeatures............*/ 0//&physicalDeviceFeatures
     };
 
     *pQueueOut         = VK_NULL_HANDLE;
@@ -830,6 +829,8 @@ VkPipeline CreatePipeline(VkDevice logicalDevice, VkRenderPass renderpass, VkExt
         /*...uint32_t........................pushConstantRangeCount.....*/ 0,
         /*...const.VkPushConstantRange*......pPushConstantRanges........*/ nullptr
     };
+
+    //@VKSPEC: "Access to descriptor sets from a pipeline is accomplished through a pipeline layout." : https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkPipelineLayout.html
     VkResult result = vkCreatePipelineLayout(logicalDevice, &layoutCreateInfo, 0, &pipelineLayout);
     assert(result == VK_SUCCESS);
 
@@ -1384,6 +1385,7 @@ VkResult PresentImage(VkSwapchainKHR swapchain,
                       VkSemaphore    swapchainImageReleaseSemaphore,
                       VkQueue        queue)
 {
+    //@TODO: modify the code here so that the result variable below can be checked after vkQueuePresentKHR is called;
     VkResult result = VK_NOT_READY;
 
     VkPresentInfoKHR presentInfo =

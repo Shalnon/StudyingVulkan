@@ -153,7 +153,7 @@ inline void ResestPerSwapchainImageResources (VkDevice                      logi
         for (uint32_t i = 0; i < numSwapchainImages; i++)
         {
             VkFramebuffer framebuffer = pPerSwapchainImageResources[i].framebufferHandle;
-            if (framebuffer == VK_NULL_HANDLE)
+            if (framebuffer != VK_NULL_HANDLE)
             {
                 vkDestroyFramebuffer (logicalDevice, framebuffer, nullptr);
             }
@@ -166,7 +166,7 @@ inline void ResestPerSwapchainImageResources (VkDevice                      logi
 
             VkCommandPool   oldCommandPool   = pPerSwapchainImageResources[i].commandPool;
             VkCommandBuffer oldCommandBuffer = pPerSwapchainImageResources[i].commandBuffer;
-            if ((oldCommandPool != VK_NULL_HANDLE) &&
+            if ((oldCommandPool   != VK_NULL_HANDLE) &&
                 (oldCommandBuffer != VK_NULL_HANDLE))
             {
                 vkFreeCommandBuffers (logicalDevice, oldCommandPool, 1, &oldCommandBuffer);

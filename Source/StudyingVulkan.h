@@ -12,8 +12,6 @@
 #include <fstream>
 #include <cstdlib>
 
-
-
 #define VK_USE_PLATFORM_WIN32_KHR
 //#define  VK_NO_PROTOTYPES
 
@@ -26,7 +24,8 @@
 
 
 #if defined(USE_VOLK)
-    #include <volk.h>
+    //#define   VOLK_IMPLEMENTATION
+    #include "volk.h"
 #else
     #include "vulkan/vulkan.h"
 	#define VK_EXPORTED_FUNCTION(func) extern PFN_##func func;

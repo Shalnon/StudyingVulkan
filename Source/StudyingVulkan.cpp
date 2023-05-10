@@ -83,12 +83,11 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                          /*.PerSwapchainImageResources**.ppPerSwapchainImageResources.*/ &pPerSwapchainImageResources);
 
     VkRenderPass renderpass = CreateRenderpass(surfaceFormat.format, logicalDevice);
-
-    VkPipeline pipeline = CreatePipeline(logicalDevice, 
-                                         renderpass,
-                                         &actualFrameDimensions,
-                                         fragmentShaderPath.c_str(),
-                                         vertexShaderPath.c_str());
+    VkPipeline   pipeline   = CreatePipeline(logicalDevice, 
+                                             renderpass,
+                                             &actualFrameDimensions,
+                                             fragmentShaderPath.c_str(),
+                                             vertexShaderPath.c_str());
 
     CreateFrameBuffers(logicalDevice,
                        renderpass,
@@ -96,7 +95,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                        numSwapChainImages,
                        pPerSwapchainImageResources);
 
-    uint32_t numFramesToRender = 3;
+    uint32_t numFramesToRender = 5;
     
     printf("executed renderloop\n");
     for (uint32_t i = 0; i < numFramesToRender; i++)
@@ -117,6 +116,70 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                             /*.uint32_t.....................frameIdx.....................*/ i                     );
     }
    
+    // Destroy vk resources tracked in PerSwapchainImageResources structures
+    for (uint32_t imgIdx = 0; imgIdx < numSwapChainImages; imgIdx++)
+    {
+        PerSwapchainImageResources* pSwapImageResources = &(pPerSwapchainImageResources[imgIdx]);
+
+        if (pSwapImageResources->queueSubmitFence != VK_NULL_HANDLE)
+        {
+            vkDestroyFence (logicalDevice, pSwapImageResources->queueSubmitFence, nullptr);
+        }
+
+        if (pSwapImageResources->commandBuffer != VK_NULL_HANDLE)
+        {
+            vkFreeCommandBuffers (logicalDevice, pSwapImageResources->commandPool, 1, &(pSwapImageResources->commandBuffer) );
+        }
+
+        if (pSwapImageResources->commandPool != VK_NULL_HANDLE)
+        {
+            vkFreeCommandBuffers (logicalDevice, pSwapImageResources->commandPool, 1, &pSwapImageResources->commandBuffer);
+        }
+
+        if (pSwapImageResources->imageView != VK_NULL_HANDLE)
+        {
+            vkDestroyImageView (logicalDevice, pSwapImageResources->imageView, nullptr);
+        }
+
+        if (pSwapImageResources->framebufferHandle != VK_NULL_HANDLE)
+        {
+            vkDestroyFramebuffer (logicalDevice, pSwapImageResources->framebufferHandle, nullptr);
+        }
+    }
+
+    /*
+    if (pipelineLayout != VK_NULL_HANDLE)
+    {
+        vkDestroyPipelineLayout(...)
+    {
+    */
+
+    if (pipeline != VK_NULL_HANDLE)
+    {
+        vkDestroyPipeline (logicalDevice, pipeline, nullptr);
+    }
+
+    if (swapchain != VK_NULL_HANDLE)
+    {
+        vkDestroySwapchainKHR (logicalDevice, swapchain, nullptr);
+    }
+
+    if (renderpass != VK_NULL_HANDLE)
+    {
+        vkDestroyRenderPass (logicalDevice, renderpass, nullptr);
+    }
+
+    if (logicalDevice != VK_NULL_HANDLE)
+    {
+        vkDestroyDevice (logicalDevice, nullptr);
+    }
+
+    if (instance != VK_NULL_HANDLE)
+    {
+        vkDestroyInstance (instance, nullptr);
+    }
+
+
     return 0;
 }
 
