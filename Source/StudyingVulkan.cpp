@@ -116,70 +116,72 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                             /*.uint32_t.....................frameIdx.....................*/ i                     );
     }
    
-    // Destroy vk resources tracked in PerSwapchainImageResources structures
-    for (uint32_t imgIdx = 0; imgIdx < numSwapChainImages; imgIdx++)
+    // Destroying vk objects below. Using a random scope here just so it can be collapsed easily in an IDE
     {
-        PerSwapchainImageResources* pSwapImageResources = &(pPerSwapchainImageResources[imgIdx]);
-
-        if (pSwapImageResources->queueSubmitFence != VK_NULL_HANDLE)
+        // Destroy vk resources tracked in PerSwapchainImageResources structures
+        for (uint32_t imgIdx = 0; imgIdx < numSwapChainImages; imgIdx++)
         {
-            vkDestroyFence (logicalDevice, pSwapImageResources->queueSubmitFence, nullptr);
+            PerSwapchainImageResources* pSwapImageResources = &(pPerSwapchainImageResources[imgIdx]);
+
+            if (pSwapImageResources->queueSubmitFence != VK_NULL_HANDLE)
+            {
+                vkDestroyFence (logicalDevice, pSwapImageResources->queueSubmitFence, nullptr);
+            }
+
+            if (pSwapImageResources->commandBuffer != VK_NULL_HANDLE)
+            {
+                vkFreeCommandBuffers (logicalDevice, pSwapImageResources->commandPool, 1, &(pSwapImageResources->commandBuffer));
+            }
+
+            if (pSwapImageResources->commandPool != VK_NULL_HANDLE)
+            {
+                vkFreeCommandBuffers (logicalDevice, pSwapImageResources->commandPool, 1, &pSwapImageResources->commandBuffer);
+            }
+
+            if (pSwapImageResources->imageView != VK_NULL_HANDLE)
+            {
+                vkDestroyImageView (logicalDevice, pSwapImageResources->imageView, nullptr);
+            }
+
+            if (pSwapImageResources->framebufferHandle != VK_NULL_HANDLE)
+            {
+                vkDestroyFramebuffer (logicalDevice, pSwapImageResources->framebufferHandle, nullptr);
+            }
         }
 
-        if (pSwapImageResources->commandBuffer != VK_NULL_HANDLE)
+        /*
+        if (pipelineLayout != VK_NULL_HANDLE)
         {
-            vkFreeCommandBuffers (logicalDevice, pSwapImageResources->commandPool, 1, &(pSwapImageResources->commandBuffer) );
+            vkDestroyPipelineLayout(...)
+        {
+        */
+
+        if (pipeline != VK_NULL_HANDLE)
+        {
+            vkDestroyPipeline (logicalDevice, pipeline, nullptr);
         }
 
-        if (pSwapImageResources->commandPool != VK_NULL_HANDLE)
+        if (swapchain != VK_NULL_HANDLE)
         {
-            vkFreeCommandBuffers (logicalDevice, pSwapImageResources->commandPool, 1, &pSwapImageResources->commandBuffer);
+            vkDestroySwapchainKHR (logicalDevice, swapchain, nullptr);
         }
 
-        if (pSwapImageResources->imageView != VK_NULL_HANDLE)
+        if (renderpass != VK_NULL_HANDLE)
         {
-            vkDestroyImageView (logicalDevice, pSwapImageResources->imageView, nullptr);
+            vkDestroyRenderPass (logicalDevice, renderpass, nullptr);
         }
 
-        if (pSwapImageResources->framebufferHandle != VK_NULL_HANDLE)
+        if (logicalDevice != VK_NULL_HANDLE)
         {
-            vkDestroyFramebuffer (logicalDevice, pSwapImageResources->framebufferHandle, nullptr);
+            vkDestroyDevice (logicalDevice, nullptr);
         }
+
+        if (instance != VK_NULL_HANDLE)
+        {
+            vkDestroyInstance (instance, nullptr);
+        }
+
     }
-
-    /*
-    if (pipelineLayout != VK_NULL_HANDLE)
-    {
-        vkDestroyPipelineLayout(...)
-    {
-    */
-
-    if (pipeline != VK_NULL_HANDLE)
-    {
-        vkDestroyPipeline (logicalDevice, pipeline, nullptr);
-    }
-
-    if (swapchain != VK_NULL_HANDLE)
-    {
-        vkDestroySwapchainKHR (logicalDevice, swapchain, nullptr);
-    }
-
-    if (renderpass != VK_NULL_HANDLE)
-    {
-        vkDestroyRenderPass (logicalDevice, renderpass, nullptr);
-    }
-
-    if (logicalDevice != VK_NULL_HANDLE)
-    {
-        vkDestroyDevice (logicalDevice, nullptr);
-    }
-
-    if (instance != VK_NULL_HANDLE)
-    {
-        vkDestroyInstance (instance, nullptr);
-    }
-
-
     return 0;
 }
 
