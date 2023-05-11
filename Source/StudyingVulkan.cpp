@@ -6,6 +6,7 @@
 #include "AppWindowingSystem.h"
 #include "resource.h"
 #include "Vulkan_Synchronization.h"
+#include "Vulkan_Buffer_Tools.h"
 
 int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -33,11 +34,11 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     VkInstance    instance = InitializeVulkanAndCreateInstance();
     VkSurfaceKHR  surface  = CreateVkSurface(instance, hInstance, window_handle);
 
-    VkPhysicalDevice         physicalDevice = VK_NULL_HANDLE; //gpu
-    VkQueue                  queue          = VK_NULL_HANDLE;
-    VkDevice                 logicalDevice  = VK_NULL_HANDLE;
-    VkPhysicalDeviceFeatures deviceFeatures = {};
-    uint32_t                 queueIndex     = UINT32_MAX;
+    VkPhysicalDevice         physicalDevice   = VK_NULL_HANDLE; //gpu
+    VkQueue                  queue            = VK_NULL_HANDLE;
+    VkDevice                 logicalDevice    = VK_NULL_HANDLE;
+    VkPhysicalDeviceFeatures deviceFeatures   = {};
+    uint32_t                 queueFamilyIndex = UINT32_MAX;
 
     const char* requiredDeviceExtensions[] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
     assert(numRequiredExtensions == sizeof(requiredDeviceExtensions) / sizeof(const char*));
@@ -50,10 +51,10 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                  /*..VkPhysicalDevice*..........*/ &physicalDevice,
                                  /*..VkQueue*...................*/ &queue,
                                  /*..VkDevice*..................*/ &logicalDevice,
-                                 /*..uint32_t*..................*/ &queueIndex);
+                                 /*..uint32_t*..................*/ &queueFamilyIndex);
 
     // Make sure we got queue index from the above function.
-    assert (queueIndex != UINT32_MAX);
+    assert (queueFamilyIndex != UINT32_MAX);
 
     //Now that we have a device, create the semaphore list.
     VkSync::InitSemaphoreList(logicalDevice);
@@ -70,7 +71,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
 
     InitializeSwapchain (/*.VkPhysicalDevice.............physicalDevice...............*/ physicalDevice,
                          /*.VkDevice.....................logicalDevice................*/ logicalDevice,
-                         /*.uint32_t.....................graphicsQueueIndex...........*/ queueIndex,
+                         /*.uint32_t.....................graphicsQueueIndex...........*/ queueFamilyIndex,
                          /*.VkSurfaceKHR.................surface......................*/ surface,
                          /*.uint32_t.....................numPreferredSurfaceFormats...*/ numPreferredSurfaceFormats,
                          /*.VkFormat*....................pPreferredSurfaceFormats.....*/ pPreferredSurfaceFormats,
@@ -95,6 +96,27 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                        numSwapChainImages,
                        pPerSwapchainImageResources);
 
+
+    float vertex_positions[] =
+    {
+        0.5, -0.5,  0.0,
+        0.5,  0.5,  0.0,
+       -0.5,  0.6,  0.0
+    };
+     
+    VkBuffer       vertexBufferHandle = VK_NULL_HANDLE;
+    VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;
+
+    CreateVertexBuffer (physicalDevice,
+                        logicalDevice,
+                        sizeof(vertex_positions),
+                        queueFamilyIndex,
+                        queue,
+                        vertex_positions,
+                        &vertexBufferHandle,
+                        &vertexBufferMemory);
+
+
     uint32_t numFramesToRender = 5;
     
     printf("executed renderloop\n");
@@ -104,7 +126,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                             /*.VkPhysicalDevice.............physicalDevice,..............*/ physicalDevice,
                             /*.VkSwapchainKHR...............swapchain....................*/ swapchain,
                             /*.VkQueue......................queue........................*/ queue,
-                            /*.uint32_t.....................gfxQueueIdx..................*/ queueIndex,
+                            /*.uint32_t.....................gfxQueueIdx..................*/ queueFamilyIndex,
                             /*.uint32_t.....................numPreferredSwapchainFormats.*/ numPreferredSurfaceFormats,
                             /*.VkFormat*....................pPreferredSwapchainFormats...*/ pPreferredSurfaceFormats,
                             /*.VkSurfaceKHR.................surface......................*/ surface,
@@ -113,6 +135,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                             /*.PerSwapchainImageResources**.ppPerSwapchainImageResources.*/ &pPerSwapchainImageResources,
                             /*.uint32_t*....................pNumSwapchainImages..........*/ &numSwapChainImages,
                             /*.VkExtent2D*..................pFramebufferExtent...........*/ &actualFrameDimensions,
+                            /*.VkBuffer*....................vertexBuffer.................*/ vertexBufferHandle,
                             /*.uint32_t.....................frameIdx.....................*/ i                     );
     }
    

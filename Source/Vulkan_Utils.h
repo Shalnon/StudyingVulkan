@@ -114,6 +114,7 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                            PerSwapchainImageResources** pPerFrameResources,
                            uint32_t*                    pNumSwapchainImages,
                            VkExtent2D*                  pExtent,
+                           VkBuffer                     vertexBuffer,
                            uint32_t                     frameIdx);
 
 VkSwapchainKHR ReinitializeRenderungSurface(VkDevice                     logicalDevice,
@@ -133,10 +134,11 @@ VkSwapchainKHR ReinitializeRenderungSurface(VkDevice                     logical
 void RenderTriangle(uint32_t                    swapChainImageIdx,
                     VkRenderPass                renderPass,
                     VkPipeline                  pipeline,
-                    PerSwapchainImageResources* pPerFrameArgs,
+                    PerSwapchainImageResources* pPerSwapchainImageResources,
                     VkSwapchainKHR              swapchain,
                     VkQueue                     queue,
                     VkExtent2D*                 pExtent,
+                    const VkBuffer              vertexBufferHandle,
                     uint32_t                    frameIdx);
 
 VkResult PresentImage(VkSwapchainKHR swapchain,

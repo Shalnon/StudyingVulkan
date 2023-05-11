@@ -2,6 +2,7 @@
 
 #include "Vulkan_Utils.h"
 #include "Vulkan_enum_strings.h"
+#include "Vulkan_Buffer_Tools.h"
 uint32_t numRequiredExtensions = 1;
 
 
@@ -794,20 +795,36 @@ VkShaderModule CreateShaderModule(VkDevice logicalDevice, const char* spvPath, b
 
 VkPipeline CreatePipeline(VkDevice logicalDevice, VkRenderPass renderpass, VkExtent2D* pExtent, const char* fragShaderPath, const char* vertShaderPath)
 {
-    //From Khronos sample: | Create a blank pipeline layout.                                       |
-    //                     | We are not binding any resources to the pipeline in this first sample.|
+    uint32_t numVertexAttributes = sizeof (s_VertexShaderAttributes) / sizeof (AttributeInfo);
+    assert (numVertexAttributes > 0);
+ 
+    VkVertexInputAttributeDescription inputAttributeDescription =
+    {
+        /*...uint32_t....location....*/ s_VertexShaderAttributes[VERTEX_ATTRIB_POSITION_IDX].attributeIdx,
+        /*...uint32_t....binding.....*/ s_VertexShaderAttributes[VERTEX_ATTRIB_POSITION_IDX].bufferBindingIdx,
+        /*...VkFormat....format......*/ s_VertexShaderAttributes[VERTEX_ATTRIB_POSITION_IDX].format,
+        /*...uint32_t....offset......*/ s_VertexShaderAttributes[VERTEX_ATTRIB_POSITION_IDX].offset
+    };
 
+    // Position binding
+    VkVertexInputBindingDescription       vertexInputDescription =
+    {
+        /*..uint32_t.............binding......*/ s_VertexShaderAttributes[VERTEX_ATTRIB_POSITION_IDX].bufferBindingIdx,
+        /*..uint32_t.............stride.......*/ s_VertexShaderAttributes[VERTEX_ATTRIB_POSITION_IDX].stride,
+        /*..VkVertexInputRate....inputRate....*/ VK_VERTEX_INPUT_RATE_VERTEX
+    };
+
+    // The pipeline layout is used to register resources like samplers, SSBOs and other resources requiring a descriptor set to be used
     VkPipelineLayout                       pipelineLayout             = VK_NULL_HANDLE;
-
     VkPipelineVertexInputStateCreateInfo   vertexInputStateCreateInfo =
     {
         /*...VkStructureType.............................sType.............................*/ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-        /*...const.void*.................................pNext.............................*/ 0,
-        /*...VkPipelineVertexInputStateCreateFlags.......flags.............................*/ 0,
-        /*...uint32_t....................................vertexBindingDescriptionCount.....*/ 0,
-        /*...const.VkVertexInputBindingDescription*......pVertexBindingDescriptions........*/ nullptr,
-        /*...uint32_t....................................vertexAttributeDescriptionCount...*/ 0,
-        /*...const.VkVertexInputAttributeDescription*....pVertexAttributeDescriptions......*/ nullptr
+        /*...const.void*.................................pNext.............................*/ nullptr,
+        /*...VkPipelineVertexInputStateCreateFlags.......flags.............................*/ 0, // Reserved for future use as of vulkan 1.3
+        /*...uint32_t....................................vertexBindingDescriptionCount.....*/ 1,
+        /*...const.VkVertexInputBindingDescription*......pVertexBindingDescriptions........*/ &vertexInputDescription,
+        /*...uint32_t....................................vertexAttributeDescriptionCount...*/ numVertexAttributes,
+        /*...const.VkVertexInputAttributeDescription*....pVertexAttributeDescriptions......*/ &inputAttributeDescription
     };
 
     VkPipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo =
@@ -1120,20 +1137,21 @@ VkResult AcuireNextSwapchainImageIdx(VkDevice                    logicalDevice,
 
 
 
-uint64_t ExecuteRenderLoop(VkDevice                    logicalDevice,
-                           VkPhysicalDevice            physicalDevice, 
-                           VkSwapchainKHR              swapchain,
-                           VkQueue                     queue,
-                           uint32_t                    gfxQueueIdx,
-                           uint32_t                    numPreferredSwapchainFormats,
-                           VkFormat*                   pPreferredSwapchainFormats,
-                           VkSurfaceKHR                surface,
-                           VkRenderPass                renderpass,
-                           VkPipeline                  pipeline,
+uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
+                           VkPhysicalDevice             physicalDevice, 
+                           VkSwapchainKHR               swapchain,
+                           VkQueue                      queue,
+                           uint32_t                     gfxQueueIdx,
+                           uint32_t                     numPreferredSwapchainFormats,
+                           VkFormat*                    pPreferredSwapchainFormats,
+                           VkSurfaceKHR                 surface,
+                           VkRenderPass                 renderpass,
+                           VkPipeline                   pipeline,
                            PerSwapchainImageResources** ppPerSwapchainImageResources,
-                           uint32_t*                   pNumSwapchainImages,
-                           VkExtent2D*                 pExtent,
-                           uint32_t                    frameIdx)
+                           uint32_t*                    pNumSwapchainImages,
+                           VkExtent2D*                  pExtent,
+                           VkBuffer                     vertexBuffer,
+                           uint32_t                     frameIdx)
 {
     uint64_t time     = 0;
     VkResult result   = VK_INCOMPLETE;
@@ -1179,6 +1197,7 @@ uint64_t ExecuteRenderLoop(VkDevice                    logicalDevice,
                    swapchain,
                    queue,
                    pExtent,
+                   vertexBuffer,
                    frameIdx);
 
     // present image
@@ -1284,6 +1303,7 @@ void RenderTriangle(uint32_t                    swapChainImageIdx,
                     VkSwapchainKHR              swapchain,
                     VkQueue                     queue,
                     VkExtent2D*                 pExtent,
+                    const VkBuffer              vertexBufferHandle,
                     uint32_t                    frameIdx)
 {
     VkClearValue clearValArray[] =
@@ -1348,6 +1368,13 @@ void RenderTriangle(uint32_t                    swapChainImageIdx,
     };
 
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+    VkDeviceSize offsets[] = { 0 };
+    vkCmdBindVertexBuffers (/*..VkCommandBuffer........commandBuffer....*/ commandBuffer,
+                            /*..uint32_t...............firstBinding.....*/ 0,
+                            /*..uint32_t...............bindingCount.....*/ 1,
+                            /*..const.VkBuffer*........pBuffers.........*/ &vertexBufferHandle,
+                            /*..const.VkDeviceSize*....pOffsets.........*/ offsets);
 
     vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 
