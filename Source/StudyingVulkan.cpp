@@ -7,6 +7,7 @@
 #include "resource.h"
 #include "Vulkan_Synchronization.h"
 #include "Vulkan_Buffer_Tools.h"
+#include "Asset_Tools.h"
 
 int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -20,11 +21,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     
     HWND window_handle = InitWindowInstance(hInstance, nCmdShow, szWindowClass, szTitle, WINDOW_WIDTH, WINDOW_HEIGHT);
 
-    std::string pCurrentPath = std::filesystem::current_path().string();
-   
-    printf("current path = %s\n", pCurrentPath.c_str());
-
-    std::string vertexShaderPath   = std::string(VERT_PATH);
+    std::string vertexShaderPath   = std::string(VERT_PATH); //@TODO: change these to use a relative path from the working directory
     std::string fragmentShaderPath = std::string(FRAG_PATH);
 
     printf("Vertex shader path: %s\n",   vertexShaderPath.c_str());
@@ -95,27 +92,33 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                        &actualFrameDimensions,
                        numSwapChainImages,
                        pPerSwapchainImageResources);
-
-
-    float vertex_positions[] =
-    {
-        0.5, -0.5,  0.0,
-        0.5,  0.5,  0.0,
-       -0.5,  0.6,  0.0
-    };
      
-    VkBuffer       vertexBufferHandle = VK_NULL_HANDLE;
-    VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;
+    std::string currentPath   = std::filesystem::current_path ().string ();
+    std::string assetsDirPath = currentPath + std::string ("\\..\\..\\..\\Assets");
+    std::string modelPath     = assetsDirPath + std::string ("\\Models\\simple_triangle.obj");
+    assert (modelPath.length() > 0); //adding this just to remind myself to add an actual path above.
+    printf ("model path = %s\n", modelPath.c_str ());
 
-    CreateVertexBuffer (physicalDevice,
-                        logicalDevice,
-                        sizeof(vertex_positions),
-                        queueFamilyIndex,
-                        queue,
-                        vertex_positions,
-                        &vertexBufferHandle,
-                        &vertexBufferMemory);
+    const aiScene*     pScene           = aiImportFile (modelPath.c_str(), aiProcessPreset_TargetRealtime_MaxQuality);
+    GeometryBufferSet  geometrysBuffers = {}; // Initializing the struct to 0 so any non-0 values are indicative of one of the variables being changed.
 
+    // Create a vertex and index buffer
+    geometrysBuffers = CreateGeometryBuffersFromAiScene (physicalDevice,
+                                                         logicalDevice,
+                                                         queue,
+                                                         queueFamilyIndex,
+                                                         pScene,
+                                                         true);
+
+   // CreateVertexBuffer (physicalDevice,
+   //                     logicalDevice,
+   //                     sizeof(vertex_positions),
+   //                     queueFamilyIndex,
+   //                     queue,
+   //                     vertex_positions,
+   //                     &vertexBufferHandle,
+   //                     &vertexBufferMemory);
+   
 
     uint32_t numFramesToRender = 5;
     
@@ -135,7 +138,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                             /*.PerSwapchainImageResources**.ppPerSwapchainImageResources.*/ &pPerSwapchainImageResources,
                             /*.uint32_t*....................pNumSwapchainImages..........*/ &numSwapChainImages,
                             /*.VkExtent2D*..................pFramebufferExtent...........*/ &actualFrameDimensions,
-                            /*.VkBuffer*....................vertexBuffer.................*/ vertexBufferHandle,
+                            /*.GeometryBufferSet*...........vertexBuffer.................*/ &geometrysBuffers,
                             /*.uint32_t.....................frameIdx.....................*/ i                     );
     }
    

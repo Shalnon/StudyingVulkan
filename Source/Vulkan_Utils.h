@@ -8,6 +8,10 @@
 extern uint32_t  numRequiredExtensions;
 
 
+// struct prototypes:
+struct GeometryBufferSet;
+
+// Static array of formats that specifies which formats we want to use when interacting with the swapchain images
 static const VkFormat preferredSwapchainFormats[NUM_PREFERRED_SURFACE_FORMATS] = PREFERRED_SURRFACE_FORMATS;
 
 // Struct for tracking info needed to create and/or modify a swapchain
@@ -114,7 +118,7 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                            PerSwapchainImageResources** pPerFrameResources,
                            uint32_t*                    pNumSwapchainImages,
                            VkExtent2D*                  pExtent,
-                           VkBuffer                     vertexBuffer,
+                           GeometryBufferSet*           pGeometryBufferSet,
                            uint32_t                     frameIdx);
 
 VkSwapchainKHR ReinitializeRenderungSurface(VkDevice                     logicalDevice,
@@ -140,6 +144,16 @@ void RenderTriangle(uint32_t                    swapChainImageIdx,
                     VkExtent2D*                 pExtent,
                     const VkBuffer              vertexBufferHandle,
                     uint32_t                    frameIdx);
+
+void RenderGeometryBufferSet (uint32_t                    swapChainImageIdx,
+                              VkRenderPass                renderPass,
+                              VkPipeline                  pipeline,
+                              PerSwapchainImageResources* pPerSwapchainImageResources,
+                              VkSwapchainKHR              swapchain,
+                              VkQueue                     queue,
+                              VkExtent2D*                 pExtent,
+                              GeometryBufferSet*          pGeometryBufferSet,
+                              uint32_t                    frameIdx);
 
 VkResult PresentImage(VkSwapchainKHR swapchain,
                       uint32_t       swapchainImageIndex,

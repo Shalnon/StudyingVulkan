@@ -1150,14 +1150,14 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                            PerSwapchainImageResources** ppPerSwapchainImageResources,
                            uint32_t*                    pNumSwapchainImages,
                            VkExtent2D*                  pExtent,
-                           VkBuffer                     vertexBuffer,
+                           GeometryBufferSet*           pGeometryBufferSet,
                            uint32_t                     frameIdx)
 {
-    uint64_t time     = 0;
-    VkResult result   = VK_INCOMPLETE;
-    uint32_t imageIdx;
+    uint64_t                    time               = 0;
+    VkResult                    result             = VK_INCOMPLETE;
     PerSwapchainImageResources* pPerFrameResources = *ppPerSwapchainImageResources;
 
+    uint32_t imageIdx;
     result = AcuireNextSwapchainImageIdx(logicalDevice, swapchain, &imageIdx, pPerFrameResources);
 
     if ((result == VK_SUBOPTIMAL_KHR) || (result == VK_ERROR_OUT_OF_DATE_KHR))
@@ -1190,15 +1190,15 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
     }
 
 
-    RenderTriangle(imageIdx,
-                   renderpass,
-                   pipeline,
-                   pPerFrameResources,
-                   swapchain,
-                   queue,
-                   pExtent,
-                   vertexBuffer,
-                   frameIdx);
+    RenderGeometryBufferSet (imageIdx,
+                             renderpass,
+                             pipeline,
+                             pPerFrameResources,
+                             swapchain,
+                             queue,
+                             pExtent,
+                             pGeometryBufferSet,
+                             frameIdx);
 
     // present image
     result = PresentImage(swapchain, imageIdx, pPerFrameResources[imageIdx].releaseSwapchainImageSemaphore, queue);
@@ -1306,6 +1306,19 @@ void RenderTriangle(uint32_t                    swapChainImageIdx,
                     const VkBuffer              vertexBufferHandle,
                     uint32_t                    frameIdx)
 {
+ 
+}
+
+void RenderGeometryBufferSet (uint32_t                    swapChainImageIdx,
+                              VkRenderPass                renderPass,
+                              VkPipeline                  pipeline,
+                              PerSwapchainImageResources* pPerSwapchainImageResources,
+                              VkSwapchainKHR              swapchain,
+                              VkQueue                     queue,
+                              VkExtent2D*                 pExtent,
+                              GeometryBufferSet*          pGeometryBufferSet,
+                              uint32_t                    frameIdx)
+{
     VkClearValue clearValArray[] =
     {
         {0.01f, 0.01f, 0.033f, 1.0f},
@@ -1313,7 +1326,7 @@ void RenderTriangle(uint32_t                    swapChainImageIdx,
         {0.033f, 0.01f, 0.01f, 1.0f}
     };
 
-    VkFramebuffer   framebuffer   = pPerSwapchainImageResources[swapChainImageIdx].framebufferHandle;
+    VkFramebuffer   framebuffer = pPerSwapchainImageResources[swapChainImageIdx].framebufferHandle;
     VkCommandBuffer commandBuffer = pPerSwapchainImageResources[swapChainImageIdx].commandBuffer;
 
 
@@ -1326,7 +1339,7 @@ void RenderTriangle(uint32_t                    swapChainImageIdx,
     };
 
     // Begin command buffer
-    vkBeginCommandBuffer(commandBuffer, &cmdBufferBeginInfo);
+    vkBeginCommandBuffer (commandBuffer, &cmdBufferBeginInfo);
 
     VkRect2D renderArea =
     {
@@ -1342,12 +1355,12 @@ void RenderTriangle(uint32_t                    swapChainImageIdx,
         /*...VkFramebuffer..........framebuffer........*/ framebuffer,
         /*...VkRect2D...............renderArea.........*/ renderArea,
         /*...uint32_t...............clearValueCount....*/ 1,
-        /*...const.VkClearValue*....pClearValues.......*/ &clearValArray[frameIdx%3]
+        /*...const.VkClearValue*....pClearValues.......*/ &clearValArray[frameIdx % 3]
     };
 
-    vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBeginRenderPass (commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+    vkCmdBindPipeline (commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
     VkViewport viewport =
     {
@@ -1359,7 +1372,7 @@ void RenderTriangle(uint32_t                    swapChainImageIdx,
         /*...float....maxDepth...*/ 1.0
     };
 
-    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+    vkCmdSetViewport (commandBuffer, 0, 1, &viewport);
 
     VkRect2D scissor =
     {
@@ -1367,25 +1380,35 @@ void RenderTriangle(uint32_t                    swapChainImageIdx,
         /*...VkExtent2D....extent...*/ *pExtent
     };
 
-    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+    vkCmdSetScissor (commandBuffer, 0, 1, &scissor);
 
     VkDeviceSize offsets[] = { 0 };
     vkCmdBindVertexBuffers (/*..VkCommandBuffer........commandBuffer....*/ commandBuffer,
                             /*..uint32_t...............firstBinding.....*/ 0,
                             /*..uint32_t...............bindingCount.....*/ 1,
-                            /*..const.VkBuffer*........pBuffers.........*/ &vertexBufferHandle,
+                            /*..const.VkBuffer*........pBuffers.........*/ &(pGeometryBufferSet->vertexBufferInfo.bufferHandle),
                             /*..const.VkDeviceSize*....pOffsets.........*/ offsets);
 
-    vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+    vkCmdBindIndexBuffer (/*...VkCommandBuffer..........commandBuffer....*/ commandBuffer,
+                          /*...VkBuffer.................buffer...........*/ pGeometryBufferSet->indexBufferInfo.bufferHandle,
+                          /*...VkDeviceSize.............offset...........*/ 0,
+                          /*...VkIndexType..............indexType........*/ VK_INDEX_TYPE_UINT32);
 
-    vkCmdEndRenderPass(commandBuffer);
+    vkCmdDrawIndexed (/*...VkCommandBuffer.......commandBuffer......*/ commandBuffer,
+                      /*...uint32_t..............indexCount.........*/ pGeometryBufferSet->numTriangles * NUM_VERTICES_PER_TRIANGLE,
+                      /*...uint32_t..............instanceCount......*/ 1,
+                      /*...uint32_t..............firstIndex.........*/ 0,
+                      /*...int32_t...............vertexOffset.......*/ 0,
+                      /*...uint32_t..............firstInstance......*/ 0);
 
-    VkResult result = vkEndCommandBuffer(commandBuffer);
-    assert(result == VK_SUCCESS);
+    vkCmdEndRenderPass (commandBuffer);
+
+    VkResult result = vkEndCommandBuffer (commandBuffer);
+    assert (result == VK_SUCCESS);
 
     if (pPerSwapchainImageResources[swapChainImageIdx].releaseSwapchainImageSemaphore == VK_NULL_HANDLE)
     {
-        pPerSwapchainImageResources[swapChainImageIdx].releaseSwapchainImageSemaphore = VkSync::SemaphoreDepot.ObtainSemaphore();
+        pPerSwapchainImageResources[swapChainImageIdx].releaseSwapchainImageSemaphore = VkSync::SemaphoreDepot.ObtainSemaphore ();
     }
 
     VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -1403,8 +1426,8 @@ void RenderTriangle(uint32_t                    swapChainImageIdx,
         /*...const.VkSemaphore*.............pSignalSemaphores.......*/ &(pPerSwapchainImageResources[swapChainImageIdx].releaseSwapchainImageSemaphore) // Semaphores that will be signaled when the command buffers for this batch have completed execution.
     };
 
-    result = vkQueueSubmit(queue, 1, &submitInfo, pPerSwapchainImageResources[swapChainImageIdx].queueSubmitFence);
-    assert(result == VK_SUCCESS);
+    result = vkQueueSubmit (queue, 1, &submitInfo, pPerSwapchainImageResources[swapChainImageIdx].queueSubmitFence);
+    assert (result == VK_SUCCESS);
 }
 
 VkResult PresentImage(VkSwapchainKHR swapchain,

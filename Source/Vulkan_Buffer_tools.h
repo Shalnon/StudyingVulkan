@@ -1,26 +1,11 @@
 #pragma once
+#ifndef VULKAN_BUFFER_TOOLS_H
+#define VULKAN_BUFFER_TOOLS_H
+//#include "StudyingVulkan.h"
 #include "Vulkan_Utils.h"
 
-void GetMemoryType (VkPhysicalDevice      physicalDevice,
-                    VkMemoryPropertyFlags requiredPropertyFlags, // ex: a mask of VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, etc...
-                    uint32_t* pChosenMemTypeIdxOut,
-                    VkMemoryRequirements* memRequirements);
-
-VkDeviceMemory AllocateVkBufferMemory (VkPhysicalDevice      physicalDevice,
-                                       VkDevice              logicalDevice,
-                                       VkMemoryPropertyFlags requiredPropertyFlags, // ex: a mask of VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, etc...
-                                       VkMemoryRequirements* pBufferMemoryRequirements);
-
-
-
-void CreateVertexBuffer (VkPhysicalDevice physicalDevice,
-                         VkDevice         logicalDevice,
-                         uint32_t         bufferSizeInBytes,
-                         uint32_t         queueIndex,
-                         VkQueue          queue,
-                         void* pVertexData,
-                         VkBuffer* pVertexBufferOut,
-                         VkDeviceMemory* pVertexBufferMemoryOut);
+// vertex attribute index/slot that will correspond to vertex position
+#define VERTEX_ATTRIB_POSITION_IDX 0
 
 // used to map data to the vertex attributes
 struct VertexAttributeData
@@ -51,21 +36,84 @@ static AttributeInfo s_VertexShaderAttributes[] =
     }
 };
 
+// non-api struct we will use to track info needed to work with a specific VkBuffer and its data.
 struct vulkanAllocatedBufferInfo
 {
     VkBuffer       bufferHandle;
     VkDeviceMemory memoryHandle;
-    uint32_t       buffersize;
+    VkDeviceSize   buffersize;
     uint32_t       offset;
 };
 
-inline vulkanAllocatedBufferInfo CreateStagingBuffer (VkPhysicalDevice physicalDeviceHandle,
-                                                      VkDevice         logicalDevice,
-                                                      uint32_t         bufferSizeInBytes,
-                                                      uint32_t         queueIndex)
+// Tracks a usable vertex buffer - index buffer pair. May also be a good place to add things like acceleration structure tracking as well.
+struct GeometryBufferSet
 {
+    vulkanAllocatedBufferInfo vertexBufferInfo;
+    vulkanAllocatedBufferInfo indexBufferInfo;
+    uint32_t                  numVertices;
+    uint32_t                  numTriangles;
+};
 
+// light-weight inline function for mapping buffer memory and getting a cpu ptr to it.
+inline void* MapBufferMemory (vulkanAllocatedBufferInfo bufferInfo,
+                              VkDevice                  logicalDevice)
+{
+    void* pMem = nullptr;
+    vkMapMemory (/*...VkDevice...........device.....*/ logicalDevice,
+                 /*...VkDeviceMemory.....memory.....*/ bufferInfo.memoryHandle,
+                 /*...VkDeviceSize.......offset.....*/ bufferInfo.offset,
+                 /*...VkDeviceSize.......size.......*/ bufferInfo.buffersize,
+                 /*...VkMemoryMapFlags...flags......*/ 0,
+                 /*...void**.............ppData.....*/ &pMem);
 
+    assert (pMem);
 
-    return {};
+    return pMem;
 }
+
+void GetMemoryType (VkPhysicalDevice      physicalDevice,
+                    VkMemoryPropertyFlags requiredPropertyFlags, // ex: a mask of VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, etc...
+                    uint32_t*             pChosenMemTypeIdxOut,
+                    VkMemoryRequirements* memRequirements);
+
+VkDeviceMemory AllocateVkBufferMemory (VkPhysicalDevice      physicalDevice,
+                                       VkDevice              logicalDevice,
+                                       VkMemoryPropertyFlags requiredPropertyFlags, // ex: a mask of VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, etc...
+                                       VkMemoryRequirements* pBufferMemoryRequirements);
+
+vulkanAllocatedBufferInfo CreateAndAllocaStagingBuffer (VkPhysicalDevice physicalDevice,
+                                               VkDevice         logicalDevice,
+                                               uint32_t         bufferSizeInBytes,
+                                               uint32_t         queueIndex);
+
+
+vulkanAllocatedBufferInfo CreateAndAllocateVertexBuffer (VkPhysicalDevice physicalDevice,
+                                                         VkDevice         logicalDevice,
+                                                         uint32_t         bufferSizeInBytes,
+                                                         uint32_t         queueIndex);
+ 
+vulkanAllocatedBufferInfo CreateAndAllocateIndexBuffer (VkPhysicalDevice physicalDevice,
+                                                        VkDevice         logicalDevice,
+                                                        uint32_t         bufferSizeInBytes,
+                                                        uint32_t         queueIndex);
+ 
+VkResult ExecuteBuffer2BufferCopy (VkPhysicalDevice          physicalDevice,
+                                   VkDevice                  logicalDevice,
+                                   VkQueue                   queue,
+                                   uint32_t                  queueFamilyIndex,
+                                   VkDeviceSize              copySize,
+                                   vulkanAllocatedBufferInfo srcBufferInfo,
+                                   vulkanAllocatedBufferInfo dstBufferInfo);
+
+// prototype aiScene* ptr definition for use in the function signature below. without it we'd have to include an assimp header.
+struct aiScene;
+
+// Loads vertex data from a file into a buffer backed by device local memory.
+GeometryBufferSet CreateGeometryBuffersFromAiScene (VkPhysicalDevice physicalDevice, // @TODO, Create ssbo (or ubo maybe) with individual transform matrices for files which define multiple geometries/objects/meshes/whatever you want to call them
+                                                    VkDevice         logicalDevice,
+                                                    VkQueue          queue,
+                                                    uint32_t         queueFamilyIndex,
+                                                    const aiScene*   pScene,
+                                                    bool             useInterleavedAttributes);
+
+#endif
