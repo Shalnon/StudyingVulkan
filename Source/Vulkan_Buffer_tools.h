@@ -3,6 +3,7 @@
 #define VULKAN_BUFFER_TOOLS_H
 //#include "StudyingVulkan.h"
 #include "Vulkan_Utils.h"
+#include <glm\glm.hpp>
 
 // vertex attribute index/slot that will correspond to vertex position
 #define VERTEX_ATTRIB_POSITION_IDX 0
@@ -52,6 +53,10 @@ struct GeometryBufferSet
     vulkanAllocatedBufferInfo indexBufferInfo;
     uint32_t                  numVertices;
     uint32_t                  numTriangles;
+
+    // Using the VK aabb struct which is a part of VK_KHR_acceleration_structure extenction,
+    //      but were just using it as a generic aabb tracking struct.
+    VkAabbPositionsKHR aabb;
 };
 
 // light-weight inline function for mapping buffer memory and getting a cpu ptr to it.

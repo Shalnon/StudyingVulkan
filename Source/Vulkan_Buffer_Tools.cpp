@@ -328,7 +328,17 @@ GeometryBufferSet CreateGeometryBuffersFromAiScene (VkPhysicalDevice physicalDev
                     //              // Write normal data.
                     //              // Write color data.
                     //              // etc...
-                             }*/
+                    //         }*/
+
+                    // Update aabb as needed
+                    if      (pVertex->x > geometryBuffersOut.aabb.maxX) { geometryBuffersOut.aabb.maxX  = pVertex->x; } // update x max
+                    else if (pVertex->x < geometryBuffersOut.aabb.minX) { geometryBuffersOut.aabb.minX  = pVertex->x; } // update x min
+                    if      (pVertex->y > geometryBuffersOut.aabb.maxY) { geometryBuffersOut.aabb.maxY  = pVertex->y; } // update y max
+                    else if (pVertex->y < geometryBuffersOut.aabb.minY) { geometryBuffersOut.aabb.minY  = pVertex->y; } // update y min
+                    if      (pVertex->z > geometryBuffersOut.aabb.maxZ) { geometryBuffersOut.aabb.maxZ  = pVertex->z; } // update z max
+                    else if (pVertex->z < geometryBuffersOut.aabb.minZ) { geometryBuffersOut.aabb.minZ  = pVertex->z; } // update z min
+
+                    //@TODO: move aabb calculation into the if statement below, so that we eliminate the chance of using verts that are part of a degenerate triangle in the aabb calculation
                 }
 
                 numSceneVertices += pAiMesh->mNumVertices;
@@ -359,7 +369,6 @@ GeometryBufferSet CreateGeometryBuffersFromAiScene (VkPhysicalDevice physicalDev
 
             vkUnmapMemory (logicalDevice, vertexStagingBufferInfo.memoryHandle);
             vkUnmapMemory (logicalDevice, indexStagingBufferInfo.memoryHandle);
-
 
             geometryBuffersOut.numVertices      = numSceneVertices;
             geometryBuffersOut.numTriangles     = numSceneTriangles;
