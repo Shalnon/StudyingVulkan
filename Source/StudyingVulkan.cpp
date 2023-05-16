@@ -109,20 +109,11 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                                          queueFamilyIndex,
                                                          pScene,
                                                          true);
-
-   // CreateVertexBuffer (physicalDevice,
-   //                     logicalDevice,
-   //                     sizeof(vertex_positions),
-   //                     queueFamilyIndex,
-   //                     queue,
-   //                     vertex_positions,
-   //                     &vertexBufferHandle,
-   //                     &vertexBufferMemory);
    
 
     uint32_t numFramesToRender = 5;
     
-    printf("executed renderloop\n");
+    printf("about to start executing renderloop\n");
     for (uint32_t i = 0; i < numFramesToRender; i++)
     {
         ExecuteRenderLoop (/*.VkDevice.....................logicalDevice................*/ logicalDevice,
@@ -142,6 +133,8 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                             /*.uint32_t.....................frameIdx.....................*/ i                     );
     }
    
+    printf ("finished exedcuting render loop %u times.\n", numFramesToRender);
+
     // Destroying vk objects below. Using a random scope here just so it can be collapsed easily in an IDE
     {
         // Destroy vk resources tracked in PerSwapchainImageResources structures

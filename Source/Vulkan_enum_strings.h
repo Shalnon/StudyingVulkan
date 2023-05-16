@@ -3,6 +3,7 @@
 
 #include "StudyingVulkan.h"
 
+
 //just the first dozen or so since they have contiguous values.
 static const char* VK_RESULT_STRINGS[] =
 {

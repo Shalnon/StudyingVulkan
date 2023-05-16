@@ -114,7 +114,7 @@ int32_t VkSync::SemaphoreList::ScanForUnoccupiedSlot()
 
 VkSemaphore VkSync::SemaphoreList::ObtainSemaphore()
 {
-    assert(numAllocatedHandles > numAvailableSemaphores);
+    assert(numAllocatedHandles >= numAvailableSemaphores);
 
     VkSemaphore semaphoreOut = VK_NULL_HANDLE;
 

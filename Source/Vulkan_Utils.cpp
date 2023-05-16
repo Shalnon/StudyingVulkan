@@ -494,6 +494,7 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
     VkCompositeAlphaFlagBitsKHR preferredCompositeBit = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     assert((surfaceCapabilities.supportedCompositeAlpha & preferredCompositeBit) != 0);
 
+    /// The present mode is basically what determines vsync behavior. Whether there is or is not tearing, etc...
     VkPresentModeKHR swapchainPresentMode = VK_PRESENT_MODE_FIFO_KHR;
 
     VkSwapchainCreateInfoKHR swapchainCreateInfo =
@@ -510,7 +511,7 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
         /*....VkImageUsageFlags................imageUsage..............*/ VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
         /*....VkSharingMode....................imageSharingMode........*/ VK_SHARING_MODE_EXCLUSIVE,
         /*....uint32_t.........................queueFamilyIndexCount...*/ 0, //SPEC: queueFamilyIndexCount is the number of queue families having access to the image(s) of the swapchain when imageSharingMode is VK_SHARING_MODE_CONCURRENT.
-        /*....const.uint32_t*..................pQueueFamilyIndices.....*/ 0,
+        /*....con st.uint32_t*..................pQueueFamilyIndices.....*/ 0,
         /*....VkSurfaceTransformFlagBitsKHR....preTransform............*/ preTransform,
         /*....VkCompositeAlphaFlagBitsKHR......compositeAlpha..........*/ preferredCompositeBit,
         /*....VkPresentModeKHR.................presentMode.............*/ swapchainPresentMode,
@@ -559,6 +560,11 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
 
         result = vkCreateFence(logicalDevice, &fenceCreateInfo, 0, &(pPerSwapchainImageResources[i].queueSubmitFence));
         assert(result == VK_SUCCESS);
+
+        printf("Created fence(0x%016x) for swapchain image #%u, initial status is %s\n", 
+                       pPerSwapchainImageResources[i].queueSubmitFence,
+                       i,
+                       VkResultToString (vkGetFenceStatus (logicalDevice, pPerSwapchainImageResources[i].queueSubmitFence)));
 
         VkCommandPoolCreateInfo commandPoolCreateInfo =
         {
@@ -784,7 +790,7 @@ VkShaderModule CreateShaderModule(VkDevice logicalDevice, const char* spvPath, b
         /*...const.uint32_t*..............pCode.......*/ pCode// reinterpret_cast<uint32_t*>(spvCode.alignedBaseAddress)
     };
     printf("codeSize = %llu, codesize / 4 = %llu\n", codeSize, codeSize / 4);
-    printf("fromStruct: codeSize = %u, codesize / 4 = %u\n", shaderModuleCreateInfo.codeSize, shaderModuleCreateInfo.codeSize / 4);
+    printf("fromStruct: codeSize = %llu, codesize / 4 = %llu\n", shaderModuleCreateInfo.codeSize, shaderModuleCreateInfo.codeSize / 4);
     VkResult result = vkCreateShaderModule(logicalDevice, &shaderModuleCreateInfo, nullptr, &shaderModule);
     assert(result == VK_SUCCESS);
     assert(shaderModule != VK_NULL_HANDLE);
@@ -896,7 +902,7 @@ VkPipeline CreatePipeline(VkDevice logicalDevice, VkRenderPass renderpass, VkExt
 
     VkRect2D scissor =
     {
-        /*...VkOffset2D....offset....*/ { 0.0f, 0.0},
+        /*...VkOffset2D....offset....*/ { 0, 0 },
         /*...VkExtent2D....extent....*/ {pExtent->width, pExtent->height}
     };
 
@@ -1070,21 +1076,28 @@ void CreateFrameBuffers(VkDevice                    logicalDevice,
 
 //need to figure out why this is something that needs a swapchain image index...
 void WaitOnPendingSwapchainImageFence(PerSwapchainImageResources* pPerFrameResources,
-                                      VkDevice           logicalDevice,
-                                      uint32_t           swapchainImageIdx)
+                                      VkDevice                    logicalDevice,
+                                      uint32_t                    swapchainImageIdx)
 {
     PerSwapchainImageResources* pSwapchainImageResources = &(pPerFrameResources[swapchainImageIdx]);
+    assert (pSwapchainImageResources->queueSubmitFence != VK_NULL_HANDLE);
 
-    if (pSwapchainImageResources->queueSubmitFence != VK_NULL_HANDLE)
-    {
-        vkWaitForFences(logicalDevice, 1, &(pSwapchainImageResources->queueSubmitFence), VK_TRUE, UINT64_MAX);
-        vkResetFences(logicalDevice, 1, &(pSwapchainImageResources->queueSubmitFence));
-    }
+    vkWaitForFences (logicalDevice, 1, &(pSwapchainImageResources->queueSubmitFence), VK_TRUE, UINT64_MAX);
+
+    VkResult resetFencesResult = VK_INCOMPLETE;
+    resetFencesResult = vkResetFences (logicalDevice, 1, &(pSwapchainImageResources->queueSubmitFence));
+    assert (resetFencesResult == VK_SUCCESS);
+
+    printf ("reset fence(0x%016x) for swapchain image %u returned %s\n", 
+            pSwapchainImageResources->queueSubmitFence,
+            swapchainImageIdx,
+            VkResultToString (vkGetFenceStatus (logicalDevice, pSwapchainImageResources->queueSubmitFence)));
 
     if (pSwapchainImageResources->commandPool != VK_NULL_HANDLE)
-    {
+    { 
         vkResetCommandPool(logicalDevice, pSwapchainImageResources->commandPool, 0);
     }
+    else { assert (0); } // Im expecting the else to never be hit.
 }
 
 VkResult AcuireNextSwapchainImageIdx(VkDevice                    logicalDevice,
@@ -1117,7 +1130,7 @@ VkResult AcuireNextSwapchainImageIdx(VkDevice                    logicalDevice,
         printf("vkAcquireNextImageKHR() returned %s\n", VkResultToString(result));
     }
 
-    WaitOnPendingSwapchainImageFence(pSwapchainImageResourceSet,
+    WaitOnPendingSwapchainImageFence(pSwapchainImageResources,
                                      logicalDevice,
                                      *pSwapchainImageIdxOut);
 
@@ -1157,7 +1170,7 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
     VkResult                    result             = VK_INCOMPLETE;
     PerSwapchainImageResources* pPerFrameResources = *ppPerSwapchainImageResources;
 
-    uint32_t imageIdx;
+    uint32_t imageIdx; printf ("Acquiring swapchain image\n");
     result = AcuireNextSwapchainImageIdx(logicalDevice, swapchain, &imageIdx, pPerFrameResources);
 
     if ((result == VK_SUBOPTIMAL_KHR) || (result == VK_ERROR_OUT_OF_DATE_KHR))
@@ -1183,28 +1196,37 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                                                   
     }
 
+    printf ("acquireNextSwapchainImageIdx returned %s\n", VkResultToString (result));
+
     // Wait for queue to be idle.
     if (result == VK_NOT_READY)
     {
-        vkQueueWaitIdle(queue);
+        result = vkQueueWaitIdle(queue);
+        assert (result == VK_SUCCESS);
     }
 
+    printf ("Rendering geometry buffer set with swapchain image #%u\n", imageIdx);
+    // Record and submit command buffer that renders some geometry
+    RenderGeometryBufferSet (/*..uint32_t....................swapChainImageIdx.............*/imageIdx,
+                             /*..VkRenderPass................renderPass....................*/renderpass,
+                             /*..VkPipeline..................pipeline......................*/pipeline,
+                             /*..PerSwapchainImageResources*.pPerSwapchainImageResources...*/pPerFrameResources,
+                             /*..VkSwapchainKHR..............swapchain.....................*/swapchain,
+                             /*..VkQueue.....................queue.........................*/queue,
+                             /*..VkExtent2D*.................pExtent.......................*/pExtent,
+                             /*..GeometryBufferSet*..........pGeometryBufferSet............*/pGeometryBufferSet,
+                             /*..uint32_t....................frameIdx......................*/frameIdx);
 
-    RenderGeometryBufferSet (imageIdx,
-                             renderpass,
-                             pipeline,
-                             pPerFrameResources,
-                             swapchain,
-                             queue,
-                             pExtent,
-                             pGeometryBufferSet,
-                             frameIdx);
-
+    printf ("Presenting image.\n");
     // present image
     result = PresentImage(swapchain, imageIdx, pPerFrameResources[imageIdx].releaseSwapchainImageSemaphore, queue);
+    printf ("PresentImage returned %s\n", VkResultToString (result));
+
 
     if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR)
     {
+
+
         printf("DONT WANT TO BE HERE!!!!!!\n");
         swapchain = ReinitializeRenderungSurface(logicalDevice,
                                                  physicalDevice,
@@ -1220,7 +1242,7 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                                                  pNumSwapchainImages,
                                                  ppPerSwapchainImageResources);
     }
-
+    printf ("Loop done!\n");
     return time;
 }
 
@@ -1326,7 +1348,7 @@ void RenderGeometryBufferSet (uint32_t                    swapChainImageIdx,
         {0.033f, 0.01f, 0.01f, 1.0f}
     };
 
-    VkFramebuffer   framebuffer = pPerSwapchainImageResources[swapChainImageIdx].framebufferHandle;
+    VkFramebuffer   framebuffer   = pPerSwapchainImageResources[swapChainImageIdx].framebufferHandle;
     VkCommandBuffer commandBuffer = pPerSwapchainImageResources[swapChainImageIdx].commandBuffer;
 
 

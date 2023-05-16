@@ -338,7 +338,8 @@ GeometryBufferSet CreateGeometryBuffersFromAiScene (VkPhysicalDevice physicalDev
                     if      (pVertex->z > geometryBuffersOut.aabb.maxZ) { geometryBuffersOut.aabb.maxZ  = pVertex->z; } // update z max
                     else if (pVertex->z < geometryBuffersOut.aabb.minZ) { geometryBuffersOut.aabb.minZ  = pVertex->z; } // update z min
 
-                    //@TODO: move aabb calculation into the if statement below, so that we eliminate the chance of using verts that are part of a degenerate triangle in the aabb calculation
+                    //@TODO: move aabb calculation into the if statement below, so that we eliminate the chance of using verts that are part of a degenerate triangle in the aabb calculation.
+                    //               Move the code that does so into an inline function to keep code in this function concise.
                 }
 
                 numSceneVertices += pAiMesh->mNumVertices;

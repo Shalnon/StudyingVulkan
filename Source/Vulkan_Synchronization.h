@@ -51,4 +51,6 @@ namespace VkSync
 	void InitSemaphoreList(VkDevice logicalDeviceIn);
 };
 
+//static VkSync::SemaphoreList VkSync::SemaphoreDepot = {};
+
 #endif
