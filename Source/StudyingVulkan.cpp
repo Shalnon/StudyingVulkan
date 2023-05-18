@@ -94,7 +94,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                        pPerSwapchainImageResources);
      
     std::string currentPath   = std::filesystem::current_path ().string ();
-    std::string assetsDirPath = currentPath + std::string ("\\..\\..\\..\\Assets");
+    std::string assetsDirPath = currentPath   + std::string ("\\..\\..\\..\\Assets");
     std::string modelPath     = assetsDirPath + std::string ("\\Models\\simple_triangle.obj");
     assert (modelPath.length() > 0); //adding this just to remind myself to add an actual path above.
     printf ("model path = %s\n", modelPath.c_str ());
@@ -111,11 +111,12 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                                          true);
    
 
-    uint32_t numFramesToRender = 5;
+    uint32_t numFramesToRender = 64;
     
     printf("about to start executing renderloop\n");
     for (uint32_t i = 0; i < numFramesToRender; i++)
     {
+        printf ("\n--Frame %u begin--\n", i);
         ExecuteRenderLoop (/*.VkDevice.....................logicalDevice................*/ logicalDevice,
                             /*.VkPhysicalDevice.............physicalDevice,..............*/ physicalDevice,
                             /*.VkSwapchainKHR...............swapchain....................*/ swapchain,
@@ -131,11 +132,12 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                             /*.VkExtent2D*..................pFramebufferExtent...........*/ &actualFrameDimensions,
                             /*.GeometryBufferSet*...........vertexBuffer.................*/ &geometrysBuffers,
                             /*.uint32_t.....................frameIdx.....................*/ i                     );
+        printf ("\n--Frame %u end--\n",i);
     }
    
-    printf ("finished exedcuting render loop %u times.\n", numFramesToRender);
+    printf ("finished executing render loop %u times.\n", numFramesToRender);
 
-    // Destroying vk objects below. Using a random scope here just so it can be collapsed easily in an IDE
+    // Destroying vk objects below. Also wraping the destroy calls in an extra {} scope just so it can be collapsed easily in an IDE
     {
         // Destroy vk resources tracked in PerSwapchainImageResources structures
         for (uint32_t imgIdx = 0; imgIdx < numSwapChainImages; imgIdx++)

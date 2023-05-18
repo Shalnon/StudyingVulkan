@@ -967,7 +967,7 @@ VkPipeline CreatePipeline(VkDevice logicalDevice, VkRenderPass renderpass, VkExt
     VkShaderModule pShaderModules[2];
 
     pShaderModules[fragmentShaderIdx] = CreateShaderModule(logicalDevice, fragShaderPath,true, false);
-    pShaderModules[vertexShaderIdx]   = CreateShaderModule(logicalDevice, vertShaderPath, false, true);
+    pShaderModules[ vertexShaderIdx ] = CreateShaderModule(logicalDevice, vertShaderPath, false, true);
 
 
     VkPipelineShaderStageCreateInfo pShaderStageCreateInfos[numStages] =
@@ -1082,16 +1082,17 @@ void WaitOnPendingSwapchainImageFence(PerSwapchainImageResources* pPerFrameResou
     PerSwapchainImageResources* pSwapchainImageResources = &(pPerFrameResources[swapchainImageIdx]);
     assert (pSwapchainImageResources->queueSubmitFence != VK_NULL_HANDLE);
 
-    vkWaitForFences (logicalDevice, 1, &(pSwapchainImageResources->queueSubmitFence), VK_TRUE, UINT64_MAX);
+    VkResult fenceStatus = vkGetFenceStatus (logicalDevice, pSwapchainImageResources->queueSubmitFence);
 
-    VkResult resetFencesResult = VK_INCOMPLETE;
-    resetFencesResult = vkResetFences (logicalDevice, 1, &(pSwapchainImageResources->queueSubmitFence));
-    assert (resetFencesResult == VK_SUCCESS);
+    //printf ("fence[%u](0x%016x) status is %s\n",
+    //        swapchainImageIdx,
+    //        pSwapchainImageResources->queueSubmitFence,
+    //        VkResultToString (fenceStatus));
 
-    printf ("reset fence(0x%016x) for swapchain image %u returned %s\n", 
-            pSwapchainImageResources->queueSubmitFence,
-            swapchainImageIdx,
-            VkResultToString (vkGetFenceStatus (logicalDevice, pSwapchainImageResources->queueSubmitFence)));
+    fenceStatus = vkWaitForFences (logicalDevice, 1, &(pSwapchainImageResources->queueSubmitFence), VK_TRUE, UINT64_MAX);
+    assert (fenceStatus == VK_SUCCESS);
+    fenceStatus = vkResetFences (logicalDevice, 1, &(pSwapchainImageResources->queueSubmitFence));
+    assert (fenceStatus == VK_SUCCESS);
 
     if (pSwapchainImageResources->commandPool != VK_NULL_HANDLE)
     { 
@@ -1100,47 +1101,65 @@ void WaitOnPendingSwapchainImageFence(PerSwapchainImageResources* pPerFrameResou
     else { assert (0); } // Im expecting the else to never be hit.
 }
 
-VkResult AcuireNextSwapchainImageIdx(VkDevice                    logicalDevice,
+VkResult AcuireNextSwapchainImageIdx(VkQueue                     queue,
+                                     VkDevice                    logicalDevice,
                                      VkSwapchainKHR              swapchain,
                                      uint32_t*                   pSwapchainImageIdxOut,
                                      PerSwapchainImageResources* pSwapchainImageResources)
 {
-    VkSemaphore imageAcquireSemaphore = VkSync::SemaphoreDepot.ObtainSemaphore();
-    VkResult    result                = VK_INCOMPLETE;
+    
+    VkSemaphore nextFrameImageAcquireSemaphore = VkSync::SemaphoreDepot.ObtainSemaphore();
+    VkResult    result                         = VK_INCOMPLETE;
 
-    // So if this returns VK_SUCCESS, than the image has been acquired and the semaphore should already be signaled?
-    // there is also VK_NOT_READY, VK_TIMEOUT, AND VK_SUBOPTIMAL
-    //       im guessing VK_NOT_READY, is when we normally want to wait on the semaphore.... not sure about the other 2.
+    ///@Note: Acquire the index of the next swapchain image that we will render to.
+    ///       There is a chance the image is still being used from the last time it was used though.
+    ///       So later we need to make sure we tell the GPU that any work we submit involving this 
+    ///       swapchain image cant start until nextFrameImageAcquireSemaphore has been signaled.
+    ///       Thats done by making sure nextFrameImageAcquireSemaphore is listed in
+    ///       the VkSubmitInfo::pWaitSemaphores array when we submit the work for execution.
+    /// 
     result = vkAcquireNextImageKHR(/*..VkDevice.........device.......*/ logicalDevice,
                                    /*..VkSwapchainKHR...swapchain....*/ swapchain,
                                    /*..uint64_t.........timeout......*/ UINT64_MAX,
-                                   /*..VkSemaphore......semaphore....*/ imageAcquireSemaphore,
-                                   /*..VkFence..........fence........*/ VK_NULL_HANDLE,          //if semaphore isnt null, than this isnt needed
+                                   /*..VkSemaphore......semaphore....*/ nextFrameImageAcquireSemaphore,
+                                   /*..VkFence..........fence........*/ VK_NULL_HANDLE, //if semaphore isnt null, than this isnt needed
                                    /*..uint32_t*........pImageIndex..*/ pSwapchainImageIdxOut);
 
-    PerSwapchainImageResources* pSwapchainImageResourceSet = &(pSwapchainImageResources[*pSwapchainImageIdxOut]);
+    assert (result == VK_SUCCESS);// Should be success since the timout param above is going to make it block indefinitely..,
 
-    //if this semaphore isnt a null handle, than it means its been used on the previous frame so not needed?
-    if ((result == VK_SUCCESS) && (pSwapchainImageResourceSet->acquireSwapchainImageSemaphore != VK_NULL_HANDLE))
-    {
-        VkSync::SemaphoreDepot.DepositUnusedSemaphore(pSwapchainImageResourceSet->acquireSwapchainImageSemaphore);
-    }
-    else
-    {
-        printf("vkAcquireNextImageKHR() returned %s\n", VkResultToString(result));
-    }
+    PerSwapchainImageResources* pSwapchainImageResourceSet    = &(pSwapchainImageResources[*pSwapchainImageIdxOut]);
 
     WaitOnPendingSwapchainImageFence(pSwapchainImageResources,
                                      logicalDevice,
                                      *pSwapchainImageIdxOut);
 
-    //if this semaphore isnt a null handle, than it means its been used on the previous frame so not needed?
-    if (pSwapchainImageResourceSet->acquireSwapchainImageSemaphore != VK_NULL_HANDLE)
+
+    // Wait for queue to be idle.
+    if (result == VK_NOT_READY)
     {
-        VkSync::SemaphoreDepot.DepositUnusedSemaphore(pSwapchainImageResourceSet->acquireSwapchainImageSemaphore);
+        result = vkQueueWaitIdle (queue);
+        assert (result == VK_SUCCESS);
     }
 
-    pSwapchainImageResourceSet->acquireSwapchainImageSemaphore = imageAcquireSemaphore;
+    //if this semaphore isnt a null handle, than it means its been used on the previous frame so not needed?
+    VkSemaphore previousImageAcquireSemaphore = pSwapchainImageResourceSet->acquireSwapchainImageSemaphore;
+    if (pSwapchainImageResourceSet->acquireSwapchainImageSemaphore != VK_NULL_HANDLE)
+    {
+        vkDestroySemaphore (logicalDevice, previousImageAcquireSemaphore, nullptr);
+        pSwapchainImageResourceSet->acquireSwapchainImageSemaphore = VK_NULL_HANDLE;
+        //VkSync::SemaphoreDepot.DepositUnusedSemaphore(pSwapchainImageResourceSet->acquireSwapchainImageSemaphore);
+    }
+
+
+    VkSemaphore previousImageReleaseSemaphore = pSwapchainImageResourceSet->releaseSwapchainImageSemaphore;
+    if (previousImageReleaseSemaphore != VK_NULL_HANDLE)
+    {
+        vkDestroySemaphore (logicalDevice, previousImageReleaseSemaphore, nullptr);
+        pSwapchainImageResourceSet->releaseSwapchainImageSemaphore = VK_NULL_HANDLE;
+    }
+
+
+    pSwapchainImageResourceSet->acquireSwapchainImageSemaphore = nextFrameImageAcquireSemaphore;
     
 
     return result;
@@ -1170,8 +1189,8 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
     VkResult                    result             = VK_INCOMPLETE;
     PerSwapchainImageResources* pPerFrameResources = *ppPerSwapchainImageResources;
 
-    uint32_t imageIdx; printf ("Acquiring swapchain image\n");
-    result = AcuireNextSwapchainImageIdx(logicalDevice, swapchain, &imageIdx, pPerFrameResources);
+    uint32_t imageIdx;
+    result = AcuireNextSwapchainImageIdx(queue, logicalDevice, swapchain, &imageIdx, pPerFrameResources);
 
     if ((result == VK_SUBOPTIMAL_KHR) || (result == VK_ERROR_OUT_OF_DATE_KHR))
     {
@@ -1192,17 +1211,8 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                                                  ppPerSwapchainImageResources);
 
         //      res = acquire_next_image(context, &index);
-        result = AcuireNextSwapchainImageIdx(logicalDevice, swapchain, &imageIdx, pPerFrameResources);
+        result = AcuireNextSwapchainImageIdx(queue, logicalDevice, swapchain, &imageIdx, pPerFrameResources);
                                                   
-    }
-
-    printf ("acquireNextSwapchainImageIdx returned %s\n", VkResultToString (result));
-
-    // Wait for queue to be idle.
-    if (result == VK_NOT_READY)
-    {
-        result = vkQueueWaitIdle(queue);
-        assert (result == VK_SUCCESS);
     }
 
     printf ("Rendering geometry buffer set with swapchain image #%u\n", imageIdx);
@@ -1217,16 +1227,12 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                              /*..GeometryBufferSet*..........pGeometryBufferSet............*/pGeometryBufferSet,
                              /*..uint32_t....................frameIdx......................*/frameIdx);
 
-    printf ("Presenting image.\n");
+   
     // present image
     result = PresentImage(swapchain, imageIdx, pPerFrameResources[imageIdx].releaseSwapchainImageSemaphore, queue);
-    printf ("PresentImage returned %s\n", VkResultToString (result));
-
-
+   
     if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR)
     {
-
-
         printf("DONT WANT TO BE HERE!!!!!!\n");
         swapchain = ReinitializeRenderungSurface(logicalDevice,
                                                  physicalDevice,
@@ -1242,7 +1248,6 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                                                  pNumSwapchainImages,
                                                  ppPerSwapchainImageResources);
     }
-    printf ("Loop done!\n");
     return time;
 }
 
@@ -1454,7 +1459,7 @@ void RenderGeometryBufferSet (uint32_t                    swapChainImageIdx,
 
 VkResult PresentImage(VkSwapchainKHR swapchain,
                       uint32_t       swapchainImageIndex,
-                      VkSemaphore    swapchainImageReleaseSemaphore,
+                      VkSemaphore    swapchainImageReleaseSemaphore, // Wait for this semaphore to be signaled before presenting the image
                       VkQueue        queue)
 {
     //@TODO: modify the code here so that the result variable below can be checked after vkQueuePresentKHR is called;

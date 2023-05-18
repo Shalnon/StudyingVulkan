@@ -98,9 +98,16 @@ void CreateFrameBuffers(VkDevice                    logicalDevice,
                         PerSwapchainImageResources* pPerSwapchainImageResources);
 
 ///@Spec: Retrieve the index of the next available presentable image | https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkAcquireNextImageKHR.html
-/// 
-
-VkResult AcuireNextSwapchainImageIdx(VkDevice                    logicalDevice,
+///@spec: extended info from somewhere on this page: https://registry.khronos.org/vulkan/specs/1.3-extensions/html/vkspec.html#swapchain-acquire-forward-progress
+///        - "If an image is acquired successfully, vkAcquireNextImageKHR must either return VK_SUCCESS or VK_SUBOPTIMAL_KHR. 
+///           The implementation may return VK_SUBOPTIMAL_KHR if the swapchain no longer matches the surface properties exactly,
+///           but can still be used for presentation."
+///        - "When successful, vkAcquireNextImageKHR acquires a presentable image from swapchain that an application can use, 
+//            and sets pImageIndex to the index of that image within the swapchain.The presentation engine
+//            may not have finished reading from the image at the time it is acquired, so the application must use semaphoreand /or fence to
+//            ensure that the image layout and contents are not modified until the presentation engine reads have completed."
+VkResult AcuireNextSwapchainImageIdx(VkQueue                     queue,
+                                     VkDevice                    logicalDevice,
                                      VkSwapchainKHR              swapchain,
                                      uint32_t*                   pSwapchainImageIdxOut,
                                      PerSwapchainImageResources* pPerFrameResources);
@@ -189,17 +196,17 @@ inline void ResestPerSwapchainImageResources (VkDevice                      logi
                 vkDestroyCommandPool (logicalDevice, oldCommandPool, nullptr);
             }
 
-            VkSemaphore oldAcquireSeamphore = pPerSwapchainImageResources[i].acquireSwapchainImageSemaphore;
-            if (oldAcquireSeamphore != VK_NULL_HANDLE)
-            {
-                VkSync::SemaphoreDepot.DepositUnusedSemaphore (oldAcquireSeamphore);
-            }
-
-            VkSemaphore oldReleaseSemaphore = pPerSwapchainImageResources[i].releaseSwapchainImageSemaphore;
-            if (oldReleaseSemaphore != VK_NULL_HANDLE)
-            {
-                VkSync::SemaphoreDepot.DepositUnusedSemaphore (oldReleaseSemaphore);
-            }
+           // VkSemaphore oldAcquireSeamphore = pPerSwapchainImageResources[i].acquireSwapchainImageSemaphore;
+           // if (oldAcquireSeamphore != VK_NULL_HANDLE)
+           // {
+           //     VkSync::SemaphoreDepot.DepositUnusedSemaphore (oldAcquireSeamphore);
+           // }
+           //
+           // VkSemaphore oldReleaseSemaphore = pPerSwapchainImageResources[i].releaseSwapchainImageSemaphore;
+           // if (oldReleaseSemaphore != VK_NULL_HANDLE)
+           // {
+           //     VkSync::SemaphoreDepot.DepositUnusedSemaphore (oldReleaseSemaphore);
+           // }
 
             //Clear the struct
             pPerSwapchainImageResources[i]             = {};

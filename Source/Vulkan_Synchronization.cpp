@@ -116,32 +116,15 @@ VkSemaphore VkSync::SemaphoreList::ObtainSemaphore()
 {
     assert(numAllocatedHandles >= numAvailableSemaphores);
 
-    VkSemaphore semaphoreOut = VK_NULL_HANDLE;
+    VkSemaphore           semaphoreOut = VK_NULL_HANDLE;
+    VkSemaphoreCreateInfo createInfo   = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO , 0, 0 };
 
-
-    if (numAvailableSemaphores == 0)
-    {
-        VkSemaphoreCreateInfo createInfo = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO , 0, 0 };
-
-        // Dont need to increment or decrement anything since this semaphore is going to be returned directly to caller without first touching the semaphore list
-        VkResult result = vkCreateSemaphore(/*..VkDevice.......................device.......*/ logicalDevice,
-                                            /*..const.VkSemaphoreCreateInfo*...pCreateInfo..*/ &createInfo,
-                                            /*..const.VkAllocationCallbacks*...pAllocator...*/ nullptr,
-                                            /*..VkSemaphore*...................pSemaphore...*/ &semaphoreOut);
-        assert(result == VK_SUCCESS);
-    }
-    //Shouldnt ever need to expand the handles allocation since ObtainSemaphore shouldnt be able to cause numAvailableSemaphores to become larger than numAllocatedHandles
-    else if (numAvailableSemaphores > 0)
-    {
-        const int32_t idxOfAvailableSemaphore = ScanForOccupiedSlot();
-        assert(idxOfAvailableSemaphore > -1);
-
-        semaphoreOut = pSemaphoreHandles[idxOfAvailableSemaphore];
-        ClearSemaphoreAvailabilityBit(idxOfAvailableSemaphore);
-        numAvailableSemaphores--;
-
-    }
-
+    // Dont need to increment or decrement anything since this semaphore is going to be returned directly to caller without first touching the semaphore list
+    VkResult result = vkCreateSemaphore(/*..VkDevice.......................device.......*/ logicalDevice,
+                                        /*..const.VkSemaphoreCreateInfo*...pCreateInfo..*/ &createInfo,
+                                        /*..const.VkAllocationCallbacks*...pAllocator...*/ nullptr,
+                                        /*..VkSemaphore*...................pSemaphore...*/ &semaphoreOut);
+    assert(result        == VK_SUCCESS);
     assert(semaphoreOut != VK_NULL_HANDLE);
 
     return semaphoreOut;
