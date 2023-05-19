@@ -128,13 +128,13 @@ vulkanAllocatedBufferInfo CreateAndAllocateIndexBuffer (VkPhysicalDevice physica
             /*...uint32_t.......offset............*/ 0 };
 }
 
-VkResult ExecuteBuffer2BufferCopy (VkPhysicalDevice          physicalDevice,
-                                   VkDevice                  logicalDevice,
-                                   VkQueue                   queue,
-                                   uint32_t                  queueFamilyIndex,
-                                   VkDeviceSize              copySize,
-                                   vulkanAllocatedBufferInfo srcBufferInfo,
-                                   vulkanAllocatedBufferInfo dstBufferInfo)
+void ExecuteBuffer2BufferCopy (VkPhysicalDevice          physicalDevice,
+                               VkDevice                  logicalDevice,
+                               VkQueue                   queue,
+                               uint32_t                  queueFamilyIndex,
+                               VkDeviceSize              copySize,
+                               vulkanAllocatedBufferInfo srcBufferInfo,
+                               vulkanAllocatedBufferInfo dstBufferInfo)
 {
     // Now we need to create and execute a command buffer that will call vkCmdCopyBuffer to copy the vertex data from the staging buffer to the vertex buffer
     VkCommandPoolCreateInfo commandPoolCreateInfo =
@@ -207,8 +207,6 @@ VkResult ExecuteBuffer2BufferCopy (VkPhysicalDevice          physicalDevice,
     vkQueueWaitIdle (queue);
 
     vkFreeCommandBuffers (logicalDevice, commandPool, 1, &bufferCopyCmdBuffer);
-
-    return VK_SUCCESS;///@TODO: should add have some logic here
 }
 
 vulkanAllocatedBufferInfo CreateAndAllocaStagingBuffer (VkPhysicalDevice physicalDevice,
@@ -337,9 +335,6 @@ GeometryBufferSet CreateGeometryBuffersFromAiScene (VkPhysicalDevice physicalDev
                     else if (pVertex->y < geometryBuffersOut.aabb.minY) { geometryBuffersOut.aabb.minY  = pVertex->y; } // update y min
                     if      (pVertex->z > geometryBuffersOut.aabb.maxZ) { geometryBuffersOut.aabb.maxZ  = pVertex->z; } // update z max
                     else if (pVertex->z < geometryBuffersOut.aabb.minZ) { geometryBuffersOut.aabb.minZ  = pVertex->z; } // update z min
-
-                    //@TODO: move aabb calculation into the if statement below, so that we eliminate the chance of using verts that are part of a degenerate triangle in the aabb calculation.
-                    //               Move the code that does so into an inline function to keep code in this function concise.
                 }
 
                 numSceneVertices += pAiMesh->mNumVertices;
@@ -392,7 +387,8 @@ GeometryBufferSet CreateGeometryBuffersFromAiScene (VkPhysicalDevice physicalDev
                 //@TODO: create a function to record the buffer2buffer copy for the index and vertex buffer in the same command buffer
                 //               To be even more efficient i should also be able to create a single staging buffer that would be the size of the vertex AND position data. 
                 //                   Than the relevant data would be copied into separate device visible buffers at their individal offsets inside the staging buffer.
-                //@TODO: Also check if the device local vertex and index buffers can be backed by memory from the same allocation. IF the allocation is big enough, we may need to only allocate it once.
+                //@TODO: Also check if the device local vertex and index buffers can be backed by memory from the same allocation. 
+                //             I doubt index and vertex buffers need to use different memory types, so it should be fine. but double check
  
             ExecuteBuffer2BufferCopy (/*...VkPhysicalDevice..........physicalDevice........*/ physicalDevice,
                                       /*...VkDevice..................logicalDevice.........*/ logicalDevice,

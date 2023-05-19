@@ -28,7 +28,6 @@ struct SwapchainInfo
 
     // Swapchain image views
     VkImageView*        pSwapchainImageViews;
-    uint32_t            numSwapchainImageViews; //TODO: double check if i need these here
 
     // Preferred swapchain formats that are checked against formats gpu reports as supported
     static const VkFormat const pPreferredSwapchainFormats[NUM_PREFERRED_SURFACE_FORMATS];
@@ -132,8 +131,7 @@ VkSwapchainKHR ReinitializeRenderungSurface(VkDevice                     logical
                                             VkPhysicalDevice             physicalDevice,
                                             uint32_t                     gfxQueueIndex,
                                             VkSwapchainKHR               swapchain,
-                                            uint32_t                     swapchainWidth,
-                                            uint32_t                     swapchainHeight,
+                                            VkExtent2D                   swapchainExtent,
                                             uint32_t                     numPreferredSwapchainFormats,
                                             VkFormat*                    pPreferredSwapchainFormats,
                                             VkSurfaceKHR                 surface,

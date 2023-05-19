@@ -554,11 +554,13 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
                        i,
                        VkResultToString (vkGetFenceStatus (logicalDevice, pPerSwapchainImageResources[i].queueSubmitFence)));
 
+        /// @TODO: make command buffer re-usable. There is no camera control in this app yet, so the selection of the geometry being drawn from frame to frame will not be changing.
+        //              This allows transforms of individual meshes can be controled via model matrices in an ssbo without re-recording the command buffer. 
         VkCommandPoolCreateInfo commandPoolCreateInfo =
         {
             /*..VkStructureType.............sType.................*/ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
             /*..const.void*.................pNext.................*/ 0,
-            /*..VkCommandPoolCreateFlags....flags.................*/ VK_COMMAND_POOL_CREATE_TRANSIENT_BIT, //why not re-use command buffers? look into this later. @TODO
+            /*..VkCommandPoolCreateFlags....flags.................*/ VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
             /*..uint32_t....................queueFamilyIndex......*/ graphicsQueueIndex
         };
 
@@ -1173,7 +1175,7 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                            GeometryBufferSet*           pGeometryBufferSet,
                            uint32_t                     frameIdx)
 {
-    uint64_t                    time                = 0;
+    uint64_t                    time                = 0; ///@TODO: Look into any light-weight profiling measurements that can be taken here and returned from the function.
     VkResult                    result              = VK_INCOMPLETE;
     VkCommandBuffer             renderCommandBuffer = VK_NULL_HANDLE;
     PerSwapchainImageResources* pPerFrameResources  = *ppPerSwapchainImageResources;
@@ -1189,8 +1191,7 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                                                  physicalDevice,
                                                  gfxQueueIdx,
                                                  swapchain,
-                                                 pExtent->width,
-                                                 pExtent->height,
+                                                 *pExtent,
                                                  numPreferredSwapchainFormats,
                                                  pPreferredSwapchainFormats,
                                                  surface,
@@ -1227,13 +1228,12 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
    
     if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR)
     {
-        printf("DONT WANT TO BE HERE!!!!!!\n");
+        printf ("Present image returned %s. May not be able to recover.\n", (result == VK_SUBOPTIMAL_KHR) ? "VK_SUBOPTIMAL_KHR" : "VK_ERROR_OUT_OF_DATE_KHR");
         swapchain = ReinitializeRenderungSurface(logicalDevice,
                                                  physicalDevice,
                                                  gfxQueueIdx,
                                                  swapchain,
-                                                 pExtent->width,
-                                                 pExtent->height,
+                                                 *pExtent,
                                                  numPreferredSwapchainFormats,
                                                  pPreferredSwapchainFormats,
                                                  surface,
@@ -1242,6 +1242,12 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                                                  pNumSwapchainImages,
                                                  ppPerSwapchainImageResources);
     }
+    else if (result != VK_SUCCESS)
+    {
+        printf ("Error presenting swapchain image\n");
+        assert (0);
+    }
+
     return time;
 }
 
@@ -1249,8 +1255,7 @@ VkSwapchainKHR ReinitializeRenderungSurface(VkDevice                     logical
                                             VkPhysicalDevice             physicalDevice,
                                             uint32_t                     gfxQueueIndex,
                                             VkSwapchainKHR               swapchain,
-                                            uint32_t                     swapchainWidth, // @TODO: pass in vkextent instead of multiple args
-                                            uint32_t                     swapchainHeight,
+                                            VkExtent2D                   swapchainExtent,
                                             uint32_t                     numPreferredSwapchainFormats,
                                             VkFormat*                    pPreferredSwapchainFormats,
                                             VkSurfaceKHR                 surface,
@@ -1269,8 +1274,8 @@ VkSwapchainKHR ReinitializeRenderungSurface(VkDevice                     logical
     VkSwapchainKHR     newSwapChain              = VK_NULL_HANDLE;
 
     //If window/surface resolution has changed
-    if ((surfaceCapabilities.currentExtent.height != swapchainHeight) ||
-        (surfaceCapabilities.currentExtent.width  != swapchainWidth))
+    if ((surfaceCapabilities.currentExtent.height != swapchainExtent.height) ||
+        (surfaceCapabilities.currentExtent.width  != swapchainExtent.width))
     {
         vkDeviceWaitIdle(logicalDevice);
 
@@ -1278,7 +1283,6 @@ VkSwapchainKHR ReinitializeRenderungSurface(VkDevice                     logical
         vkQueueWaitIdle(queue);
 
         PerSwapchainImageResources* pPerSwapchainImageResources = *ppPerSwapchainImageResources;
-        VkExtent2D                  framebufferExtent           = { swapchainWidth ,swapchainHeight };
         VkExtent2D                  newSwapChainExtent          = {};
         VkSurfaceFormatKHR          newSwapchainSurfaceFormat   = {};
 
@@ -1288,7 +1292,7 @@ VkSwapchainKHR ReinitializeRenderungSurface(VkDevice                     logical
                              /*.VkSurfaceKHR.................surface......................*/ surface,
                              /*.uint32_t.....................numPreferredSurfaceFormats...*/ numPreferredSwapchainFormats,
                              /*.VkFormat*....................pPreferredSurfaceFormats.....*/ pPreferredSwapchainFormats,
-                             /*.VkExtent2D...................prefferredExtent.............*/ framebufferExtent, //@TODO: change function so this can be a ptr, so framebuffer creation cant break if the input extent isnt what ends up being used
+                             /*.VkExtent2D...................prefferredExtent.............*/ swapchainExtent,
                              /*.VkSwapchainKHR...............oldSwapchain.................*/ swapchain,
                              /*.VkSwapchainKHR*..............pSwapchainOut................*/ &newSwapChain,
                              /*.VkExtent2D*..................pSwapchainExtentChosenOut....*/ &newSwapChainExtent,
@@ -1296,18 +1300,17 @@ VkSwapchainKHR ReinitializeRenderungSurface(VkDevice                     logical
                              /*.uint32_t*....................pNumSwapchainImages..........*/ pNumSwapchainImages,
                              /*.PerSwapchainImageResources**.ppPerSwapchainImageResources.*/ ppPerSwapchainImageResources);
 
-        assert ((framebufferExtent.height == newSwapChainExtent.height) &&
-                (framebufferExtent.width  == newSwapChainExtent.width ));
+        assert ((swapchainExtent.height == newSwapChainExtent.height) &&
+                (swapchainExtent.width  == newSwapChainExtent.width ));
 
         CreateFrameBuffers(/*...VkDevice....................logicalDevice....................*/ logicalDevice,
                            /*...VkRenderPass................renderPass.......................*/ renderpass,
-                           /*...VkExtent2D*.................pExtent..........................*/ &framebufferExtent,
+                           /*...VkExtent2D*.................pExtent..........................*/ &swapchainExtent,
                            /*...uint32_t....................numSwapchainImages...............*/ *pNumSwapchainImages,
                            /*...PerSwapchainImageResources*.pPerSwapchainImageResources......*/ *ppPerSwapchainImageResources);
     }
     else
     {
-        ///@TODO this logic is messy. clean it up.
         newSwapChain = swapchain; 
     }
 
@@ -1439,7 +1442,6 @@ VkResult PresentImage(VkSwapchainKHR swapchain,
                       VkSemaphore    swapchainImageReleaseSemaphore, // Wait for this semaphore to be signaled before presenting the image
                       VkQueue        queue)
 {
-    //@TODO: modify the code here so that the result variable below can be checked after vkQueuePresentKHR is called;
     VkResult result = VK_NOT_READY;
 
     VkPresentInfoKHR presentInfo =

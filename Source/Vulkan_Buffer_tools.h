@@ -102,13 +102,13 @@ vulkanAllocatedBufferInfo CreateAndAllocateIndexBuffer (VkPhysicalDevice physica
                                                         uint32_t         bufferSizeInBytes,
                                                         uint32_t         queueIndex);
  
-VkResult ExecuteBuffer2BufferCopy (VkPhysicalDevice          physicalDevice,
-                                   VkDevice                  logicalDevice,
-                                   VkQueue                   queue,
-                                   uint32_t                  queueFamilyIndex,
-                                   VkDeviceSize              copySize,
-                                   vulkanAllocatedBufferInfo srcBufferInfo,
-                                   vulkanAllocatedBufferInfo dstBufferInfo);
+void ExecuteBuffer2BufferCopy (VkPhysicalDevice          physicalDevice,
+                               VkDevice                  logicalDevice,
+                               VkQueue                   queue,
+                               uint32_t                  queueFamilyIndex,
+                               VkDeviceSize              copySize,
+                               vulkanAllocatedBufferInfo srcBufferInfo,
+                               vulkanAllocatedBufferInfo dstBufferInfo);
 
 // prototype aiScene* ptr definition for use in the function signature below. without it we'd have to include an assimp header.
 struct aiScene;

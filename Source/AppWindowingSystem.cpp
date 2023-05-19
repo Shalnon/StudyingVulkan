@@ -109,7 +109,6 @@ ATOM RegisterWindowClass(HINSTANCE hInstance, LPCWSTR window_name)
 HWND InitWindowInstance(HINSTANCE hInstance, int nCmdShow, LPWSTR szWindowClass, LPWSTR szTitle, int32_t windowWidth, int32_t windowHeight)
 {
 
-    // TODOL move the 6 or so following lines of code to a window initialization function. 
     LoadStringW (hInstance, IDS_APP_TITLE,            szTitle,        MAX_LOADSTRING);
     LoadStringW (hInstance, IDC_STUDYINGVULKANPROJECT, szWindowClass, MAX_LOADSTRING);
 
