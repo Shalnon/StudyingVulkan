@@ -142,25 +142,16 @@ VkSwapchainKHR ReinitializeRenderungSurface(VkDevice                     logical
                                             uint32_t*                    numSwapchainImages,
                                             PerSwapchainImageResources** ppPerSwapchainImageResources);
 
-void RenderTriangle(uint32_t                    swapChainImageIdx,
-                    VkRenderPass                renderPass,
-                    VkPipeline                  pipeline,
-                    PerSwapchainImageResources* pPerSwapchainImageResources,
-                    VkSwapchainKHR              swapchain,
-                    VkQueue                     queue,
-                    VkExtent2D*                 pExtent,
-                    const VkBuffer              vertexBufferHandle,
-                    uint32_t                    frameIdx);
+VkCommandBuffer RecordRenderGeometryBufferCmds(GeometryBufferSet*          pGeometryBufferSet,
+                                               PerSwapchainImageResources* pPerSwapchainImageResources,
+                                               VkRenderPass                renderPass,
+                                               VkPipeline                  pipeline,
+                                               VkExtent2D*                 pExtent,
+                                               VkClearValue*               pClearValue);
 
-void RenderGeometryBufferSet (uint32_t                    swapChainImageIdx,
-                              VkRenderPass                renderPass,
-                              VkPipeline                  pipeline,
-                              PerSwapchainImageResources* pPerSwapchainImageResources,
-                              VkSwapchainKHR              swapchain,
-                              VkQueue                     queue,
-                              VkExtent2D*                 pExtent,
-                              GeometryBufferSet*          pGeometryBufferSet,
-                              uint32_t                    frameIdx);
+VkResult SubmitRenderCommandBuffer (VkCommandBuffer             commandBuffer,
+                                    VkQueue                     queue,
+                                    PerSwapchainImageResources* pPerSwapchainImageResources);
 
 VkResult PresentImage(VkSwapchainKHR swapchain,
                       uint32_t       swapchainImageIndex,

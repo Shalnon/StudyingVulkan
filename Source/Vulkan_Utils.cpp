@@ -1173,17 +1173,18 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                            GeometryBufferSet*           pGeometryBufferSet,
                            uint32_t                     frameIdx)
 {
-    uint64_t                    time               = 0;
-    VkResult                    result             = VK_INCOMPLETE;
-    PerSwapchainImageResources* pPerFrameResources = *ppPerSwapchainImageResources;
+    uint64_t                    time                = 0;
+    VkResult                    result              = VK_INCOMPLETE;
+    VkCommandBuffer             renderCommandBuffer = VK_NULL_HANDLE;
+    PerSwapchainImageResources* pPerFrameResources  = *ppPerSwapchainImageResources;
 
     uint32_t imageIdx;
     result = AcuireNextSwapchainImageIdx(queue, logicalDevice, swapchain, &imageIdx, pPerFrameResources);
 
+    // This is expected to be hit when the window has resized, or some other change to the rendering surface that requires reinitialization
     if ((result == VK_SUBOPTIMAL_KHR) || (result == VK_ERROR_OUT_OF_DATE_KHR))
     {
         printf("DONT WANT TO BE HERE!!!!!!\n");
-        //		resize(context.swapchain_dimensions.width, context.swapchain_dimensions.height);
         swapchain = ReinitializeRenderungSurface(logicalDevice,
                                                  physicalDevice,
                                                  gfxQueueIdx,
@@ -1198,24 +1199,29 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                                                  pNumSwapchainImages,
                                                  ppPerSwapchainImageResources);
 
-        //      res = acquire_next_image(context, &index);
         result = AcuireNextSwapchainImageIdx(queue, logicalDevice, swapchain, &imageIdx, pPerFrameResources);
-                                                  
     }
 
-    printf ("Rendering geometry buffer set with swapchain image #%u\n", imageIdx);
-    // Record and submit command buffer that renders some geometry
-    RenderGeometryBufferSet (/*..uint32_t....................swapChainImageIdx.............*/imageIdx,
-                             /*..VkRenderPass................renderPass....................*/renderpass,
-                             /*..VkPipeline..................pipeline......................*/pipeline,
-                             /*..PerSwapchainImageResources*.pPerSwapchainImageResources...*/pPerFrameResources,
-                             /*..VkSwapchainKHR..............swapchain.....................*/swapchain,
-                             /*..VkQueue.....................queue.........................*/queue,
-                             /*..VkExtent2D*.................pExtent.......................*/pExtent,
-                             /*..GeometryBufferSet*..........pGeometryBufferSet............*/pGeometryBufferSet,
-                             /*..uint32_t....................frameIdx......................*/frameIdx);
 
+    VkClearValue clearValArray[] =
+    {
+        {0.01f, 0.01f, 0.033f, 1.0f},
+        {0.01f, 0.033f, 0.01f, 1.0f},
+        {0.033f, 0.01f, 0.01f, 1.0f}
+    };
    
+    renderCommandBuffer = RecordRenderGeometryBufferCmds (/*...GeometryBufferSet*..........pGeometryBufferSet.............*/ pGeometryBufferSet,
+                                                          /*...PerSwapchainImageResources*.pPerSwapchainImageResources....*/ &(pPerFrameResources[imageIdx]),
+                                                          /*...VkRenderPass................renderPass.....................*/ renderpass,
+                                                          /*...VkPipeline..................pipeline.......................*/ pipeline,
+                                                          /*...VkExtent2D*.................pExtent........................*/ pExtent,
+                                                          /*...VkClearValue*...............pClearValue....................*/ &(clearValArray[frameIdx % 3]));
+
+
+    result = SubmitRenderCommandBuffer (/*...VkCommandBuffer.............commandBuffer.....................*/ renderCommandBuffer,
+                                        /*...VkQueue.....................queue.............................*/ queue,
+                                        /*...PerSwapchainImageResources*.pPerSwapchainImageResources.......*/ &(pPerFrameResources[imageIdx]));
+
     // present image
     result = PresentImage(swapchain, imageIdx, pPerFrameResources[imageIdx].releaseSwapchainImageSemaphore, queue);
    
@@ -1239,18 +1245,18 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
     return time;
 }
 
-VkSwapchainKHR ReinitializeRenderungSurface(VkDevice         logicalDevice,
-                                            VkPhysicalDevice physicalDevice,
-                                            uint32_t         gfxQueueIndex,
-                                            VkSwapchainKHR   swapchain,
-                                            uint32_t         swapchainWidth, // @TODO: pass in vkextent instead of multiple args
-                                            uint32_t         swapchainHeight,
-                                            uint32_t         numPreferredSwapchainFormats,
-                                            VkFormat*        pPreferredSwapchainFormats,
-                                            VkSurfaceKHR     surface,
-                                            VkRenderPass     renderpass,
-                                            VkQueue          queue,
-                                            uint32_t*        pNumSwapchainImages,
+VkSwapchainKHR ReinitializeRenderungSurface(VkDevice                     logicalDevice,
+                                            VkPhysicalDevice             physicalDevice,
+                                            uint32_t                     gfxQueueIndex,
+                                            VkSwapchainKHR               swapchain,
+                                            uint32_t                     swapchainWidth, // @TODO: pass in vkextent instead of multiple args
+                                            uint32_t                     swapchainHeight,
+                                            uint32_t                     numPreferredSwapchainFormats,
+                                            VkFormat*                    pPreferredSwapchainFormats,
+                                            VkSurfaceKHR                 surface,
+                                            VkRenderPass                 renderpass,
+                                            VkQueue                      queue,
+                                            uint32_t*                    pNumSwapchainImages,
                                             PerSwapchainImageResources** ppPerSwapchainImageResources)
 {
     assert(logicalDevice != VK_NULL_HANDLE);
@@ -1276,8 +1282,6 @@ VkSwapchainKHR ReinitializeRenderungSurface(VkDevice         logicalDevice,
         VkExtent2D                  newSwapChainExtent          = {};
         VkSurfaceFormatKHR          newSwapchainSurfaceFormat   = {};
 
-        ///@TODO: i think there are some arrays that were passed in to this function that can be freed here.
-
         InitializeSwapchain (/*.VkPhysicalDevice.............physicalDevice...............*/ physicalDevice,
                              /*.VkDevice.....................logicalDevice................*/ logicalDevice,
                              /*.uint32_t.....................graphicsQueueIndex...........*/ gfxQueueIndex,
@@ -1292,15 +1296,14 @@ VkSwapchainKHR ReinitializeRenderungSurface(VkDevice         logicalDevice,
                              /*.uint32_t*....................pNumSwapchainImages..........*/ pNumSwapchainImages,
                              /*.PerSwapchainImageResources**.ppPerSwapchainImageResources.*/ ppPerSwapchainImageResources);
 
-        //this might be fine but havent tested it yet so just doing this for now. 
-        assert ((framebufferExtent.height == newSwapChainExtent.height) && (framebufferExtent.width == newSwapChainExtent.width));
+        assert ((framebufferExtent.height == newSwapChainExtent.height) &&
+                (framebufferExtent.width  == newSwapChainExtent.width ));
 
         CreateFrameBuffers(/*...VkDevice....................logicalDevice....................*/ logicalDevice,
                            /*...VkRenderPass................renderPass.......................*/ renderpass,
                            /*...VkExtent2D*.................pExtent..........................*/ &framebufferExtent,
                            /*...uint32_t....................numSwapchainImages...............*/ *pNumSwapchainImages,
                            /*...PerSwapchainImageResources*.pPerSwapchainImageResources......*/ *ppPerSwapchainImageResources);
-
     }
     else
     {
@@ -1311,39 +1314,19 @@ VkSwapchainKHR ReinitializeRenderungSurface(VkDevice         logicalDevice,
     return newSwapChain;
 }
 
-void RenderTriangle(uint32_t                    swapChainImageIdx,
-                    VkRenderPass                renderPass,
-                    VkPipeline                  pipeline,
-                    PerSwapchainImageResources* pPerSwapchainImageResources,
-                    VkSwapchainKHR              swapchain,
-                    VkQueue                     queue,
-                    VkExtent2D*                 pExtent,
-                    const VkBuffer              vertexBufferHandle,
-                    uint32_t                    frameIdx)
+VkCommandBuffer RecordRenderGeometryBufferCmds (GeometryBufferSet*          pGeometryBufferSet,
+                                                PerSwapchainImageResources* pPerSwapchainImageResources,
+                                                VkRenderPass                renderPass,
+                                                VkPipeline                  pipeline,
+                                                VkExtent2D*                 pExtent,
+                                                VkClearValue*               pClearValue)
 {
- 
-}
+    assert (pGeometryBufferSet != nullptr);
+    assert (pExtent            != nullptr);
+    assert (pClearValue        != nullptr);
 
-void RenderGeometryBufferSet (uint32_t                    swapChainImageIdx,
-                              VkRenderPass                renderPass,
-                              VkPipeline                  pipeline,
-                              PerSwapchainImageResources* pPerSwapchainImageResources,
-                              VkSwapchainKHR              swapchain,
-                              VkQueue                     queue,
-                              VkExtent2D*                 pExtent,
-                              GeometryBufferSet*          pGeometryBufferSet,
-                              uint32_t                    frameIdx)
-{
-    VkClearValue clearValArray[] =
-    {
-        {0.01f, 0.01f, 0.033f, 1.0f},
-        {0.01f, 0.033f, 0.01f, 1.0f},
-        {0.033f, 0.01f, 0.01f, 1.0f}
-    };
-
-    VkFramebuffer   framebuffer   = pPerSwapchainImageResources[swapChainImageIdx].framebufferHandle;
-    VkCommandBuffer commandBuffer = pPerSwapchainImageResources[swapChainImageIdx].commandBuffer;
-
+    VkFramebuffer   framebuffer   = pPerSwapchainImageResources->framebufferHandle;
+    VkCommandBuffer commandBuffer = pPerSwapchainImageResources->commandBuffer;
 
     VkCommandBufferBeginInfo cmdBufferBeginInfo =
     {
@@ -1370,7 +1353,7 @@ void RenderGeometryBufferSet (uint32_t                    swapChainImageIdx,
         /*...VkFramebuffer..........framebuffer........*/ framebuffer,
         /*...VkRect2D...............renderArea.........*/ renderArea,
         /*...uint32_t...............clearValueCount....*/ 1,
-        /*...const.VkClearValue*....pClearValues.......*/ &clearValArray[frameIdx % 3]
+        /*...const.VkClearValue*....pClearValues.......*/ pClearValue
     };
 
     vkCmdBeginRenderPass (commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -1421,28 +1404,34 @@ void RenderGeometryBufferSet (uint32_t                    swapChainImageIdx,
     VkResult result = vkEndCommandBuffer (commandBuffer);
     assert (result == VK_SUCCESS);
 
-    if (pPerSwapchainImageResources[swapChainImageIdx].releaseSwapchainImageSemaphore == VK_NULL_HANDLE)
+    return commandBuffer;
+}
+
+VkResult SubmitRenderCommandBuffer (VkCommandBuffer             commandBuffer,
+                                    VkQueue                     queue,
+                                    PerSwapchainImageResources* pPerSwapchainImageResources)
+{
+
+    if (pPerSwapchainImageResources->releaseSwapchainImageSemaphore == VK_NULL_HANDLE)
     {
-        pPerSwapchainImageResources[swapChainImageIdx].releaseSwapchainImageSemaphore = VkSync::SemaphoreDepot.ObtainSemaphore ();
+        pPerSwapchainImageResources->releaseSwapchainImageSemaphore = VkSync::SemaphoreDepot.ObtainSemaphore ();
     }
 
-    VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-
-    VkSubmitInfo submitInfo =
+    VkPipelineStageFlags waitStage  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    VkSubmitInfo         submitInfo =
     {
         /*...VkStructureType................sType...................*/ VK_STRUCTURE_TYPE_SUBMIT_INFO,
         /*...const.void*....................pNext...................*/ 0,
         /*...uint32_t.......................waitSemaphoreCount......*/ 1,
-        /*...const.VkSemaphore*.............pWaitSemaphores.........*/ &(pPerSwapchainImageResources[swapChainImageIdx].acquireSwapchainImageSemaphore), // Only execute work when this semaphore is in a signaled state
+        /*...const.VkSemaphore*.............pWaitSemaphores.........*/ &(pPerSwapchainImageResources->acquireSwapchainImageSemaphore), // Only execute work when this semaphore is in a signaled state
         /*...const.VkPipelineStageFlags*....pWaitDstStageMask.......*/ &waitStage,
         /*...uint32_t.......................commandBufferCount......*/ 1,
         /*...const.VkCommandBuffer*.........pCommandBuffers.........*/ &commandBuffer,
         /*...uint32_t.......................signalSemaphoreCount....*/ 1,
-        /*...const.VkSemaphore*.............pSignalSemaphores.......*/ &(pPerSwapchainImageResources[swapChainImageIdx].releaseSwapchainImageSemaphore) // Semaphores that will be signaled when the command buffers for this batch have completed execution.
+        /*...const.VkSemaphore*.............pSignalSemaphores.......*/ &(pPerSwapchainImageResources->releaseSwapchainImageSemaphore) // Semaphores that will be signaled when the command buffers for this batch have completed execution.
     };
 
-    result = vkQueueSubmit (queue, 1, &submitInfo, pPerSwapchainImageResources[swapChainImageIdx].queueSubmitFence);
-    assert (result == VK_SUCCESS);
+    return vkQueueSubmit (queue, 1, &submitInfo, pPerSwapchainImageResources->queueSubmitFence);
 }
 
 VkResult PresentImage(VkSwapchainKHR swapchain,
