@@ -123,7 +123,7 @@ HWND InitWindowInstance(HINSTANCE hInstance, int nCmdShow, LPWSTR szWindowClass,
                                        /*...[in          ]..DWORD.......dwStyle........*/ WS_OVERLAPPEDWINDOW,
                                        /*...[in          ]..int.........x..............*/ CW_USEDEFAULT,  // The initial horizontal position of the window...If this parameter is set to CW_USEDEFAULT, the system selects the default position for the window's upper-left corner and ignores the y parameter. 
                                        /*...[in          ]..int.........y..............*/ CW_USEDEFAULT,
-                                       /*...[in          ]..int.........nWidth.........*/ (windowWidth  != 0) ? windowWidth : CW_USEDEFAULT, // The width, in device units, of the window. For overlapped windows, nWidth is either the window's width, in screen coordinates, or CW_USEDEFAULT. If nWidth is CW_USEDEFAULT, the system selects a default width and height for the window; 
+                                       /*...[in          ]..int.........nWidth.........*/ (windowWidth  != 0) ? windowWidth  : CW_USEDEFAULT, // The width, in device units, of the window. For overlapped windows, nWidth is either the window's width, in screen coordinates, or CW_USEDEFAULT. If nWidth is CW_USEDEFAULT, the system selects a default width and height for the window;
                                        /*...[in          ]..int.........nHeight........*/ (windowHeight != 0) ? windowHeight : CW_USEDEFAULT,
                                        /*...[in, optional]..HWND........hWndParent.....*/ nullptr,
                                        /*...[in, optional]..HMENU.......hMenu..........*/ nullptr,

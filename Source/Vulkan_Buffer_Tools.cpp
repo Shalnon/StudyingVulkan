@@ -394,21 +394,21 @@ GeometryBufferSet CreateGeometryBuffersFromAiScene (VkPhysicalDevice physicalDev
                 //                   Than the relevant data would be copied into separate device visible buffers at their individal offsets inside the staging buffer.
                 //@TODO: Also check if the device local vertex and index buffers can be backed by memory from the same allocation. IF the allocation is big enough, we may need to only allocate it once.
  
-            ExecuteBuffer2BufferCopy (physicalDevice,
-                                      logicalDevice,
-                                      queue,
-                                      queueFamilyIndex,
-                                      vertexBufferDataSize,
-                                      vertexStagingBufferInfo,              // Src buffer
-                                      geometryBuffersOut.vertexBufferInfo); // Dst buffer
+            ExecuteBuffer2BufferCopy (/*...VkPhysicalDevice..........physicalDevice........*/ physicalDevice,
+                                      /*...VkDevice..................logicalDevice.........*/ logicalDevice,
+                                      /*...VkQueue...................queue.................*/ queue,
+                                      /*...uint32_t..................queueFamilyIndex......*/ queueFamilyIndex,
+                                      /*...VkDeviceSize..............copySize..............*/ vertexBufferDataSize,
+                                      /*...vulkanAllocatedBufferInfo.srcBufferInfo.........*/ vertexStagingBufferInfo,              // Src buffer
+                                      /*...vulkanAllocatedBufferInfo.dstBufferInfo.........*/ geometryBuffersOut.vertexBufferInfo); // Dst buffer
 
-            ExecuteBuffer2BufferCopy (physicalDevice,
-                                      logicalDevice,
-                                      queue,
-                                      queueFamilyIndex,
-                                      indexBufferDataSize,
-                                      indexStagingBufferInfo,               // Src buffer
-                                      geometryBuffersOut.indexBufferInfo);  // Dst buffer
+            ExecuteBuffer2BufferCopy (/*...VkPhysicalDevice..........physicalDevice........*/ physicalDevice,
+                                      /*...VkDevice..................logicalDevice.........*/ logicalDevice,
+                                      /*...VkQueue...................queue.................*/ queue,
+                                      /*...uint32_t..................queueFamilyIndex......*/ queueFamilyIndex,
+                                      /*...VkDeviceSize..............copySize..............*/ indexBufferDataSize,
+                                      /*...vulkanAllocatedBufferInfo.srcBufferInfo.........*/ indexStagingBufferInfo,               // Src buffer
+                                      /*...vulkanAllocatedBufferInfo.dstBufferInfo.........*/ geometryBuffersOut.indexBufferInfo);  // Dst buffer
 
             // We dont need the staging buffers anymore since the data is now in the buffers backed by device local memory
             //     so we destroy the staging buffers and free their memory.

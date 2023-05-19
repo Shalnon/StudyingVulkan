@@ -295,18 +295,6 @@ VkInstance InitializeVulkanAndCreateInstance()
 
 VkSurfaceKHR CreateVkSurface(VkInstance instance, HINSTANCE window_instance, HWND window_handle)
 {
-    // This code was copied from https://github.com/KhronosGroup/Vulkan-ValidationLayers/blob/dc3f64a5fd6709dba77aa3ee708f330d87d8018d/tests/vkrenderframework.cpp mostly
-    //const wchar_t class_name[] = L"test";
-    //WNDCLASS      wc = {};
-    //wc.lpfnWndProc = WindowProc;
-    //wc.hInstance = window_instance;
-    //wc.lpszClassName = class_name;
-    //
-    //RegisterClass(&wc);
-    //
-    //HWND window = CreateWindowEx(0, class_name, 0, 0, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, NULL, NULL, window_instance, NULL);
-    //ShowWindow(window, SW_HIDE);
-
     assert(window_handle != 0);
     assert(window_handle != 0);
 

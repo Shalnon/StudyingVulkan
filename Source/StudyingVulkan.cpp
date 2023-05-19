@@ -38,7 +38,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     uint32_t                 queueFamilyIndex = UINT32_MAX;
 
     const char* requiredDeviceExtensions[] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-    assert(numRequiredExtensions == sizeof(requiredDeviceExtensions) / sizeof(const char*));
+    assert(numRequiredExtensions == (sizeof(requiredDeviceExtensions) / sizeof(const char*)));
 
     CreatePhysicalDeviceAndQueue(/*..VkInstance.................*/ instance,
                                  /*..VkSurfaceKHR...............*/ surface,
@@ -109,9 +109,8 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                                          queueFamilyIndex,
                                                          pScene,
                                                          true);
-   
 
-    uint32_t numFramesToRender = 64;
+    uint32_t numFramesToRender = 5;
     
     printf("about to start executing renderloop\n");
     for (uint32_t i = 0; i < numFramesToRender; i++)
