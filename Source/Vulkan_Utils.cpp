@@ -668,9 +668,9 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat, VkDevice logicalDevice)
     //  |The final layout in the render pass attachment states PRESENT_SRC_KHR, so we |
     //  |will get a final transition from COLOR_ATTACHMENT_OPTIMAL to PRESENT_SRC_KHR.|"
     VkSubpassDescription subpassDescription = {};
-    subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpassDescription.pipelineBindPoint    = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpassDescription.colorAttachmentCount = 1;
-    subpassDescription.pColorAttachments = &colorAttachmentRef;
+    subpassDescription.pColorAttachments    = &colorAttachmentRef;
 
     VkSubpassDependency subpassDependency =
     {
@@ -697,9 +697,9 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat, VkDevice logicalDevice)
     };
 
     VkRenderPass renderpass = VK_NULL_HANDLE;
-    VkResult result = vkCreateRenderPass(logicalDevice, &renderPassCreateInfo, 0, &renderpass);
-    assert(result == VK_SUCCESS);
+    VkResult     result     = vkCreateRenderPass(logicalDevice, &renderPassCreateInfo, 0, &renderpass);
 
+    assert(result == VK_SUCCESS);
     return renderpass;
 }
 
@@ -756,20 +756,6 @@ VkShaderModule CreateShaderModule(VkDevice logicalDevice, const char* spvPath, b
     assert(pCode);
     shaderSourceInputStream.read(reinterpret_cast<char*>(pCode), codeSize);
 
-    /*const uint32_t* pCode = 0;
-    size_t  codeSizeB = 0;
-    
-    if (isVert == true)
-    {
-        pCode = g_VertShader;
-        codeSizeB = sizeof(g_VertShader);
-    }
-    else if (isFrag == true)
-    {
-        pCode = g_FragShader;
-        codeSizeB = sizeof(g_FragShader);
-    }*/
-
     VkShaderModule           shaderModule           = VK_NULL_HANDLE;
     VkShaderModuleCreateInfo shaderModuleCreateInfo =
     {
@@ -789,7 +775,13 @@ VkShaderModule CreateShaderModule(VkDevice logicalDevice, const char* spvPath, b
 }
 
 
-VkPipeline CreatePipeline(VkDevice logicalDevice, VkRenderPass renderpass, VkExtent2D* pExtent, const char* fragShaderPath, const char* vertShaderPath)
+VkPipeline CreatePipeline(VkDevice              logicalDevice,
+                          VkRenderPass          renderpass,
+                          VkExtent2D*           pExtent,
+                          VkDescriptorSetLayout descriptorSetLayoutHandle,
+                          const char*           fragShaderPath,
+                          const char*           vertShaderPath,
+                          VkPipelineLayout*     pPipelineLayoutHandleOut)
 {
     uint32_t numVertexAttributes = sizeof (s_VertexShaderAttributes) / sizeof (AttributeInfo);
     assert (numVertexAttributes > 0);
@@ -810,8 +802,6 @@ VkPipeline CreatePipeline(VkDevice logicalDevice, VkRenderPass renderpass, VkExt
         /*..VkVertexInputRate....inputRate....*/ VK_VERTEX_INPUT_RATE_VERTEX
     };
 
-    // The pipeline layout is used to register resources like samplers, SSBOs and other resources requiring a descriptor set to be used
-    VkPipelineLayout                       pipelineLayout             = VK_NULL_HANDLE;
     VkPipelineVertexInputStateCreateInfo   vertexInputStateCreateInfo =
     {
         /*...VkStructureType.............................sType.............................*/ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
@@ -832,13 +822,15 @@ VkPipeline CreatePipeline(VkDevice logicalDevice, VkRenderPass renderpass, VkExt
         /*....VkBool32...................................primitiveRestartEnable.....*/ VK_FALSE
     };
 
-    VkPipelineLayoutCreateInfo             layoutCreateInfo =
+    // The pipeline layout is used to register resources like UBOs, samplers, SSBOs and other resources requiring a descriptor set to be used
+    VkPipelineLayout           pipelineLayout   = VK_NULL_HANDLE;
+    VkPipelineLayoutCreateInfo layoutCreateInfo =
     {
         /*...VkStructureType.................sType......................*/ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
         /*...const.void*.....................pNext......................*/ nullptr,
         /*...VkPipelineLayoutCreateFlags.....flags......................*/ 0,
-        /*...uint32_t........................setLayoutCount.............*/ 0,
-        /*...const.VkDescriptorSetLayout*....pSetLayouts................*/ nullptr,
+        /*...uint32_t........................setLayoutCount.............*/ 1,
+        /*...const.VkDescriptorSetLayout*....pSetLayouts................*/ &descriptorSetLayoutHandle,
         /*...uint32_t........................pushConstantRangeCount.....*/ 0,
         /*...const.VkPushConstantRange*......pPushConstantRanges........*/ nullptr
     };
@@ -846,6 +838,8 @@ VkPipeline CreatePipeline(VkDevice logicalDevice, VkRenderPass renderpass, VkExt
     //@VKSPEC: "Access to descriptor sets from a pipeline is accomplished through a pipeline layout." : https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkPipelineLayout.html
     VkResult result = vkCreatePipelineLayout(logicalDevice, &layoutCreateInfo, 0, &pipelineLayout);
     assert(result == VK_SUCCESS);
+
+    *pPipelineLayoutHandleOut = pipelineLayout;
 
     VkPipelineRasterizationStateCreateInfo rasterizationStateCreateInfo =
     {
@@ -902,7 +896,7 @@ VkPipeline CreatePipeline(VkDevice logicalDevice, VkRenderPass renderpass, VkExt
         /*...const.void*...........................pNext............*/ 0,
         /*...VkPipelineViewportStateCreateFlags....flags............*/ 0, //reserved for future use as of vk1.3
         /*...uint32_t..............................viewportCount....*/ 1,
-        /*...const.VkViewport*.....................pViewports.......*/ &viewport, //@NOTE: Why is this not set in the khronos example? spec says this member is ignored if 
+        /*...const.VkViewport*.....................pViewports.......*/ &viewport,
         /*...uint32_t..............................scissorCount.....*/ 1,
         /*...const.VkRect2D*.......................pScissors........*/ &scissor
     };
@@ -1155,13 +1149,10 @@ VkResult AcuireNextSwapchainImageIdx(VkQueue                     queue,
     return result;
 }
 
-
-
-
-
 uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                            VkPhysicalDevice             physicalDevice, 
                            VkSwapchainKHR               swapchain,
+                           VkDescriptorSet              descriptorSetHandle,
                            VkQueue                      queue,
                            uint32_t                     gfxQueueIdx,
                            uint32_t                     numPreferredSwapchainFormats,
@@ -1169,6 +1160,7 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                            VkSurfaceKHR                 surface,
                            VkRenderPass                 renderpass,
                            VkPipeline                   pipeline,
+                           VkPipelineLayout             pipelineLayout,
                            PerSwapchainImageResources** ppPerSwapchainImageResources,
                            uint32_t*                    pNumSwapchainImages,
                            VkExtent2D*                  pExtent,
@@ -1214,7 +1206,9 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
     renderCommandBuffer = RecordRenderGeometryBufferCmds (/*...GeometryBufferSet*..........pGeometryBufferSet.............*/ pGeometryBufferSet,
                                                           /*...PerSwapchainImageResources*.pPerSwapchainImageResources....*/ &(pPerFrameResources[imageIdx]),
                                                           /*...VkRenderPass................renderPass.....................*/ renderpass,
+                                                          /*...VkDescriptorSet.............descriptorSet..................*/ descriptorSetHandle,
                                                           /*...VkPipeline..................pipeline.......................*/ pipeline,
+                                                          /*...VkPipelineLayout............pipelineLayout.................*/ pipelineLayout,
                                                           /*...VkExtent2D*.................pExtent........................*/ pExtent,
                                                           /*...VkClearValue*...............pClearValue....................*/ &(clearValArray[frameIdx % 3]));
 
@@ -1320,7 +1314,9 @@ VkSwapchainKHR ReinitializeRenderungSurface(VkDevice                     logical
 VkCommandBuffer RecordRenderGeometryBufferCmds (GeometryBufferSet*          pGeometryBufferSet,
                                                 PerSwapchainImageResources* pPerSwapchainImageResources,
                                                 VkRenderPass                renderPass,
+                                                VkDescriptorSet             descriptorSet,
                                                 VkPipeline                  pipeline,
+                                                VkPipelineLayout            pipelineLayout,
                                                 VkExtent2D*                 pExtent,
                                                 VkClearValue*               pClearValue)
 {
@@ -1363,6 +1359,15 @@ VkCommandBuffer RecordRenderGeometryBufferCmds (GeometryBufferSet*          pGeo
 
     vkCmdBindPipeline (commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
+    vkCmdBindDescriptorSets (/*...VkCommandBuffer.............................commandBuffer.........*/ commandBuffer,
+                             /*...VkPipelineBindPoint.........................pipelineBindPoint.....*/ VK_PIPELINE_BIND_POINT_GRAPHICS,
+                             /*...VkPipelineLayout............................layout................*/ pipelineLayout,
+                             /*...uint32_t....................................firstSet..............*/ 0,
+                             /*...uint32_t....................................descriptorSetCount....*/ 1,
+                             /*...const.VkDescriptorSet*......................pDescriptorSets.......*/ &descriptorSet,
+                             /*...uint32_t....................................dynamicOffsetCount....*/ 0,
+                             /*...const.uint32_t*.............................pDynamicOffsets.......*/ nullptr);
+
     VkViewport viewport =
     {
         /*...float....x..........*/ 0,
@@ -1395,6 +1400,8 @@ VkCommandBuffer RecordRenderGeometryBufferCmds (GeometryBufferSet*          pGeo
                           /*...VkDeviceSize.............offset...........*/ 0,
                           /*...VkIndexType..............indexType........*/ VK_INDEX_TYPE_UINT32);
 
+
+    ///@TODO: add per mesh draw commands and pass in mesh Idx via firstInstance arg
     vkCmdDrawIndexed (/*...VkCommandBuffer.......commandBuffer......*/ commandBuffer,
                       /*...uint32_t..............indexCount.........*/ pGeometryBufferSet->numTriangles * NUM_VERTICES_PER_TRIANGLE,
                       /*...uint32_t..............instanceCount......*/ 1,

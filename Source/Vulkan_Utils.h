@@ -88,7 +88,14 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
                          PerSwapchainImageResources** ppPerFrameResourcesOut);
 
 VkRenderPass CreateRenderpass(VkFormat swapChainFormat, VkDevice logicalDevice);
-VkPipeline   CreatePipeline(VkDevice logicalDevice, VkRenderPass renderpass, VkExtent2D* pExtent, const char* fragShaderPath, const char* vertShaderPath);
+
+VkPipeline CreatePipeline(VkDevice              logicalDevice, 
+                          VkRenderPass          renderpass, 
+                          VkExtent2D*           pExtent, 
+                          VkDescriptorSetLayout descriptorSetLayoutHandle,
+                          const char*           fragShaderPath, 
+                          const char*           vertShaderPath,
+                          VkPipelineLayout*     pPipelineLayoutHandleOut);
 
 void CreateFrameBuffers(VkDevice                    logicalDevice,
                         VkRenderPass                renderPass,
@@ -114,6 +121,7 @@ VkResult AcuireNextSwapchainImageIdx(VkQueue                     queue,
 uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                            VkPhysicalDevice             physicalDevice, 
                            VkSwapchainKHR               swapchain,
+                           VkDescriptorSet              descriptorSetHandle,
                            VkQueue                      queue,
                            uint32_t                     gfxQueueIdx,
                            uint32_t                     numPreferredSwapchainFormats,
@@ -121,6 +129,7 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                            VkSurfaceKHR                 surface,
                            VkRenderPass                 renderpass,
                            VkPipeline                   pipeline,
+                           VkPipelineLayout             pipelineLayout,
                            PerSwapchainImageResources** pPerFrameResources,
                            uint32_t*                    pNumSwapchainImages,
                            VkExtent2D*                  pExtent,
@@ -143,7 +152,9 @@ VkSwapchainKHR ReinitializeRenderungSurface(VkDevice                     logical
 VkCommandBuffer RecordRenderGeometryBufferCmds(GeometryBufferSet*          pGeometryBufferSet,
                                                PerSwapchainImageResources* pPerSwapchainImageResources,
                                                VkRenderPass                renderPass,
+                                               VkDescriptorSet             descriptorSet,
                                                VkPipeline                  pipeline,
+                                               VkPipelineLayout            pipelineLayout,
                                                VkExtent2D*                 pExtent,
                                                VkClearValue*               pClearValue);
 
@@ -184,18 +195,6 @@ inline void ResestPerSwapchainImageResources (VkDevice                      logi
                 vkFreeCommandBuffers (logicalDevice, oldCommandPool, 1, &oldCommandBuffer);
                 vkDestroyCommandPool (logicalDevice, oldCommandPool, nullptr);
             }
-
-           // VkSemaphore oldAcquireSeamphore = pPerSwapchainImageResources[i].acquireSwapchainImageSemaphore;
-           // if (oldAcquireSeamphore != VK_NULL_HANDLE)
-           // {
-           //     VkSync::SemaphoreDepot.DepositUnusedSemaphore (oldAcquireSeamphore);
-           // }
-           //
-           // VkSemaphore oldReleaseSemaphore = pPerSwapchainImageResources[i].releaseSwapchainImageSemaphore;
-           // if (oldReleaseSemaphore != VK_NULL_HANDLE)
-           // {
-           //     VkSync::SemaphoreDepot.DepositUnusedSemaphore (oldReleaseSemaphore);
-           // }
 
             //Clear the struct
             pPerSwapchainImageResources[i]             = {};

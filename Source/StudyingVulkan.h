@@ -25,6 +25,12 @@
 #define NUM_BYTES_PER_VERTEX_POSITION sizeof (float) * COORDS_PER_POSITION
 #define NUM_INDEX_BYTES_PER_TRIANGLE sizeof (uint32_t) * NUM_VERTICES_PER_TRIANGLE
 
+//Define our model matrix format. Doing it this way because im not actually sure i need a full 4x4 matrix and this makes it easier to experiment
+#define NUM_MODEL_MATRIX_COLUMNS 4
+#define NUM_MODEL_MATRIX_ROWS    4 
+#define NUM_FLOATS_PER_TRASNFORM_MATRIX NUM_MODEL_MATRIX_COLUMNS * NUM_MODEL_MATRIX_ROWS
+#define NUM_BYTES_PER_MODEL_MATRIX   NUM_MODEL_MATRIX_COLUMNS * NUM_MODEL_MATRIX_ROWS * sizeof(float)
+
 
 
 #if defined(USE_VOLK)

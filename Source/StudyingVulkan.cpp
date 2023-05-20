@@ -7,6 +7,7 @@
 #include "resource.h"
 #include "Vulkan_Synchronization.h"
 #include "Vulkan_Buffer_Tools.h"
+#include "Vulkan_Descriptor_Tools.h"
 #include "Asset_Tools.h"
 
 int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
@@ -80,12 +81,19 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                          /*.uint32_t*....................pNumSwapchainImages..........*/ &numSwapChainImages,
                          /*.PerSwapchainImageResources**.ppPerSwapchainImageResources.*/ &pPerSwapchainImageResources);
 
-    VkRenderPass renderpass = CreateRenderpass(surfaceFormat.format, logicalDevice);
-    VkPipeline   pipeline   = CreatePipeline(logicalDevice, 
-                                             renderpass,
-                                             &actualFrameDimensions,
-                                             fragmentShaderPath.c_str(),
-                                             vertexShaderPath.c_str());
+    VkRenderPass          renderpass                = CreateRenderpass (surfaceFormat.format, logicalDevice);
+
+    VkDescriptorSetLayout descriptorSetLayoutHandle = CreateDescriptorSetLayout (logicalDevice);
+    VkDescriptorPool      descriptorPoolHandle      = CreateDescriptorPool (logicalDevice); //@Note: Dont actually need the descriptorPool till we allocate descriptorSets below
+
+    VkPipelineLayout      pipelineLayoutHandle      = VK_NULL_HANDLE;
+    VkPipeline            pipelineHandle            = CreatePipeline(logicalDevice, 
+                                                                     renderpass,
+                                                                     &actualFrameDimensions,
+                                                                     descriptorSetLayoutHandle,
+                                                                     fragmentShaderPath.c_str(),
+                                                                     vertexShaderPath.c_str(),
+                                                                     &pipelineLayoutHandle);
 
     CreateFrameBuffers(logicalDevice,
                        renderpass,
@@ -110,22 +118,40 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                                          pScene,
                                                          true);
 
+    VkDescriptorBufferInfo transformBufferDescriptorInfo =
+    {
+        /*...VkBuffer........buffer...*/ geometrysBuffers.matrixBufferInfo.bufferHandle,
+        /*...VkDeviceSize....offset...*/ 0,
+        /*...VkDeviceSize....range....*/ VK_WHOLE_SIZE
+    };
+
+    VkDescriptorSet descriptorSetHandle = AllocateDescriptorSet (logicalDevice,
+                                                                 descriptorPoolHandle,
+                                                                 descriptorSetLayoutHandle);
+
+    //@TODO: change name of this func so it makes it clear its updating the desciptor set, not the transform data in the buffer itself.
+    UpdateMeshTransformUbo (logicalDevice,
+                            &transformBufferDescriptorInfo,
+                            descriptorSetHandle);
+
     uint32_t numFramesToRender = 5;
     
     printf("about to start executing renderloop\n");
     for (uint32_t i = 0; i < numFramesToRender; i++)
     {
         printf ("\n--Frame %u begin--\n", i);
-        ExecuteRenderLoop (/*.VkDevice.....................logicalDevice................*/ logicalDevice,
+        ExecuteRenderLoop ( /*.VkDevice.....................logicalDevice................*/ logicalDevice,
                             /*.VkPhysicalDevice.............physicalDevice,..............*/ physicalDevice,
                             /*.VkSwapchainKHR...............swapchain....................*/ swapchain,
+                            /*VkDescriptorSet...............descriptorSetHandle..........*/ descriptorSetHandle,
                             /*.VkQueue......................queue........................*/ queue,
                             /*.uint32_t.....................gfxQueueIdx..................*/ queueFamilyIndex,
                             /*.uint32_t.....................numPreferredSwapchainFormats.*/ numPreferredSurfaceFormats,
                             /*.VkFormat*....................pPreferredSwapchainFormats...*/ pPreferredSurfaceFormats,
                             /*.VkSurfaceKHR.................surface......................*/ surface,
                             /*.VkRenderPass.................renderpass...................*/ renderpass,
-                            /*.VkPipeline...................pipeline.....................*/ pipeline,
+                            /*.VkPipeline...................pipelineHandle...............*/ pipelineHandle,
+                            /*.VkPipelineLayout.............pipelineLayoutHandle.........*/
                             /*.PerSwapchainImageResources**.ppPerSwapchainImageResources.*/ &pPerSwapchainImageResources,
                             /*.uint32_t*....................pNumSwapchainImages..........*/ &numSwapChainImages,
                             /*.VkExtent2D*..................pFramebufferExtent...........*/ &actualFrameDimensions,
@@ -176,9 +202,9 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
         {
         */
 
-        if (pipeline != VK_NULL_HANDLE)
+        if (pipelineHandle != VK_NULL_HANDLE)
         {
-            vkDestroyPipeline (logicalDevice, pipeline, nullptr);
+            vkDestroyPipeline (logicalDevice, pipelineHandle, nullptr);
         }
 
         if (swapchain != VK_NULL_HANDLE)

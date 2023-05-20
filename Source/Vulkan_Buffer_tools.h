@@ -1,4 +1,3 @@
-#pragma once
 #ifndef VULKAN_BUFFER_TOOLS_H
 #define VULKAN_BUFFER_TOOLS_H
 //#include "StudyingVulkan.h"
@@ -37,6 +36,15 @@ static AttributeInfo s_VertexShaderAttributes[] =
     }
 };
 
+// Struct for tracking per-mesh data
+struct MeshInfo
+{
+    uint32_t           firstPrimIdx;
+    uint32_t           numPrims;
+    glm::mat4x4        modelMatrix;
+    VkAabbPositionsKHR aabb; // AABB for the individual mesh
+};
+
 // non-api struct we will use to track info needed to work with a specific VkBuffer and its data.
 struct vulkanAllocatedBufferInfo
 {
@@ -51,12 +59,15 @@ struct GeometryBufferSet
 {
     vulkanAllocatedBufferInfo vertexBufferInfo;
     vulkanAllocatedBufferInfo indexBufferInfo;
+    vulkanAllocatedBufferInfo matrixBufferInfo; // model matrices
     uint32_t                  numVertices;
     uint32_t                  numTriangles;
+    uint32_t                  numMeshes;
 
+    MeshInfo*                 pMeshes;
     // Using the VK aabb struct which is a part of VK_KHR_acceleration_structure extenction,
     //      but were just using it as a generic aabb tracking struct.
-    VkAabbPositionsKHR aabb;
+    VkAabbPositionsKHR aabb; // AABB for all geometry
 };
 
 // light-weight inline function for mapping buffer memory and getting a cpu ptr to it.
@@ -101,6 +112,11 @@ vulkanAllocatedBufferInfo CreateAndAllocateIndexBuffer (VkPhysicalDevice physica
                                                         VkDevice         logicalDevice,
                                                         uint32_t         bufferSizeInBytes,
                                                         uint32_t         queueIndex);
+
+vulkanAllocatedBufferInfo CreateAndAllocateMatrixBuffer (VkPhysicalDevice physicalDevice,
+                                                         VkDevice         logicalDevice,
+                                                         uint32_t         bufferSizeInBytes,
+                                                         uint32_t         queueIndex);
  
 void ExecuteBuffer2BufferCopy (VkPhysicalDevice          physicalDevice,
                                VkDevice                  logicalDevice,
