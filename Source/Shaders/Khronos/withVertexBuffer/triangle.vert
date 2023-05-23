@@ -5,7 +5,8 @@ precision highp float;
 
 layout(binding = 0) uniform UniformBufferObject
 {
-    mat4 modelMatrix[];
+    mat4 modelMatrix[1];
+    vec4 sceneScale;
 } ubo;
 
 layout(location = 0) in  vec3 inPosition;
@@ -19,7 +20,7 @@ vec3 triangle_colors[3] = vec3[](
 
 void main()
 {
-    mat4 meshTransform = ubo.modelMatrix[gl_InstanceID];
+    mat4 meshTransform = ubo.modelMatrix[gl_InstanceIndex];
 
     gl_Position = vec4(inPosition.xy, 0.0, 1.0) * meshTransform;
 

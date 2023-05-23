@@ -80,4 +80,81 @@ void Copy3dModelAssetFromFile (const char* pFilePath, MeshGeometryData** pMeshes
 }
 
 
+glm::mat4 GetTransform_FitAABBToAABB (VkAabbPositionsKHR originalAABB,
+                                      VkAabbPositionsKHR desiredBounds,
+                                      bool               maintainSceneAspectRatio)
+{
+    glm::vec3 scaleVec         = glm::vec3 (1.0f, 1.0f, 1.0f);
+    glm::vec3 translationVec   = glm::vec3 (0.0f, 0.0f, 0.0f);
+    glm::vec3 originalAabbSize = { originalAABB.maxX - originalAABB.minX,     // original AABB width
+                                   originalAABB.maxY - originalAABB.minY,     // original AABB height
+                                   originalAABB.maxZ - originalAABB.minZ };  // original AABB depth
+
+
+    glm::vec3 desiredBoundsSize = { desiredBounds.maxX - desiredBounds.minX,   // Desired bounds width
+                                    desiredBounds.maxY - desiredBounds.minY,   // Desired bounds height
+                                    desiredBounds.maxZ - desiredBounds.minZ }; // Desired bounds depth
+
+    //@TODO: move this into a function so i can get the scale separately from a transform matrix
+    if (maintainSceneAspectRatio == true)
+    {
+        // Find the axis with the largest gap in sizes between the original AABB and target AABB sizes
+        glm::vec3 boundsDifferences  = desiredBoundsSize - originalAabbSize;
+
+        float scale = 1.0f;
+
+        for (uint32_t i = 0;  i < 3; i++)
+        {
+            if (originalAabbSize[i] != 0.0)
+            {
+                float scaleToDesiredSizeOnAxis = desiredBoundsSize[i] / originalAabbSize[i];
+                if (scaleToDesiredSizeOnAxis < scale)
+                {
+                    scale = scaleToDesiredSizeOnAxis;
+                }
+            }
+        }
+
+        scaleVec = glm::vec3 (scale, scale, scale);
+    }
+    else
+    {
+        for (uint32_t i = 0; i < 3; i++)
+        {
+            scaleVec[i] = desiredBoundsSize[i] / originalAabbSize[i];
+        }
+    }
+
+    glm::vec3 originalAABBCenter = { originalAABB.minX + (originalAabbSize.x / 2),
+                                     originalAABB.minY + (originalAabbSize.y / 2),
+                                     originalAABB.minZ + (originalAabbSize.z / 2) };
+
+    glm::vec3 desiredBoundsCenter = { desiredBounds.minX + (desiredBoundsSize.x / 2),
+                                      desiredBounds.minY + (desiredBoundsSize.y / 2),
+                                      desiredBounds.minZ + (desiredBoundsSize.z / 2) };
+
+    // Translate by the amount that places the scene AABB center point at the origin
+    glm::mat4 translate2OriginMatrix = glm::mat4 (1.0f, 0.0f, 0.0f, -originalAABBCenter[0],
+                                                  0.0f, 1.0f, 0.0f, -originalAABBCenter[1],
+                                                  0.0f, 0.0f, 1.0f, -originalAABBCenter[2],
+                                                  0.0f, 0.0f, 0.0f, 1.0f);
+
+    // Scale relative to the origin
+    glm::mat4 scaleAroundOriginMatrix = glm::mat4 (scaleVec.x, 0.0f,       0.0f,       0.0f,
+                                                   0.0f,       scaleVec.y, 0.0f,       0.0f,
+                                                   0.0f,       0.0f,       scaleVec.z, 0.0f,
+                                                   0.0f,       0.0f,       0.0f,       1.0f);
+
+    // Translate by the amount that places the scene AABB center point at the center point of desiredBounds
+    glm::mat4 translateToDesiredLoc = glm::mat4 (1.0f, 0.0f, 0.0f, -desiredBoundsCenter[0],
+                                                 0.0f, 1.0f, 0.0f, -desiredBoundsCenter[1],
+                                                 0.0f, 0.0f, 1.0f, -desiredBoundsCenter[2],
+                                                 0.0f, 0.0f, 0.0f, 1.0f);
+
+    // Combine the transforms into one matrix
+    glm::mat4 fitAabb2AabbMatrix = translate2OriginMatrix * scaleAroundOriginMatrix * translateToDesiredLoc;
+
+    return fitAabb2AabbMatrix;
+}
+
 #endif

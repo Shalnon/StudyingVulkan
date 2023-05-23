@@ -1,6 +1,7 @@
 
 #include "Vulkan_Buffer_Tools.h"
 #include "assimp/scene.h"
+#include "Asset_Tools.h"    
 
 void GetMemoryType (VkPhysicalDevice      physicalDevice,
                     VkMemoryPropertyFlags requiredPropertyFlags, // ex: a mask of VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, etc...
@@ -178,7 +179,7 @@ void ExecuteBuffer2BufferCopy (VkPhysicalDevice          physicalDevice,
     {
         /*..VkStructureType.............sType.................*/ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
         /*..const.void*.................pNext.................*/ 0,
-        /*..VkCommandPoolCreateFlags....flags.................*/ VK_COMMAND_POOL_CREATE_TRANSIENT_BIT, //why not re-use command buffers? look into this later. @TODO
+        /*..VkCommandPoolCreateFlags....flags.................*/ VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
         /*..uint32_t....................queueFamilyIndex......*/ queueFamilyIndex
     };
 
@@ -284,23 +285,30 @@ vulkanAllocatedBufferInfo CreateAndAllocaStagingBuffer (VkPhysicalDevice physica
             /*...uint32_t.......offset............*/ 0 };
 }
 
-GeometryBufferSet CreateGeometryBuffersFromAiScene (VkPhysicalDevice physicalDevice, // @TODO, Create ssbo (or ubo maybe) with individual transform matrices for files which define multiple geometries/objects/meshes/whatever you want to call them
-                                                    VkDevice         logicalDevice,
-                                                    VkQueue          queue,
-                                                    uint32_t         queueFamilyIndex,
-                                                    const aiScene*   pScene, // ex: const aiScene* pScene = aiImportFile (pFilePath, aiProcessPreset_TargetRealtime_MaxQuality);
-                                                    bool             useInterleavedAttributes)
+GeometryBufferSet CreateGeometryBuffersFromAiScene (VkPhysicalDevice    physicalDevice,
+                                                    VkDevice            logicalDevice,
+                                                    VkQueue             queue,
+                                                    uint32_t            queueFamilyIndex,
+                                                    const aiScene*      pScene, // ex: const aiScene* pScene = aiImportFile (pFilePath, aiProcessPreset_TargetRealtime_MaxQuality);
+                                                    VkAabbPositionsKHR* pDesiredSceneBounds,
+                                                    bool                maintainSceneAspectRatio) // This determines whether were ok with the scene getting squished or stretched dispropotionately to fit
 {
-    GeometryBufferSet         geometryBuffersOut      = {};
-    vulkanAllocatedBufferInfo vertexStagingBufferInfo = {}; // Will correspond to a buffer backed by host visible memory, and will be where we initally write vertex data
-    vulkanAllocatedBufferInfo indexStagingBufferInfo  = {}; // Will correspond to a buffer backed by host visible memory, and will be where vert indices defining primitives will be written
-    vulkanAllocatedBufferInfo matrixStagingBufferInfo = {};
-    VkDeviceSize              vertexBufferDataSize    = 0;
-    VkDeviceSize              indexBufferDataSize     = 0;
-    VkDeviceSize              matrixBufferDataSize    = 0;
-    uint32_t                  numVertices             = 0;
-    uint32_t                  numTriangles            = 0;
-    uint32_t                  numMatrices             = 0;
+    GeometryBufferSet         geometryBuffersOut       = {};
+    vulkanAllocatedBufferInfo vertexStagingBufferInfo  = {}; // Will correspond to a buffer backed by host visible memory, and will be where we initally write vertex data
+    vulkanAllocatedBufferInfo indexStagingBufferInfo   = {}; // Will correspond to a buffer backed by host visible memory, and will be where vert indices defining primitives will be written
+    vulkanAllocatedBufferInfo uniformStagingBufferInfo = {};
+    VkDeviceSize              vertexBufferDataSize     = 0;
+    VkDeviceSize              indexBufferDataSize      = 0;
+    VkDeviceSize              uniformBufferDataSize    = 0;
+    uint32_t                  numVertices              = 0;
+    uint32_t                  numTriangles             = 0;
+    uint32_t                  numMatrices              = 0;
+
+
+    static const glm::mat4 sIdentityMat4x4 = glm::mat4 (1.0f, 0.0f, 0.0f, 0.0f,
+                                                        0.0f, 1.0f, 0.0f, 0.0f,
+                                                        0.0f, 0.0f, 1.0f, 0.0f,
+                                                        0.0f, 0.0f, 0.0f, 1.0f);
 
     if ((physicalDevice   != VK_NULL_HANDLE) &&
         (logicalDevice    != VK_NULL_HANDLE) &&
@@ -324,9 +332,15 @@ GeometryBufferSet CreateGeometryBuffersFromAiScene (VkPhysicalDevice physicalDev
             }
 
             // Calculate amount of memory needed to hold the vertex data
-            vertexBufferDataSize = numVertices  * NUM_BYTES_PER_VERTEX_POSITION;
-            indexBufferDataSize  = numTriangles * NUM_INDEX_BYTES_PER_TRIANGLE;
-            matrixBufferDataSize = numMatrices  * NUM_BYTES_PER_MODEL_MATRIX;
+            vertexBufferDataSize  = numVertices  * NUM_BYTES_PER_VERTEX_POSITION;
+            indexBufferDataSize   = numTriangles * NUM_INDEX_BYTES_PER_TRIANGLE;
+            
+            // Initialize with size required for the storing the list of model matrices
+            uniformBufferDataSize = numMatrices  * NUM_BYTES_PER_MODEL_MATRIX;
+
+            // Add size reqiored to store the ubo.sceneScale vector. Length of vector expected to match width of model matrix
+            uniformBufferDataSize += NUM_MODEL_MATRIX_COLUMNS;
+
 
             // Create a staging buffer which will be where the cpu writes vertex data to
             vertexStagingBufferInfo = CreateAndAllocaStagingBuffer (physicalDevice,
@@ -341,19 +355,19 @@ GeometryBufferSet CreateGeometryBuffersFromAiScene (VkPhysicalDevice physicalDev
                                                                    queueFamilyIndex);
 
             // Create a staging buffer which will be where the cpu writes matrix data to
-            matrixStagingBufferInfo = CreateAndAllocaStagingBuffer (physicalDevice,
+            uniformStagingBufferInfo = CreateAndAllocaStagingBuffer (physicalDevice,
                                                                     logicalDevice,
-                                                                    matrixBufferDataSize,
+                                                                    uniformBufferDataSize,
                                                                     queueFamilyIndex);
 
             // Map vertex buffer and index buffer memory 
             void* pMappedPositionStagingBufferMem = MapBufferMemory (vertexStagingBufferInfo, logicalDevice);
             void* pMappedIndexStagingBufferMem    = MapBufferMemory (indexStagingBufferInfo,  logicalDevice);
-            void* pMappedMatrixStagingBufferMem   = MapBufferMemory (matrixStagingBufferInfo, logicalDevice);
+            void* pMappedUniformStagingBufferMem  = MapBufferMemory (uniformStagingBufferInfo, logicalDevice);
 
-            float*    pVertexBuffMemFloatPtr = reinterpret_cast<  float*   >(pMappedPositionStagingBufferMem);
-            uint32_t* pIndexBuffMemUintPtr   = reinterpret_cast< uint32_t* >(pMappedIndexStagingBufferMem);
-            float*    pModelMatrixFloatPtr   = reinterpret_cast<  float*   >(pMappedMatrixStagingBufferMem);
+            float*    pVertexBuffMemFloatPtr  = reinterpret_cast<  float*   >(pMappedPositionStagingBufferMem);
+            uint32_t* pIndexBuffMemUintPtr    = reinterpret_cast< uint32_t* >(pMappedIndexStagingBufferMem);
+            float*    pUniformBuffMemFloatPtr = reinterpret_cast<  float*   >(pMappedUniformStagingBufferMem);
 
             uint32_t  numSceneTriangles      = 0;
             uint32_t  numSceneVertices       = 0;
@@ -366,10 +380,6 @@ GeometryBufferSet CreateGeometryBuffersFromAiScene (VkPhysicalDevice physicalDev
                 // index of the first triangle that is part of this mesh
                 uint32_t           firstPrimInMesh = numSceneTriangles;
                 VkAabbPositionsKHR meshAABB        = {};
-                glm::mat4x4        modelMatrix     = glm::mat4x4 (1.0, 0.0, 0.0, 0.0,
-                                                                  0.0, 1.0, 0.0, 0.0,
-                                                                  0.0, 0.0, 1.0, 0.0,
-                                                                  0.0, 0.0, 0.0, 1.0);
 
                 //@TODO: Check if the vertex data for a given mesh is stored contiguously,
                 //                and if it is replace the loop below with a memcpy
@@ -424,13 +434,10 @@ GeometryBufferSet CreateGeometryBuffersFromAiScene (VkPhysicalDevice physicalDev
                     else if (pFace->mNumIndices > 3) {    printf("Warning: found Ngon!\n");                  } // an Ngon
 
                 }
-                
-                // Write the matrix data to the staging buffer
-                memcpy (&(pModelMatrixFloatPtr[NUM_FLOATS_PER_TRASNFORM_MATRIX * meshIdx]), &(modelMatrix[0][0]), NUM_BYTES_PER_MODEL_MATRIX);
 
                 geometryBuffersOut.pMeshes[meshIdx] = { /*...uint32_t...........firstPrimIdx...*/ firstPrimInMesh,
                                                         /*...uint32_t...........numPrims.......*/ numSceneTriangles - firstPrimInMesh,
-                                                        /*...glm::mat4x4........modelMatrix....*/ modelMatrix,
+                                                        /*...glm::mat4x4........modelMatrix....*/ sIdentityMat4x4,
                                                         /*...VkAabbPositionsKHR.aabb...........*/ meshAABB };
 
                 // Updating AABB for the whole scene based on the mesh AABB
@@ -440,10 +447,37 @@ GeometryBufferSet CreateGeometryBuffersFromAiScene (VkPhysicalDevice physicalDev
                 if (meshAABB.minY < geometryBuffersOut.aabb.minY) { geometryBuffersOut.aabb.minY = meshAABB.minY; } // update y min
                 if (meshAABB.maxZ > geometryBuffersOut.aabb.maxZ) { geometryBuffersOut.aabb.maxZ = meshAABB.maxZ; } // update z max
                 if (meshAABB.minZ < geometryBuffersOut.aabb.minZ) { geometryBuffersOut.aabb.minZ = meshAABB.minZ; } // update z min
+
+            } // END: for (uint32_t meshIdx = 0; meshIdx < pScene->mNumMeshes; meshIdx++)
+
+            // Initializing modelMatrix to a transform that will translate and scale the scene such that if fits inside the AABB defined by *pDesiredSceneBounds
+            glm::mat4x4 modelMatrix = GetTransform_FitAABBToAABB (/*...VkAabbPositionsKHR...originalAABB...............*/ geometryBuffersOut.aabb,
+                                                                  /*...VkAabbPositionsKHR...desiredBounds..............*/ *pDesiredSceneBounds,
+                                                                  /*...bool.................maintainSceneAspectRatio...*/ maintainSceneAspectRatio);
+
+/*          Expected UBO data layout:
+            layout(binding = 0) uniform UniformBufferObject
+            {
+                mat4 modelMatrix[NumMeshes];
+                vec4 sceneScale;
+            } ubo;
+*/
+            // Write the matrices to the modelMatrix[] region of UBO staging buffer memory
+            for (uint32_t meshIdx = 0; meshIdx < pScene->mNumMeshes; meshIdx++)
+            {
+                memcpy (&(pUniformBuffMemFloatPtr[NUM_FLOATS_PER_TRASNFORM_MATRIX * meshIdx]), &(modelMatrix[0][0]), NUM_BYTES_PER_MODEL_MATRIX);
             }
+
+            float* pUboSceneScale  = &pUniformBuffMemFloatPtr[pScene->mNumMeshes * NUM_FLOATS_PER_TRASNFORM_MATRIX];
+            pUboSceneScale[0] = 1.0;
+            pUboSceneScale[0] = 1.0;
+            pUboSceneScale[0] = 1.0;
+            pUboSceneScale[0] = 1.0;
+
 
             vkUnmapMemory (logicalDevice, vertexStagingBufferInfo.memoryHandle);
             vkUnmapMemory (logicalDevice, indexStagingBufferInfo.memoryHandle);
+            vkUnmapMemory (logicalDevice, uniformStagingBufferInfo.memoryHandle);
 
             geometryBuffersOut.numVertices      = numSceneVertices;
             geometryBuffersOut.numTriangles     = numSceneTriangles;
@@ -457,11 +491,11 @@ GeometryBufferSet CreateGeometryBuffersFromAiScene (VkPhysicalDevice physicalDev
                                                                                indexBufferDataSize,
                                                                                queueFamilyIndex);
 
-            geometryBuffersOut.matrixBufferInfo = CreateAndAllocateMatrixBuffer (physicalDevice, // Create and allocate memory for a device local UBO with per-mesh data
+            geometryBuffersOut.uniformBufferInfo = CreateAndAllocateMatrixBuffer (physicalDevice, // Create and allocate memory for a device local UBO with per-mesh data
                                                                                  logicalDevice,
-                                                                                 matrixBufferDataSize,
+                                                                                 uniformBufferDataSize,
                                                                                  queueFamilyIndex);
-
+            // Sanity checking the size of what we've created so far
             assert (indexBufferDataSize  <= indexStagingBufferInfo.buffersize            );
             assert (indexBufferDataSize  <= geometryBuffersOut.indexBufferInfo.buffersize);
             assert (vertexBufferDataSize <= vertexStagingBufferInfo.buffersize           );
@@ -473,7 +507,8 @@ GeometryBufferSet CreateGeometryBuffersFromAiScene (VkPhysicalDevice physicalDev
                 //                   Than the relevant data would be copied into separate device visible buffers at their individal offsets inside the staging buffer.
                 //@TODO: Also check if the device local vertex and index buffers can be backed by memory from the same allocation. 
                 //             I doubt index and vertex buffers need to use different memory types, so it should be fine. but double check
- 
+            
+            // Upload vertex buffer data to the device local buffer
             ExecuteBuffer2BufferCopy (/*...VkPhysicalDevice..........physicalDevice........*/ physicalDevice,
                                       /*...VkDevice..................logicalDevice.........*/ logicalDevice,
                                       /*...VkQueue...................queue.................*/ queue,
@@ -482,6 +517,7 @@ GeometryBufferSet CreateGeometryBuffersFromAiScene (VkPhysicalDevice physicalDev
                                       /*...vulkanAllocatedBufferInfo.srcBufferInfo.........*/ vertexStagingBufferInfo,              // Src buffer
                                       /*...vulkanAllocatedBufferInfo.dstBufferInfo.........*/ geometryBuffersOut.vertexBufferInfo); // Dst buffer
 
+            // Upload index buffer data to the device local buffer
             ExecuteBuffer2BufferCopy (/*...VkPhysicalDevice..........physicalDevice........*/ physicalDevice,
                                       /*...VkDevice..................logicalDevice.........*/ logicalDevice,
                                       /*...VkQueue...................queue.................*/ queue,
@@ -490,13 +526,14 @@ GeometryBufferSet CreateGeometryBuffersFromAiScene (VkPhysicalDevice physicalDev
                                       /*...vulkanAllocatedBufferInfo.srcBufferInfo.........*/ indexStagingBufferInfo,               // Src buffer
                                       /*...vulkanAllocatedBufferInfo.dstBufferInfo.........*/ geometryBuffersOut.indexBufferInfo);  // Dst buffer
 
+            //Upload transform uniform data to device local buffer
             ExecuteBuffer2BufferCopy (/*...VkPhysicalDevice..........physicalDevice........*/ physicalDevice,
                                       /*...VkDevice..................logicalDevice.........*/ logicalDevice,
                                       /*...VkQueue...................queue.................*/ queue,
                                       /*...uint32_t..................queueFamilyIndex......*/ queueFamilyIndex,
-                                      /*...VkDeviceSize..............copySize..............*/ matrixBufferDataSize,
-                                      /*...vulkanAllocatedBufferInfo.srcBufferInfo.........*/ matrixStagingBufferInfo,               // Src buffer
-                                      /*...vulkanAllocatedBufferInfo.dstBufferInfo.........*/ geometryBuffersOut.matrixBufferInfo);  // Dst buffer
+                                      /*...VkDeviceSize..............copySize..............*/ uniformBufferDataSize,
+                                      /*...vulkanAllocatedBufferInfo.srcBufferInfo.........*/ uniformStagingBufferInfo,               // Src buffer
+                                      /*...vulkanAllocatedBufferInfo.dstBufferInfo.........*/ geometryBuffersOut.uniformBufferInfo);  // Dst buffer
 
             // We dont need the staging buffers anymore since the data is now in the buffers backed by device local memory
             //     so we destroy the staging buffers and free their memory.
@@ -506,8 +543,12 @@ GeometryBufferSet CreateGeometryBuffersFromAiScene (VkPhysicalDevice physicalDev
             vkFreeMemory (logicalDevice, indexStagingBufferInfo.memoryHandle, nullptr);
             vkDestroyBuffer (logicalDevice, indexStagingBufferInfo.bufferHandle, nullptr);
 
-            vertexStagingBufferInfo = {};
-            indexStagingBufferInfo = {};
+            vkFreeMemory (logicalDevice, uniformStagingBufferInfo.memoryHandle, nullptr);
+            vkDestroyBuffer (logicalDevice, uniformStagingBufferInfo.bufferHandle, nullptr);
+
+            vertexStagingBufferInfo  = {};
+            indexStagingBufferInfo   = {};
+            uniformStagingBufferInfo = {};
         }
     }
     else

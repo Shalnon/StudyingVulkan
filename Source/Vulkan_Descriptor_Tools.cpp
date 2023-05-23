@@ -13,13 +13,14 @@ VkDescriptorSetLayout CreateDescriptorSetLayout (VkDevice logicalDevice)
     * layout(binding = 0) uniform UniformBufferObject
     * {
     *     mat4 modelMatrix;
+    *     vec4 sceneScale;
     * } ubo;
     *******************************************/
     VkDescriptorSetLayoutBinding dSetLayoutBinding =
     { 
         /*...uint32_t..............binding................*/ 0,
         /*...VkDescriptorType......descriptorType.........*/ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-        /*...uint32_t..............descriptorCount........*/ 1, // This would be greater than 1 if ubo was declared in the shader like ubo[n] where n>1
+        /*...uint32_t..............descriptorCount........*/ 1, // This would be greater than 1 if ubo was declared in the shader like }ubo[n]; where n>1
         /*...VkShaderStageFlags....stageFlags.............*/ VK_SHADER_STAGE_VERTEX_BIT,
         /*...const.VkSampler*......pImmutableSamplers.....*/ nullptr 
     };

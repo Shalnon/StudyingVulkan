@@ -59,7 +59,7 @@ struct GeometryBufferSet
 {
     vulkanAllocatedBufferInfo vertexBufferInfo;
     vulkanAllocatedBufferInfo indexBufferInfo;
-    vulkanAllocatedBufferInfo matrixBufferInfo; // model matrices
+    vulkanAllocatedBufferInfo uniformBufferInfo; // model matrices
     uint32_t                  numVertices;
     uint32_t                  numTriangles;
     uint32_t                  numMeshes;
@@ -130,11 +130,15 @@ void ExecuteBuffer2BufferCopy (VkPhysicalDevice          physicalDevice,
 struct aiScene;
 
 // Loads vertex data from a file into a buffer backed by device local memory.
-GeometryBufferSet CreateGeometryBuffersFromAiScene (VkPhysicalDevice physicalDevice, // @TODO, Create ssbo (or ubo maybe) with individual transform matrices for files which define multiple geometries/objects/meshes/whatever you want to call them
-                                                    VkDevice         logicalDevice,
-                                                    VkQueue          queue,
-                                                    uint32_t         queueFamilyIndex,
-                                                    const aiScene*   pScene,
-                                                    bool             useInterleavedAttributes);
+GeometryBufferSet CreateGeometryBuffersFromAiScene (VkPhysicalDevice    physicalDevice, // @TODO, Create ssbo (or ubo maybe) with individual transform matrices for files which define multiple geometries/objects/meshes/whatever you want to call them
+                                                    VkDevice            logicalDevice,
+                                                    VkQueue             queue,
+                                                    uint32_t            queueFamilyIndex,
+                                                    const aiScene*      pScene,
+                                                    VkAabbPositionsKHR* pDesiredSceneBounds,
+                                                    bool                maintainSceneAspectRatio);  // Tells if the scene scale should be set so the scene bounds match pDesiredSceneBounds exactly on all axis, 
+                                                                                                    //    or whether the scene aabb should be scaled so its longest side 
+                                                                                                            
+                                                  
 
 #endif

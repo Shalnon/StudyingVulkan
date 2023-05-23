@@ -107,7 +107,18 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     assert (modelPath.length() > 0); //adding this just to remind myself to add an actual path above.
     printf ("model path = %s\n", modelPath.c_str ());
 
+    VkAabbPositionsKHR ndcAABB =
+    {
+        /*...float....minX...*/ -0.15f,
+        /*...float....minY...*/ -0.15f,
+        /*...float....minZ...*/ -0.15f,
+        /*...float....maxX...*/  0.15f,
+        /*...float....maxY...*/  0.15f,
+        /*...float....maxZ...*/  0.15f
+    };
+    //glm::vec3 ndcAABB 
     const aiScene*     pScene           = aiImportFile (modelPath.c_str(), aiProcessPreset_TargetRealtime_MaxQuality);
+    glm::vec3          sceneScale       = { 1.0f, 1.0f, 1.0f };
     GeometryBufferSet  geometrysBuffers = {}; // Initializing the struct to 0 so any non-0 values are indicative of one of the variables being changed.
 
     // Create a vertex and index buffer
@@ -116,20 +127,23 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                                          queue,
                                                          queueFamilyIndex,
                                                          pScene,
-                                                         true);
+                                                         &ndcAABB,
+                                                         true); // need to defined the desiredBounds aabb and pass it in.
 
     VkDescriptorBufferInfo transformBufferDescriptorInfo =
     {
-        /*...VkBuffer........buffer...*/ geometrysBuffers.matrixBufferInfo.bufferHandle,
+        /*...VkBuffer........buffer...*/ geometrysBuffers.uniformBufferInfo.bufferHandle,
         /*...VkDeviceSize....offset...*/ 0,
         /*...VkDeviceSize....range....*/ VK_WHOLE_SIZE
     };
 
+    // Fills out a VkDescriptorSetAllocateInfo and calls vkAllocateDescriptorSets
     VkDescriptorSet descriptorSetHandle = AllocateDescriptorSet (logicalDevice,
                                                                  descriptorPoolHandle,
                                                                  descriptorSetLayoutHandle);
 
     //@TODO: change name of this func so it makes it clear its updating the desciptor set, not the transform data in the buffer itself.
+    // Fills out a VkWriteDescriptorSet and calls vkUpdateDescriptorSets() 
     UpdateMeshTransformUbo (logicalDevice,
                             &transformBufferDescriptorInfo,
                             descriptorSetHandle);
@@ -151,7 +165,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                             /*.VkSurfaceKHR.................surface......................*/ surface,
                             /*.VkRenderPass.................renderpass...................*/ renderpass,
                             /*.VkPipeline...................pipelineHandle...............*/ pipelineHandle,
-                            /*.VkPipelineLayout.............pipelineLayoutHandle.........*/
+                            /*.VkPipelineLayout.............pipelineLayoutHandle.........*/ pipelineLayoutHandle,
                             /*.PerSwapchainImageResources**.ppPerSwapchainImageResources.*/ &pPerSwapchainImageResources,
                             /*.uint32_t*....................pNumSwapchainImages..........*/ &numSwapChainImages,
                             /*.VkExtent2D*..................pFramebufferExtent...........*/ &actualFrameDimensions,

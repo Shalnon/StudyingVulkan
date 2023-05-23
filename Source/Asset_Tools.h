@@ -1,4 +1,5 @@
 #pragma once
+#include "volk.h"
 #include <assimp\cimport.h>
 #include <assimp\scene.h>
 #include <assimp\postprocess.h>
@@ -18,6 +19,11 @@ struct MeshGeometryData
 
 
 };
+
+glm::mat4 GetTransform_FitAABBToAABB (VkAabbPositionsKHR originalAABB,
+                                      VkAabbPositionsKHR desiredBounds,
+                                      bool               maintainSceneAspectRatio);
+
 
 void Copy3dModelAssetFromFile (const char*        pFilePath, 
                                 MeshGeometryData** pMeshesOut);
