@@ -53,7 +53,7 @@ VkDeviceMemory AllocateVkBufferMemory (VkPhysicalDevice      physicalDevice,
     return deviceMem;
 }
 
-
+///@TODO: Make this functions inline
 vulkanAllocatedBufferInfo CreateAndAllocateVertexBuffer (VkPhysicalDevice physicalDevice,
                                                          VkDevice         logicalDevice,
                                                          uint32_t         bufferSizeInBytes,
@@ -92,6 +92,7 @@ vulkanAllocatedBufferInfo CreateAndAllocateVertexBuffer (VkPhysicalDevice physic
             /*...uint32_t.......offset............*/ 0 };
 }
 
+///@TODO: Make this functions inline
 vulkanAllocatedBufferInfo CreateAndAllocateIndexBuffer (VkPhysicalDevice physicalDevice,
                                                         VkDevice         logicalDevice,
                                                         uint32_t         bufferSizeInBytes,

@@ -84,34 +84,6 @@ VkDescriptorPool CreateDescriptorPool (VkDevice logicalDevice)
     return  descriptorPoolHandle;
 }
 
-
-
-void UpdateMeshTransformUbo (VkDevice                logicalDevice,
-                             VkDescriptorBufferInfo* pTransformBufferDescriptorInfo,
-                             VkDescriptorSet         descriptorSet)
-{
-
-    VkWriteDescriptorSet descriptorSetUpdateWrite =
-    {
-        /*...VkStructureType..................sType..............*/ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-        /*...const.void*......................pNext..............*/ nullptr,
-        /*...VkDescriptorSet..................dstSet.............*/ descriptorSet,
-        /*...uint32_t.........................dstBinding.........*/ 0,
-        /*...uint32_t.........................dstArrayElement....*/ 0,
-        /*...uint32_t.........................descriptorCount....*/ 1,
-        /*...VkDescriptorType.................descriptorType.....*/ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-        /*...const.VkDescriptorImageInfo*.....pImageInfo.........*/ nullptr,
-        /*...const.VkDescriptorBufferInfo*....pBufferInfo........*/ pTransformBufferDescriptorInfo,
-        /*...const.VkBufferView*..............pTexelBufferView...*/ nullptr
-    };
-
-    vkUpdateDescriptorSets (/*...VkDevice....................................device.................*/ logicalDevice,
-                            /*...uint32_t....................................descriptorWriteCount...*/ 1,
-                            /*...const.VkWriteDescriptorSet*.................pDescriptorWrites......*/ &descriptorSetUpdateWrite,
-                            /*...uint32_t....................................descriptorCopyCount....*/ 0,
-                            /*...const.VkCopyDescriptorSet*..................pDescriptorCopies......*/ nullptr);
-}
-
 VkDescriptorSet AllocateDescriptorSet (VkDevice               logicalDevice,
                                        VkDescriptorPool       descriptorPool,
                                        VkDescriptorSetLayout  descriptorSetLayout)

@@ -167,6 +167,7 @@ VkResult PresentImage(VkSwapchainKHR swapchain,
                       VkSemaphore    swapchainImageReleaseSemaphore,
                       VkQueue        queue);
 
+
 inline void ResestPerSwapchainImageResources (VkDevice                      logicalDevice,
                                               PerSwapchainImageResources*   pPerSwapchainImageResources,
                                               uint32_t                      numSwapchainImages)
@@ -202,5 +203,9 @@ inline void ResestPerSwapchainImageResources (VkDevice                      logi
         }
     }
 }
+
+VkDescriptorSet AllocateAndWriteDescriptorSet (VkDevice               logicalDevice,
+                                               VkDescriptorSetLayout  descriptorSetLayoutHandle,
+                                               VkBuffer               uniformBufferHandle);
 
 #endif

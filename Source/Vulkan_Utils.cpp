@@ -3,6 +3,8 @@
 #include "Vulkan_Utils.h"
 #include "Vulkan_enum_strings.h"
 #include "Vulkan_Buffer_Tools.h"
+#include "Vulkan_Descriptor_Tools.h"
+
 uint32_t numRequiredExtensions = 1;
 
 
@@ -1466,3 +1468,46 @@ VkResult PresentImage(VkSwapchainKHR swapchain,
     return vkQueuePresentKHR(queue, &presentInfo);
 }
                       
+// Creates and writes descriptor set. 
+VkDescriptorSet AllocateAndWriteDescriptorSet (VkDevice               logicalDevice,
+                                               VkDescriptorSetLayout  descriptorSetLayoutHandle,
+                                               VkBuffer               uniformBufferHandle)
+{
+    //@TODO: add some output variables for descriptor pool so it can be destroyed later.
+    VkDescriptorPool      descriptorPoolHandle = CreateDescriptorPool (logicalDevice);
+
+    VkDescriptorBufferInfo uniformBufferDescriptorInfo =
+    {
+        /*...VkBuffer........buffer...*/ uniformBufferHandle,
+        /*...VkDeviceSize....offset...*/ 0,
+        /*...VkDeviceSize....range....*/ VK_WHOLE_SIZE
+    };
+
+    // Fills out a VkDescriptorSetAllocateInfo and calls vkAllocateDescriptorSets
+    VkDescriptorSet descriptorSetHandle = AllocateDescriptorSet (logicalDevice,
+                                                                 descriptorPoolHandle,
+                                                                 descriptorSetLayoutHandle);
+
+    // Write the descriptor set with info about the resources backing the ubo
+    VkWriteDescriptorSet descriptorSetUpdateWrite =
+    {
+        /*...VkStructureType..................sType..............*/ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        /*...const.void*......................pNext..............*/ nullptr,
+        /*...VkDescriptorSet..................dstSet.............*/ descriptorSetHandle,
+        /*...uint32_t.........................dstBinding.........*/ 0,
+        /*...uint32_t.........................dstArrayElement....*/ 0,
+        /*...uint32_t.........................descriptorCount....*/ 1,
+        /*...VkDescriptorType.................descriptorType.....*/ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        /*...const.VkDescriptorImageInfo*.....pImageInfo.........*/ nullptr,
+        /*...const.VkDescriptorBufferInfo*....pBufferInfo........*/ &uniformBufferDescriptorInfo,
+        /*...const.VkBufferView*..............pTexelBufferView...*/ nullptr
+    };
+
+    vkUpdateDescriptorSets (/*...VkDevice....................................device.................*/ logicalDevice,
+                            /*...uint32_t....................................descriptorWriteCount...*/ 1,
+                            /*...const.VkWriteDescriptorSet*.................pDescriptorWrites......*/ &descriptorSetUpdateWrite,
+                            /*...uint32_t....................................descriptorCopyCount....*/ 0,
+                            /*...const.VkCopyDescriptorSet*..................pDescriptorCopies......*/ nullptr);
+
+    return descriptorSetHandle;
+}

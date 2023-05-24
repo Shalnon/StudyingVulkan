@@ -84,7 +84,6 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     VkRenderPass          renderpass                = CreateRenderpass (surfaceFormat.format, logicalDevice);
 
     VkDescriptorSetLayout descriptorSetLayoutHandle = CreateDescriptorSetLayout (logicalDevice);
-    VkDescriptorPool      descriptorPoolHandle      = CreateDescriptorPool (logicalDevice); //@Note: Dont actually need the descriptorPool till we allocate descriptorSets below
 
     VkPipelineLayout      pipelineLayoutHandle      = VK_NULL_HANDLE;
     VkPipeline            pipelineHandle            = CreatePipeline(logicalDevice, 
@@ -94,7 +93,6 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                                                      fragmentShaderPath.c_str(),
                                                                      vertexShaderPath.c_str(),
                                                                      &pipelineLayoutHandle);
-
     CreateFrameBuffers(logicalDevice,
                        renderpass,
                        &actualFrameDimensions,
@@ -137,23 +135,11 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                                                        &sceneBounds,
                                                                        true);
 
-    VkDescriptorBufferInfo transformBufferDescriptorInfo =
-    {
-        /*...VkBuffer........buffer...*/ uniformBufferInfo.bufferHandle,
-        /*...VkDeviceSize....offset...*/ 0,
-        /*...VkDeviceSize....range....*/ VK_WHOLE_SIZE
-    };
 
     // Fills out a VkDescriptorSetAllocateInfo and calls vkAllocateDescriptorSets
-    VkDescriptorSet descriptorSetHandle = AllocateDescriptorSet (logicalDevice,
-                                                                 descriptorPoolHandle,
-                                                                 descriptorSetLayoutHandle);
-
-    //@TODO: change name of this func so it makes it clear its updating the desciptor set, not the transform data in the buffer itself.
-    // Fills out a VkWriteDescriptorSet and calls vkUpdateDescriptorSets() 
-    UpdateMeshTransformUbo (logicalDevice,
-                            &transformBufferDescriptorInfo,
-                            descriptorSetHandle);
+    VkDescriptorSet descriptorSetHandle = AllocateAndWriteDescriptorSet (logicalDevice,
+                                                                         descriptorSetLayoutHandle,
+                                                                         uniformBufferInfo.bufferHandle);
 
     uint32_t numFramesToRender = 5;
     
@@ -164,7 +150,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
         ExecuteRenderLoop ( /*.VkDevice.....................logicalDevice................*/ logicalDevice,
                             /*.VkPhysicalDevice.............physicalDevice,..............*/ physicalDevice,
                             /*.VkSwapchainKHR...............swapchain....................*/ swapchain,
-                            /*VkDescriptorSet...............descriptorSetHandle..........*/ descriptorSetHandle,
+                            /*.VkDescriptorSet..............descriptorSetHandle..........*/ descriptorSetHandle,
                             /*.VkQueue......................queue........................*/ queue,
                             /*.uint32_t.....................gfxQueueIdx..................*/ queueFamilyIndex,
                             /*.uint32_t.....................numPreferredSwapchainFormats.*/ numPreferredSurfaceFormats,
