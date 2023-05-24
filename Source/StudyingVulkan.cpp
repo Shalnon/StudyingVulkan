@@ -104,7 +104,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     std::string currentPath   = std::filesystem::current_path ().string ();
     std::string assetsDirPath = currentPath   + std::string ("\\..\\..\\..\\Assets");
     std::string modelPath     = assetsDirPath + std::string ("\\Models\\simple_triangle.obj");
-    assert (modelPath.length() > 0); //adding this just to remind myself to add an actual path above.
+
     printf ("model path = %s\n", modelPath.c_str ());
 
     VkAabbPositionsKHR ndcAABB =
@@ -116,23 +116,30 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
         /*...float....maxY...*/  0.15f,
         /*...float....maxZ...*/  0.15f
     };
+
     //glm::vec3 ndcAABB 
-    const aiScene*     pScene           = aiImportFile (modelPath.c_str(), aiProcessPreset_TargetRealtime_MaxQuality);
-    glm::vec3          sceneScale       = { 1.0f, 1.0f, 1.0f };
-    GeometryBufferSet  geometrysBuffers = {}; // Initializing the struct to 0 so any non-0 values are indicative of one of the variables being changed.
+    const aiScene*            pScene            = aiImportFile (modelPath.c_str(), aiProcessPreset_TargetRealtime_MaxQuality);
+    glm::vec3                 sceneScale        = { 1.0f, 1.0f, 1.0f };
+    MeshInfo*                 pMeshes           = nullptr;
 
     // Create a vertex and index buffer
-    geometrysBuffers = CreateGeometryBuffersFromAiScene (physicalDevice,
-                                                         logicalDevice,
-                                                         queue,
-                                                         queueFamilyIndex,
-                                                         pScene,
-                                                         &ndcAABB,
-                                                         true); // need to defined the desiredBounds aabb and pass it in.
+    GeometryBufferSet  geometrysBuffers = CreateGeometryBuffersAndAABBs (physicalDevice,
+                                                                         logicalDevice,
+                                                                         queue,
+                                                                         queueFamilyIndex,
+                                                                         pScene);
+
+    vulkanAllocatedBufferInfo uniformBufferInfo  = CreateUniformBuffer(physicalDevice,
+                                                                       logicalDevice,
+                                                                       queue,
+                                                                       queueFamilyIndex,
+                                                                       &geometrysBuffers,
+                                                                       &ndcAABB,
+                                                                       true);
 
     VkDescriptorBufferInfo transformBufferDescriptorInfo =
     {
-        /*...VkBuffer........buffer...*/ geometrysBuffers.uniformBufferInfo.bufferHandle,
+        /*...VkBuffer........buffer...*/ uniformBufferInfo.bufferHandle,
         /*...VkDeviceSize....offset...*/ 0,
         /*...VkDeviceSize....range....*/ VK_WHOLE_SIZE
     };

@@ -59,15 +59,14 @@ struct GeometryBufferSet
 {
     vulkanAllocatedBufferInfo vertexBufferInfo;
     vulkanAllocatedBufferInfo indexBufferInfo;
-    vulkanAllocatedBufferInfo uniformBufferInfo; // model matrices
     uint32_t                  numVertices;
     uint32_t                  numTriangles;
     uint32_t                  numMeshes;
 
-    MeshInfo*                 pMeshes;
-    // Using the VK aabb struct which is a part of VK_KHR_acceleration_structure extenction,
-    //      but were just using it as a generic aabb tracking struct.
-    VkAabbPositionsKHR aabb; // AABB for all geometry
+    const MeshInfo*           pMeshes;
+    // Using the VK sceneAABB struct which is a part of VK_KHR_acceleration_structure extenction,
+    //      but were just using it as a generic sceneAABB tracking struct.
+    VkAabbPositionsKHR sceneAABB; // AABB for all geometry
 };
 
 // light-weight inline function for mapping buffer memory and getting a cpu ptr to it.
@@ -113,7 +112,7 @@ vulkanAllocatedBufferInfo CreateAndAllocateIndexBuffer (VkPhysicalDevice physica
                                                         uint32_t         bufferSizeInBytes,
                                                         uint32_t         queueIndex);
 
-vulkanAllocatedBufferInfo CreateAndAllocateMatrixBuffer (VkPhysicalDevice physicalDevice,
+vulkanAllocatedBufferInfo CreateAndAllocateUniformBuffer (VkPhysicalDevice physicalDevice,
                                                          VkDevice         logicalDevice,
                                                          uint32_t         bufferSizeInBytes,
                                                          uint32_t         queueIndex);
@@ -130,15 +129,18 @@ void ExecuteBuffer2BufferCopy (VkPhysicalDevice          physicalDevice,
 struct aiScene;
 
 // Loads vertex data from a file into a buffer backed by device local memory.
-GeometryBufferSet CreateGeometryBuffersFromAiScene (VkPhysicalDevice    physicalDevice, // @TODO, Create ssbo (or ubo maybe) with individual transform matrices for files which define multiple geometries/objects/meshes/whatever you want to call them
-                                                    VkDevice            logicalDevice,
-                                                    VkQueue             queue,
-                                                    uint32_t            queueFamilyIndex,
-                                                    const aiScene*      pScene,
-                                                    VkAabbPositionsKHR* pDesiredSceneBounds,
-                                                    bool                maintainSceneAspectRatio);  // Tells if the scene scale should be set so the scene bounds match pDesiredSceneBounds exactly on all axis, 
-                                                                                                    //    or whether the scene aabb should be scaled so its longest side 
-                                                                                                            
-                                                  
+GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice    physicalDevice, 
+                                                 VkDevice            logicalDevice,
+                                                 VkQueue             queue,
+                                                 uint32_t            queueFamilyIndex,
+                                                 const aiScene*      pScene);
 
+// Creates and initilizes UBO and fills it with data
+vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             physicalDevice,
+                                               VkDevice                     logicalDevice,
+                                               VkQueue                      queue,
+                                               uint32_t                     queueFamilyIndex,
+                                               const GeometryBufferSet*     pGeometryBufferSet,
+                                               VkAabbPositionsKHR*          pDesiredSceneBounds,
+                                               bool                         maintainAspectRatio);
 #endif
