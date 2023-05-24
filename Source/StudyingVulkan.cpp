@@ -107,7 +107,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
 
     printf ("model path = %s\n", modelPath.c_str ());
 
-    VkAabbPositionsKHR ndcAABB =
+    VkAabbPositionsKHR sceneBounds =
     {
         /*...float....minX...*/ -0.15f,
         /*...float....minY...*/ -0.15f,
@@ -117,7 +117,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
         /*...float....maxZ...*/  0.15f
     };
 
-    //glm::vec3 ndcAABB 
+    //glm::vec3 sceneBounds 
     const aiScene*            pScene            = aiImportFile (modelPath.c_str(), aiProcessPreset_TargetRealtime_MaxQuality);
     glm::vec3                 sceneScale        = { 1.0f, 1.0f, 1.0f };
     MeshInfo*                 pMeshes           = nullptr;
@@ -128,13 +128,13 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                                                          queue,
                                                                          queueFamilyIndex,
                                                                          pScene);
-
+    // Creates UBO and fills it with data. Contains scene transform
     vulkanAllocatedBufferInfo uniformBufferInfo  = CreateUniformBuffer(physicalDevice,
                                                                        logicalDevice,
                                                                        queue,
                                                                        queueFamilyIndex,
                                                                        &geometrysBuffers,
-                                                                       &ndcAABB,
+                                                                       &sceneBounds,
                                                                        true);
 
     VkDescriptorBufferInfo transformBufferDescriptorInfo =
