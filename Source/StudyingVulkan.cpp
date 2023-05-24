@@ -116,30 +116,29 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     };
 
     //glm::vec3 sceneBounds 
-    const aiScene*            pScene            = aiImportFile (modelPath.c_str(), aiProcessPreset_TargetRealtime_MaxQuality);
-    glm::vec3                 sceneScale        = { 1.0f, 1.0f, 1.0f };
-    MeshInfo*                 pMeshes           = nullptr;
+    const aiScene*            pScene               = aiImportFile (modelPath.c_str(), aiProcessPreset_TargetRealtime_MaxQuality);
+    glm::vec3                 sceneScale           = { 1.0f, 1.0f, 1.0f };
 
     // Create a vertex and index buffer
-    GeometryBufferSet  geometrysBuffers = CreateGeometryBuffersAndAABBs (physicalDevice,
-                                                                         logicalDevice,
-                                                                         queue,
-                                                                         queueFamilyIndex,
-                                                                         pScene);
+    GeometryBufferSet         geometrysBuffers     = CreateGeometryBuffersAndAABBs (physicalDevice,
+                                                                                    logicalDevice,
+                                                                                    queue,
+                                                                                    queueFamilyIndex,
+                                                                                    pScene);
     // Creates UBO and fills it with data. Contains scene transform
-    vulkanAllocatedBufferInfo uniformBufferInfo  = CreateUniformBuffer(physicalDevice,
-                                                                       logicalDevice,
-                                                                       queue,
-                                                                       queueFamilyIndex,
-                                                                       &geometrysBuffers,
-                                                                       &sceneBounds,
-                                                                       true);
-
-
+    vulkanAllocatedBufferInfo uniformBufferInfo    = CreateUniformBuffer (physicalDevice,
+                                                                          logicalDevice,
+                                                                          queue,
+                                                                          queueFamilyIndex,
+                                                                          &geometrysBuffers,
+                                                                          &sceneBounds,
+                                                                          true);
+                                                   
+                                                   
     // Fills out a VkDescriptorSetAllocateInfo and calls vkAllocateDescriptorSets
-    VkDescriptorSet descriptorSetHandle = AllocateAndWriteDescriptorSet (logicalDevice,
-                                                                         descriptorSetLayoutHandle,
-                                                                         uniformBufferInfo.bufferHandle);
+    VkDescriptorSet            descriptorSetHandle = AllocateAndWriteDescriptorSet (logicalDevice,
+                                                                                    descriptorSetLayoutHandle,
+                                                                                    uniformBufferInfo.bufferHandle);
 
     uint32_t numFramesToRender = 5;
     

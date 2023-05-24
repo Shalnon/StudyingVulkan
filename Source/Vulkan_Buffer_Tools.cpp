@@ -53,11 +53,10 @@ VkDeviceMemory AllocateVkBufferMemory (VkPhysicalDevice      physicalDevice,
     return deviceMem;
 }
 
-///@TODO: Make this functions inline
-vulkanAllocatedBufferInfo CreateAndAllocateVertexBuffer (VkPhysicalDevice physicalDevice,
-                                                         VkDevice         logicalDevice,
-                                                         uint32_t         bufferSizeInBytes,
-                                                         uint32_t         queueIndex)
+inline vulkanAllocatedBufferInfo CreateAndAllocateVertexBuffer (VkPhysicalDevice physicalDevice,
+                                                                VkDevice         logicalDevice,
+                                                                uint32_t         bufferSizeInBytes,
+                                                                uint32_t         queueIndex)
 {
     // Create vertex buffer
     VkBuffer           vertexBuffer           = VK_NULL_HANDLE;
@@ -93,10 +92,10 @@ vulkanAllocatedBufferInfo CreateAndAllocateVertexBuffer (VkPhysicalDevice physic
 }
 
 ///@TODO: Make this functions inline
-vulkanAllocatedBufferInfo CreateAndAllocateIndexBuffer (VkPhysicalDevice physicalDevice,
-                                                        VkDevice         logicalDevice,
-                                                        uint32_t         bufferSizeInBytes,
-                                                        uint32_t         queueIndex)
+inline vulkanAllocatedBufferInfo CreateAndAllocateIndexBuffer (VkPhysicalDevice physicalDevice,
+                                                               VkDevice         logicalDevice,
+                                                               uint32_t         bufferSizeInBytes,
+                                                               uint32_t         queueIndex)
 {
 
     VkBuffer           indexBuffer           = VK_NULL_HANDLE;
@@ -130,11 +129,10 @@ vulkanAllocatedBufferInfo CreateAndAllocateIndexBuffer (VkPhysicalDevice physica
             /*...uint32_t.......offset............*/ 0 };
 }
 
-///@TODO: Make a more general buffer create function
-vulkanAllocatedBufferInfo CreateAndAllocateUniformBuffer (VkPhysicalDevice physicalDevice,
-                                                         VkDevice         logicalDevice,
-                                                         uint32_t         bufferSizeInBytes,
-                                                         uint32_t         queueIndex)
+inline vulkanAllocatedBufferInfo CreateAndAllocateUniformBuffer (VkPhysicalDevice physicalDevice,
+                                                                 VkDevice         logicalDevice,
+                                                                 uint32_t         bufferSizeInBytes,
+                                                                 uint32_t         queueIndex)
 {
     VkBuffer           matrixBuffer           = VK_NULL_HANDLE;
     VkBufferUsageFlags matrixBufferUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;

@@ -95,7 +95,6 @@ glm::mat4 GetTransform_FitAABBToAABB (VkAabbPositionsKHR originalAABB,
                                     desiredBounds.maxY - desiredBounds.minY,   // Desired bounds height
                                     desiredBounds.maxZ - desiredBounds.minZ }; // Desired bounds depth
 
-    //@TODO: move this into a function so i can get the scale separately from a transform matrix
     if (maintainSceneAspectRatio == true)
     {
         // Find the axis with the largest gap in sizes between the original AABB and target AABB sizes

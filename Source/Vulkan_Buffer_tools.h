@@ -97,25 +97,25 @@ VkDeviceMemory AllocateVkBufferMemory (VkPhysicalDevice      physicalDevice,
                                        VkMemoryRequirements* pBufferMemoryRequirements);
 
 vulkanAllocatedBufferInfo CreateAndAllocaStagingBuffer (VkPhysicalDevice physicalDevice,
-                                               VkDevice         logicalDevice,
-                                               uint32_t         bufferSizeInBytes,
-                                               uint32_t         queueIndex);
-
-
-vulkanAllocatedBufferInfo CreateAndAllocateVertexBuffer (VkPhysicalDevice physicalDevice,
-                                                         VkDevice         logicalDevice,
-                                                         uint32_t         bufferSizeInBytes,
-                                                         uint32_t         queueIndex);
- 
-vulkanAllocatedBufferInfo CreateAndAllocateIndexBuffer (VkPhysicalDevice physicalDevice,
                                                         VkDevice         logicalDevice,
                                                         uint32_t         bufferSizeInBytes,
                                                         uint32_t         queueIndex);
 
-vulkanAllocatedBufferInfo CreateAndAllocateUniformBuffer (VkPhysicalDevice physicalDevice,
-                                                         VkDevice         logicalDevice,
-                                                         uint32_t         bufferSizeInBytes,
-                                                         uint32_t         queueIndex);
+
+inline vulkanAllocatedBufferInfo CreateAndAllocateVertexBuffer (VkPhysicalDevice physicalDevice,
+                                                                VkDevice         logicalDevice,
+                                                                uint32_t         bufferSizeInBytes,
+                                                                uint32_t         queueIndex);
+ 
+inline vulkanAllocatedBufferInfo CreateAndAllocateIndexBuffer (VkPhysicalDevice physicalDevice,
+                                                               VkDevice         logicalDevice,
+                                                               uint32_t         bufferSizeInBytes,
+                                                               uint32_t         queueIndex);
+
+inline vulkanAllocatedBufferInfo CreateAndAllocateUniformBuffer (VkPhysicalDevice physicalDevice,
+                                                                 VkDevice         logicalDevice,
+                                                                 uint32_t         bufferSizeInBytes,
+                                                                 uint32_t         queueIndex);
  
 void ExecuteBuffer2BufferCopy (VkPhysicalDevice          physicalDevice,
                                VkDevice                  logicalDevice,
