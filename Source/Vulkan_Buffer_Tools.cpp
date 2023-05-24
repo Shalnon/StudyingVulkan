@@ -120,7 +120,7 @@ inline vulkanAllocatedBufferInfo CreateAndAllocateIndexBuffer (VkPhysicalDevice 
     // Allocate device local memory that will hold the vertex data to be accessed from the gpu
     VkDeviceMemory indexMem = AllocateVkBufferMemory (physicalDevice, logicalDevice, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &indexBufferMemRequirements);
 
-     //bind the vertex buffer memory
+     //bind the index buffer memory
     vkBindBufferMemory (logicalDevice, indexBuffer, indexMem, 0);
 
     return {/*...VkBuffer.......bufferHandle......*/ indexBuffer,
@@ -129,11 +129,48 @@ inline vulkanAllocatedBufferInfo CreateAndAllocateIndexBuffer (VkPhysicalDevice 
             /*...uint32_t.......offset............*/ 0 };
 }
 
+inline vulkanAllocatedBufferInfo CreateAndAllocateSsbo (VkPhysicalDevice physicalDevice,
+                                                        VkDevice         logicalDevice,
+                                                        uint32_t         bufferSizeInBytes,
+                                                        uint32_t         queueIndex)
+{
+    VkBuffer           storageBufferHandle = VK_NULL_HANDLE;
+    VkBufferUsageFlags storageBufferUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    VkBufferCreateInfo storageBufferCreateInfo =
+    {
+        /*...VkStructureType........sType.....................*/ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        /*...const.void*............pNext.....................*/ 0, //reminder: buffer device address struct would need to go here if using that feature
+        /*...VkBufferCreateFlags....flags.....................*/ 0,
+        /*...VkDeviceSize...........size......................*/ bufferSizeInBytes,
+        /*...VkBufferUsageFlags.....usage.....................*/ storageBufferUsageFlags,
+        /*...VkSharingMode..........sharingMode...............*/ VK_SHARING_MODE_EXCLUSIVE,
+        /*...uint32_t...............queueFamilyIndexCount.....*/ 1,
+        /*...const.uint32_t*........pQueueFamilyIndices.......*/ &queueIndex
+    };
+
+    VkResult result = vkCreateBuffer (logicalDevice, &storageBufferCreateInfo, 0, &storageBufferHandle);
+
+    VkMemoryRequirements storageBufferMemRequirements = {};
+    vkGetBufferMemoryRequirements (logicalDevice, storageBufferHandle, &storageBufferMemRequirements);
+
+    // Allocate device local memory that will hold the storage buffer data to be accessed from the gpu
+    VkDeviceMemory storageBufMem = AllocateVkBufferMemory (physicalDevice, logicalDevice, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &storageBufferMemRequirements);
+
+    //bind the storage buffer memory
+    vkBindBufferMemory (logicalDevice, storageBufferHandle, storageBufMem, 0);
+
+    return {/*...VkBuffer.......bufferHandle......*/ storageBufferHandle,
+            /*...VkDeviceMemory.memoryHandle......*/ storageBufMem,
+            /*...VkDeviceSize...buffersize........*/ storageBufferMemRequirements.size,
+            /*...uint32_t.......offset............*/ 0 };
+}
+
 inline vulkanAllocatedBufferInfo CreateAndAllocateUniformBuffer (VkPhysicalDevice physicalDevice,
                                                                  VkDevice         logicalDevice,
                                                                  uint32_t         bufferSizeInBytes,
                                                                  uint32_t         queueIndex)
 {
+    //@TODO: change the naming here so its not matrix buffer
     VkBuffer           matrixBuffer           = VK_NULL_HANDLE;
     VkBufferUsageFlags matrixBufferUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     VkBufferCreateInfo matrixBufferCreateInfo =
@@ -554,3 +591,45 @@ vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             phys
 
     return uniformBufferInfo;
 }
+
+
+inline vulkanAllocatedBufferInfo CreateAndModelMatrixStorageBuffer (VkPhysicalDevice             physicalDevice,
+                                                                    VkDevice                     logicalDevice,
+                                                                    VkQueue                      queue,
+                                                                    uint32_t                     queueFamilyIndex,
+                                                                    const GeometryBufferSet*     pGeometryBufferSet)
+{
+    // Initialize with size required for the storing the one model matrix per mesh
+    VkDeviceSize storageBufferDataSize = NUM_BYTES_PER_MODEL_MATRIX * pGeometryBufferSet->numMeshes;
+
+    //Create a staging buffer which will be where the cpu writes matrix data to
+    vulkanAllocatedBufferInfo ssboStagingBufferInfo = CreateAndAllocaStagingBuffer (physicalDevice,
+                                                                                    logicalDevice,
+                                                                                    storageBufferDataSize,
+                                                                                    queueFamilyIndex);
+
+    void*       pMappedSsboBufferMem = MapBufferMemory (ssboStagingBufferInfo, logicalDevice);
+    glm::mat4*  pSsboMemMatrixPtr    = reinterpret_cast<glm::mat4*>(pMappedSsboBufferMem);
+
+    for (uint32_t meshIdx = 0; meshIdx < pGeometryBufferSet->numMeshes; meshIdx++)
+    {
+        pSsboMemMatrixPtr[meshIdx] = pGeometryBufferSet->pMeshes[meshIdx].modelMatrix;
+    }
+
+    vkUnmapMemory (logicalDevice, ssboStagingBufferInfo.memoryHandle);
+
+    vulkanAllocatedBufferInfo storageBuffer = CreateAndAllocateSsbo (physicalDevice,
+                                                                     logicalDevice,
+                                                                     storageBufferDataSize,
+                                                                     queueFamilyIndex);
+
+    // Upload transform uniform data to device local buffer
+    ExecuteBuffer2BufferCopy (/*...VkPhysicalDevice..........physicalDevice........*/ physicalDevice,
+                              /*...VkDevice..................logicalDevice.........*/ logicalDevice,
+                              /*...VkQueue...................queue.................*/ queue,
+                              /*...uint32_t..................queueFamilyIndex......*/ queueFamilyIndex,
+                              /*...VkDeviceSize..............copySize..............*/ storageBufferDataSize,
+                              /*...vulkanAllocatedBufferInfo.srcBufferInfo.........*/ ssboStagingBufferInfo,  // Src buffer
+                              /*...vulkanAllocatedBufferInfo.dstBufferInfo.........*/ storageBuffer);         // Dst buffer
+
+ }
