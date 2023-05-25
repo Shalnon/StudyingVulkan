@@ -851,8 +851,8 @@ VkPipeline CreatePipeline(VkDevice              logicalDevice,
         /*...VkBool32...................................depthClampEnable...........*/ VK_FALSE,
         /*...VkBool32...................................rasterizerDiscardEnable....*/ VK_FALSE,
         /*...VkPolygonMode..............................polygonMode................*/ VK_POLYGON_MODE_FILL, //VK_POLYGON_MODE_FILL  = 0, so dont actually need to explicitly set it technically.
-        /*...VkCullModeFlags............................cullMode...................*/ VK_CULL_MODE_BACK_BIT,
-        /*...VkFrontFace................................frontFace..................*/ VK_FRONT_FACE_CLOCKWISE,
+        /*...VkCullModeFlags............................cullMode...................*/ VK_CULL_MODE_NONE,//VK_CULL_MODE_BACK_BIT,
+        /*...VkFrontFace................................frontFace..................*/ VK_FRONT_FACE_CLOCKWISE, //@TODO: use normals from assimp to determine which winding order to use
         /*...VkBool32...................................depthBiasEnable............*/ VK_FALSE,
         /*...float......................................depthBiasConstantFactor....*/ 0.0,
         /*...float......................................depthBiasClamp.............*/ 0.0,
@@ -882,8 +882,8 @@ VkPipeline CreatePipeline(VkDevice              logicalDevice,
         /*...float....y.........*/ 0,
         /*...float....width.....*/ float(pExtent->width),
         /*...float....height....*/ float(pExtent->height),
-        /*...float....minDepth..*/ 0.0f,
-        /*...float....maxDepth..*/ 1.0f
+        /*...float....minDepth..*/  0.0f,
+        /*...float....maxDepth..*/  1.0f
     };
 
     VkRect2D scissor =
@@ -1391,6 +1391,7 @@ VkCommandBuffer RecordRenderGeometryBufferCmds (GeometryBufferSet*          pGeo
     vkCmdSetScissor (commandBuffer, 0, 1, &scissor);
 
     VkDeviceSize offsets[] = { 0 };
+
     vkCmdBindVertexBuffers (/*..VkCommandBuffer........commandBuffer....*/ commandBuffer,
                             /*..uint32_t...............firstBinding.....*/ 0,
                             /*..uint32_t...............bindingCount.....*/ 1,
@@ -1399,17 +1400,31 @@ VkCommandBuffer RecordRenderGeometryBufferCmds (GeometryBufferSet*          pGeo
 
     vkCmdBindIndexBuffer (/*...VkCommandBuffer..........commandBuffer....*/ commandBuffer,
                           /*...VkBuffer.................buffer...........*/ pGeometryBufferSet->indexBufferInfo.bufferHandle,
-                          /*...VkDeviceSize.............offset...........*/ 0,
+                          /*...VkDeviceSize.............offset...........*/ 0, //offset is the starting offset in bytes within buffer used in index buffer address calculations
                           /*...VkIndexType..............indexType........*/ VK_INDEX_TYPE_UINT32);
 
+    for (uint32_t meshIdx = 0; meshIdx < pGeometryBufferSet->numMeshes; meshIdx++)
+    {
+        const MeshInfo* pMeshInfo = &(pGeometryBufferSet->pMeshes[meshIdx]);
 
-    ///@TODO: add per mesh draw commands and pass in mesh Idx via firstInstance arg
-    vkCmdDrawIndexed (/*...VkCommandBuffer.......commandBuffer......*/ commandBuffer,
-                      /*...uint32_t..............indexCount.........*/ pGeometryBufferSet->numTriangles * NUM_VERTICES_PER_TRIANGLE,
-                      /*...uint32_t..............instanceCount......*/ 1,
-                      /*...uint32_t..............firstIndex.........*/ 0,
-                      /*...int32_t...............vertexOffset.......*/ 0,
-                      /*...uint32_t..............firstInstance......*/ 0);
+
+        ///@TODO: add per mesh draw commands and pass in mesh Idx via firstInstance arg
+        vkCmdDrawIndexed (/*...VkCommandBuffer.......commandBuffer......*/ commandBuffer,
+                          /*...uint32_t..............indexCount.........*/ pMeshInfo->numPrims * NUM_VERTICES_PER_TRIANGLE,
+                          /*...uint32_t..............instanceCount......*/ 1,
+                          /*...uint32_t..............firstIndex.........*/ pMeshInfo->firstPrimIdx * NUM_VERTICES_PER_TRIANGLE, // firstIndex is the base index within the index buffer.  // what is base index?
+                          /*...int32_t...............vertexOffset.......*/ 0, // vertexOffset is the value added to the vertex index before indexing into the vertex buffer.
+                          /*...uint32_t..............firstInstance......*/ 0);//meshIdx
+    }
+
+
+   // ///@TODO: add per mesh draw commands and pass in mesh Idx via firstInstance arg
+   // vkCmdDrawIndexed (/*...VkCommandBuffer.......commandBuffer......*/ commandBuffer,
+   //                   /*...uint32_t..............indexCount.........*/ pGeometryBufferSet->numTriangles * NUM_VERTICES_PER_TRIANGLE,
+   //                   /*...uint32_t..............instanceCount......*/ 1,
+   //                   /*...uint32_t..............firstIndex.........*/ 0,
+   //                   /*...int32_t...............vertexOffset.......*/ 0,
+   //                   /*...uint32_t..............firstInstance......*/ 0);
 
     vkCmdEndRenderPass (commandBuffer);
 

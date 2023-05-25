@@ -22,7 +22,7 @@ void main()
 {
     mat4 meshTransform = ubo.sceneTransform;
 
-    gl_Position = vec4(inPosition.xy, 0.0, 1.0) * meshTransform;
+    gl_Position = vec4(inPosition.xyz, 1.0)* meshTransform;
 
     out_color = triangle_colors[gl_VertexIndex%3];
 }

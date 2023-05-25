@@ -338,6 +338,18 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice    physicalDev
                                                         0.0f, 0.0f, 1.0f, 0.0f,
                                                         0.0f, 0.0f, 0.0f, 1.0f);
 
+    // Initialize scene aabb with min/max coordinates derived from the first vertex in the first mesh
+    //    Cant initialzie fields with 0, because 0 isnt guarenteed to be inside a meshs actual AABB and so will end up incorrectly always be the min or max
+    VkAabbPositionsKHR sceneAABB =
+    {
+        /*...float....minX...*/ pScene->mMeshes[0]->mVertices[0].x,
+        /*...float....minY...*/ pScene->mMeshes[0]->mVertices[0].y,
+        /*...float....minZ...*/ pScene->mMeshes[0]->mVertices[0].z,
+        /*...float....maxX...*/ pScene->mMeshes[0]->mVertices[0].x,
+        /*...float....maxY...*/ pScene->mMeshes[0]->mVertices[0].y,
+        /*...float....maxZ...*/ pScene->mMeshes[0]->mVertices[0].z
+    };
+
     //GeometryBufferSet         geometryBuffersOut       = {};
     vulkanAllocatedBufferInfo vertexStagingBufferInfo  = {}; // Will correspond to a buffer backed by host visible memory, and will be where we initally write vertex data
     vulkanAllocatedBufferInfo indexStagingBufferInfo   = {}; // Will correspond to a buffer backed by host visible memory, and will be where vert indices defining primitives will be written
@@ -347,7 +359,6 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice    physicalDev
     VkDeviceSize              indexBufferDataSize      = 0;
     uint32_t                  sceneTriangleCount       = 0;
     uint32_t                  sceneVertexCount         = 0;
-    VkAabbPositionsKHR        sceneAABB                = {};
 
     const uint32_t   numMeshes  = pScene->mNumMeshes;
 
@@ -389,6 +400,7 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice    physicalDev
     sceneTriangleCount = 0;
     sceneVertexCount   = 0;
 
+
     // This loop accomplishes 4 things:
     // - Write vertex position data to the vertex staging buffer
     // - Initialize MeshInfo structs
@@ -396,20 +408,39 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice    physicalDev
     // - Update scene aabb on a per mesh basis after calculating a mesh's own aabb
     for (uint32_t meshIdx = 0; meshIdx < numMeshes; meshIdx++)
     {
-        const aiMesh*      pAiMesh         = pScene->mMeshes[meshIdx];
-        uint32_t           firstPrimInMesh = sceneTriangleCount;         // save off index of the first triangle that is part of this mesh
-        VkAabbPositionsKHR meshAABB        = {};
+        const aiMesh*      pAiMesh            = pScene->mMeshes[meshIdx];
+        uint32_t           firstPrimInMesh    = sceneTriangleCount;         // save off index of the first triangle that is part of this mesh
+        uint32_t           firstVertexForMesh = sceneVertexCount;
 
+        // Initialize mesh's AABB with coordinates from first vertex.
+        //    Cant initialzie fields with 0, because 0 isnt guarenteed to be inside meshs actual AABB.
+        VkAabbPositionsKHR meshAABB =
+        {
+            /*...float....minX...*/  pAiMesh->mVertices[0].x,
+            /*...float....minY...*/  pAiMesh->mVertices[0].y,
+            /*...float....minZ...*/  pAiMesh->mVertices[0].z,
+            /*...float....maxX...*/  pAiMesh->mVertices[0].x,
+            /*...float....maxY...*/  pAiMesh->mVertices[0].y,
+            /*...float....maxZ...*/  pAiMesh->mVertices[0].z
+        };
+
+        printf ("----------===== Vertex Data for mesh %u  =====------\n", meshIdx);
         //Reading and updating per-vertex data. 
         //   Specifically: Write vertex position data to the vertex position staging buffer, and update the mesh AABB.
+        printf ("     ---firstVertexForMesh%u = %u\n", meshIdx, firstVertexForMesh);
+        printf ("     ---firstPrimInMesh%u = %u\n", meshIdx, firstPrimInMesh);
         for (uint32_t meshVertexIdx = 0; meshVertexIdx < pAiMesh->mNumVertices; meshVertexIdx++)
         {
             const aiVector3D* pVertex   = &(pAiMesh->mVertices[meshVertexIdx]);
-            const uint32_t    xCoordIdx = (firstPrimInMesh + meshVertexIdx)* COORDS_PER_POSITION;
+            const uint32_t    xCoordIdx = (firstVertexForMesh + meshVertexIdx)* COORDS_PER_POSITION;
 
             pVertexBuffMemFloatPtr[xCoordIdx + 0] = pVertex->x;
             pVertexBuffMemFloatPtr[xCoordIdx + 1] = pVertex->y;
             pVertexBuffMemFloatPtr[xCoordIdx + 2] = pVertex->z;
+
+            printf ("((vec3*)(pVertexBuffMemFloatPtr))[%u] = { %f, %f, %f }\n", meshVertexIdx, pVertexBuffMemFloatPtr[xCoordIdx    ],
+                                                                                               pVertexBuffMemFloatPtr[xCoordIdx + 1],
+                                                                                               pVertexBuffMemFloatPtr[xCoordIdx + 2]);
 
             // Update mesh aabb as needed
             if (pVertex->x > meshAABB.maxX) { meshAABB.maxX  = pVertex->x; } // update x max
@@ -422,34 +453,38 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice    physicalDev
 
         sceneVertexCount += pAiMesh->mNumVertices;
 
-        pMeshInfos[meshIdx] = { /*...uint32_t...........firstPrimIdx........*/ firstPrimInMesh,
-                                /*...uint32_t...........numPrims............*/ sceneTriangleCount - firstPrimInMesh,
-                                /*...glm::mat4x4........modelMatrix.........*/ sIdentityMat4x4,
-                                /*...VkAabbPositionsKHR.sceneAABB...........*/ meshAABB };
-
-
+        printf ("----------===== Vertex Data for mesh %u  =====------\n", meshIdx);
         //Reading and updating per-triangle data. 
-        //   Specifically: Write vertex index data to the  vertex index staging buffer
+        //   Specifically: Write vertex index data to the vertex index staging buffer
+        printf ("faces list addr:%p\n", &(pAiMesh->mFaces[0]));
         for (uint32_t meshPrimIndex = 0; meshPrimIndex < pAiMesh->mNumFaces; meshPrimIndex++)
         {
             const aiFace* pFace = &(pAiMesh->mFaces[meshPrimIndex]);
 
-            if (pFace->mNumIndices == 3)
+            if (pFace->mNumIndices == NUM_VERTICES_PER_TRIANGLE)
             {
                 // offset of the buffer element that holds the vertex index which willserve  as the provoking vertex of this triangle
-                const uint32_t provokingVertexIndexIdx = sceneTriangleCount * NUM_VERTICES_PER_TRIANGLE;
+                const uint32_t index0WriteLoc = (firstPrimInMesh + meshPrimIndex) * NUM_VERTICES_PER_TRIANGLE;
+                const aiFace*  pFace          = &(pAiMesh->mFaces[meshPrimIndex]);
 
                 // Im assuming these indices are stored with a consistent winding order. May need to verify later
-                pIndexBuffMemUintPtr[provokingVertexIndexIdx    ] = pAiMesh->mFaces[meshPrimIndex].mIndices[0];
-                pIndexBuffMemUintPtr[provokingVertexIndexIdx + 1] = pAiMesh->mFaces[meshPrimIndex].mIndices[1];
-                pIndexBuffMemUintPtr[provokingVertexIndexIdx + 2] = pAiMesh->mFaces[meshPrimIndex].mIndices[2];
+                pIndexBuffMemUintPtr[index0WriteLoc    ] = firstVertexForMesh + pFace->mIndices[2];
+                pIndexBuffMemUintPtr[index0WriteLoc + 1] = firstVertexForMesh + pFace->mIndices[1];
+                pIndexBuffMemUintPtr[index0WriteLoc + 2] = firstVertexForMesh + pFace->mIndices[0];
 
-                sceneTriangleCount++;
+                printf ("((uvec3*)(pIndexBuffMemUintPtr))[%u] = { %u, %u, %u }\n", meshPrimIndex, pIndexBuffMemUintPtr[index0WriteLoc    ],
+                                                                                                  pIndexBuffMemUintPtr[index0WriteLoc + 1],
+                                                                                                  pIndexBuffMemUintPtr[index0WriteLoc + 2]);
             }
             else if (pFace->mNumIndices < 3) {    printf ("Warning: found degenerate primitive!\n"); } // degenerate prim
             else if (pFace->mNumIndices > 3) {    printf("Warning: found Ngon!\n");                  } // an Ngon
-
         }
+        sceneTriangleCount += pAiMesh->mNumFaces;
+
+        pMeshInfos[meshIdx] = { /*...uint32_t...........firstPrimIdx........*/ firstPrimInMesh,
+                                /*...uint32_t...........numPrims............*/ sceneTriangleCount - firstPrimInMesh,
+                                /*...glm::mat4x4........modelMatrix.........*/ sIdentityMat4x4,
+                                /*...VkAabbPositionsKHR.aabb................*/ meshAABB };
 
         // Updating AABB for the whole scene based on mesh AABBs
         if (meshAABB.maxX > sceneAABB.maxX) { sceneAABB.maxX = meshAABB.maxX; } // update x max
@@ -605,7 +640,7 @@ inline vulkanAllocatedBufferInfo CreateAndModelMatrixStorageBuffer (VkPhysicalDe
     //Create a staging buffer which will be where the cpu writes matrix data to
     vulkanAllocatedBufferInfo ssboStagingBufferInfo = CreateAndAllocaStagingBuffer (physicalDevice,
                                                                                     logicalDevice,
-                                                                                    storageBufferDataSize,
+                                                                                     storageBufferDataSize,
                                                                                     queueFamilyIndex);
 
     void*       pMappedSsboBufferMem = MapBufferMemory (ssboStagingBufferInfo, logicalDevice);

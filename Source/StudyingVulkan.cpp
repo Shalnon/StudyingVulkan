@@ -101,22 +101,29 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
      
     std::string currentPath   = std::filesystem::current_path ().string ();
     std::string assetsDirPath = currentPath   + std::string ("\\..\\..\\..\\Assets");
-    std::string modelPath     = assetsDirPath + std::string ("\\Models\\simple_triangle.obj");
+    //std::string modelPath     = assetsDirPath + std::string ("\\Models\\simple_triangle.obj");
+    //std::string modelPath = assetsDirPath + std::string ("\\Models\\three_tris_within_ndc\\3tris_within_ndc.obj");
+    //std::string modelPath = assetsDirPath + std::string ("\\Models\\three_triangles\\tris_singleObject_matGroups.obj");
+    std::string modelPath = assetsDirPath + std::string ("\\Models\\monkey_with_color.obj");
+    //monkey_with_color
 
     printf ("model path = %s\n", modelPath.c_str ());
 
+    //Ndc bounds on the z axis are [0,1] for vulkan, whereas for opengl it was [-1,1]
     VkAabbPositionsKHR sceneBounds =
     {
-        /*...float....minX...*/ -0.15f,
-        /*...float....minY...*/ -0.15f,
-        /*...float....minZ...*/ -0.15f,
-        /*...float....maxX...*/  0.15f,
-        /*...float....maxY...*/  0.15f,
-        /*...float....maxZ...*/  0.15f
+        /*...float....minX...*/ -1.0f,
+        /*...float....minY...*/ -1.0f,
+        /*...float....minZ...*/  0.0f,
+        /*...float....maxX...*/  1.0f,
+        /*...float....maxY...*/  1.0f,
+        /*...float....maxZ...*/  1.0f
     };
 
     //glm::vec3 sceneBounds 
-    const aiScene*            pScene               = aiImportFile (modelPath.c_str(), aiProcessPreset_TargetRealtime_MaxQuality);
+    const aiScene* pScene = aiImportFile (modelPath.c_str (), MY_ASSIMP_PREPROCESSING_FLAGS);//aiProcessPreset_TargetRealtime_MaxQuality);
+    PrintGeometryInformation (pScene);
+
     glm::vec3                 sceneScale           = { 1.0f, 1.0f, 1.0f };
 
     // Create a vertex and index buffer

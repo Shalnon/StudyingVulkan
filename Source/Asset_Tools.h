@@ -5,6 +5,20 @@
 #include <assimp\postprocess.h>
 #include <glm\glm.hpp>
 
+#define MY_ASSIMP_PREPROCESSING_FLAGS     aiProcess_CalcTangentSpace              |  \
+                                          aiProcess_GenSmoothNormals              |  \
+                                          aiProcess_JoinIdenticalVertices         |  \
+                                          aiProcess_ImproveCacheLocality          |  \
+                                          aiProcess_RemoveRedundantMaterials      |  \
+                                          aiProcess_SplitLargeMeshes              |  \
+                                          aiProcess_Triangulate                   |  \
+                                          aiProcess_GenUVCoords                   |  \
+                                          aiProcess_SortByPType                   |  \
+                                          aiProcess_FindDegenerates               |  \
+                                          aiProcess_FindInvalidData
+                                          
+
+
 struct MeshGeometryData
 {
     uint32_t  numTriangles;
@@ -16,9 +30,9 @@ struct MeshGeometryData
 
     glm::mat4x4 modelMatrix;
     glm::vec3   center;
-
-
 };
+
+void PrintGeometryInformation (const aiScene* pScene);
 
 glm::mat4 GetTransform_FitAABBToAABB (VkAabbPositionsKHR originalAABB,
                                       VkAabbPositionsKHR desiredBounds,

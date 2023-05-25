@@ -3,11 +3,67 @@
 
 #include "Asset_Tools.h"
 #include <assert.h> 
+#include <glm/gtx/transform.hpp>
 
 /*********************************************************************************************/
 /*=====================================Model loading=========================================*/
 /*********************************************************************************************/
 
+void PrintGeometryInformation (const aiScene* pScene)
+{
+    printf ("-----------Printing Scene Information------------");
+    printf ("\tnumMeshes   = %u\n", pScene->mNumMeshes);
+        //pScene->mMetaData->mNumProperties
+
+    for (uint32_t meshIdx = 0; meshIdx < pScene->mNumMeshes; meshIdx++)
+    {
+        const aiMesh* pMesh = pScene->mMeshes[meshIdx];
+
+        // Print name, or "#NULL#" if there isnt one.
+        const char* pMeshName = pMesh->mName.C_Str ();
+        printf ("--- mMeshes[%u]\t%s ---\n", meshIdx, (pMeshName == nullptr) ? "#NULL#" : pMeshName);
+
+        uint32_t numFaces     = pMesh->mNumFaces;
+        uint32_t numVertices  = pMesh->mNumVertices;
+        uint32_t numTriangles = 0;
+        uint32_t numQuads     = 0;
+        uint32_t numNGons     = 0;
+        uint32_t numEdges     = 0;
+
+        for (uint32_t faceIdx = 0; faceIdx < numFaces; faceIdx++)
+        {
+            const aiFace* pFace = &(pMesh->mFaces[faceIdx]);
+            if (pFace->mNumIndices == 3)
+            {
+                numTriangles++;
+            }
+            else if (pFace->mNumIndices == 4)
+            {
+                numQuads++;
+            }
+            else if (pFace->mNumIndices > 4)
+            {
+                numNGons++;
+            }
+            else if (pFace->mNumIndices == 2)
+            {
+                numEdges++;
+            }
+            else
+            {
+                printf ("Invalid number of face indices provided for face[%u]\n", faceIdx);
+            }
+        }
+
+        printf ("\tnumFaces      = %u\n", numFaces);
+        printf ("\tnumVertices   = %u\n", numVertices);
+        printf ("\tnumTriangles  = %u\n", numTriangles);
+        printf ("\tnumQuads      = %u\n", numQuads);
+        printf ("\tnumNGons      = %u\n", numNGons);
+        printf ("\tnumEdges      = %u\n", numEdges);
+
+    }
+}
 
 void Copy3dModelAssetFromFile (const char* pFilePath, MeshGeometryData** pMeshesOut)
 {
@@ -131,11 +187,12 @@ glm::mat4 GetTransform_FitAABBToAABB (VkAabbPositionsKHR originalAABB,
     glm::vec3 desiredBoundsCenter = { desiredBounds.minX + (desiredBoundsSize.x / 2),
                                       desiredBounds.minY + (desiredBoundsSize.y / 2),
                                       desiredBounds.minZ + (desiredBoundsSize.z / 2) };
+    glm::vec3 translationAmt = desiredBoundsCenter - originalAABBCenter;
 
     // Translate by the amount that places the scene AABB center point at the origin
-    glm::mat4 translate2OriginMatrix = glm::mat4 (1.0f, 0.0f, 0.0f, -originalAABBCenter[0],
-                                                  0.0f, 1.0f, 0.0f, -originalAABBCenter[1],
-                                                  0.0f, 0.0f, 1.0f, -originalAABBCenter[2],
+    glm::mat4 translate2OriginMatrix = glm::mat4 (1.0f, 0.0f, 0.0f, translationAmt.x,
+                                                  0.0f, 1.0f, 0.0f, translationAmt.y,
+                                                  0.0f, 0.0f, 1.0f, translationAmt.z,
                                                   0.0f, 0.0f, 0.0f, 1.0f);
 
     // Scale relative to the origin
@@ -143,6 +200,9 @@ glm::mat4 GetTransform_FitAABBToAABB (VkAabbPositionsKHR originalAABB,
                                                    0.0f,       scaleVec.y, 0.0f,       0.0f,
                                                    0.0f,       0.0f,       scaleVec.z, 0.0f,
                                                    0.0f,       0.0f,       0.0f,       1.0f);
+    float       degreesPerRadian         = 0.01745329252f;
+    glm::vec3   rotationAxis             = { 1.0f, 0.0, 0.0 };
+    glm::mat4x4 rotateAroundOriginMatrix = glm::rotate (89.0f * degreesPerRadian, rotationAxis);
 
     // Translate by the amount that places the scene AABB center point at the center point of desiredBounds
     glm::mat4 translateToDesiredLoc = glm::mat4 (1.0f, 0.0f, 0.0f, -desiredBoundsCenter[0],
@@ -155,5 +215,4 @@ glm::mat4 GetTransform_FitAABBToAABB (VkAabbPositionsKHR originalAABB,
 
     return fitAabb2AabbMatrix;
 }
-
 #endif
