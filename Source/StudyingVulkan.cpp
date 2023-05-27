@@ -93,6 +93,24 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                                                      fragmentShaderPath.c_str(),
                                                                      vertexShaderPath.c_str(),
                                                                      &pipelineLayoutHandle);
+
+    // Create depth attachment image
+    VkImage        depthImageHandle       = VK_NULL_HANDLE;
+    VkDeviceMemory depthImageMemoryHandle = VK_NULL_HANDLE;
+
+    static const VkFormat pPreferredDepthFormats[NUM_PREFFERRED_DEPTH_FORMATS] = PREFERRED_DEPTH_FORMATS;
+    VkFormat chosenDepthFormat = ChooseDepthFormat (physicalDevice,
+                                                    NUM_PREFFERRED_DEPTH_FORMATS,
+                                                    pPreferredDepthFormats);
+
+    CreateAndAllocateDepthImage (logicalDevice,
+                                 physicalDevice,
+                                 queueFamilyIndex,
+                                 chosenDepthFormat,
+                                 actualFrameDimensions,
+                                 &depthImageHandle,
+                                 &depthImageMemoryHandle);
+
     CreateFrameBuffers(logicalDevice,
                        renderpass,
                        &actualFrameDimensions,
@@ -101,7 +119,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
      
     std::string currentPath   = std::filesystem::current_path ().string ();
     std::string assetsDirPath = currentPath   + std::string ("\\..\\..\\..\\Assets");
-    //std::string modelPath     = assetsDirPath + std::string ("\\Models\\simple_triangle.obj");
+    //std::string modelPath = assetsDirPath + std::string ("\\Models\\simple_triangle.obj");
     //std::string modelPath = assetsDirPath + std::string ("\\Models\\three_tris_within_ndc\\3tris_within_ndc.obj");
     //std::string modelPath = assetsDirPath + std::string ("\\Models\\three_triangles\\tris_singleObject_matGroups.obj");
     std::string modelPath = assetsDirPath + std::string ("\\Models\\monkey_with_color.obj");
@@ -109,7 +127,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
 
     printf ("model path = %s\n", modelPath.c_str ());
 
-    //Ndc bounds on the z axis are [0,1] for vulkan, whereas for opengl it was [-1,1]
+    //Ndc bounds on the z axis are [0,1] for vulkan, whereas for opengl it is [-1,1]
     VkAabbPositionsKHR sceneBounds =
     {
         /*...float....minX...*/ -1.0f,
@@ -249,5 +267,9 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
 ///    a console we create wont have the vulkan layer output present, and it wont get captured easily by vulkan configurator.
 int main ()
  {
+    LPWSTR  pCommandLine          = GetCommandLineW ();
+    int32_t numCmdLineArgs        = 0;
+    LPWSTR* pCommangLineArgvArray = CommandLineToArgvW (pCommandLine, &numCmdLineArgs);
+
     return wWinMain (GetModuleHandle (NULL), NULL, GetCommandLineW (), SW_SHOWNORMAL);
  }

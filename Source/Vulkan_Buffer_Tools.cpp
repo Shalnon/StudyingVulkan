@@ -309,7 +309,10 @@ vulkanAllocatedBufferInfo CreateAndAllocaStagingBuffer (VkPhysicalDevice physica
     assert (bufferSizeInBytes <= stagingBufferMemRequirements.size);
 
     // Allocate memory for the buffer.
-    VkDeviceMemory stagingMem = AllocateVkBufferMemory (physicalDevice, logicalDevice, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &stagingBufferMemRequirements);
+    VkDeviceMemory stagingMem = AllocateVkBufferMemory (physicalDevice,
+                                                        logicalDevice,
+                                                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, // @TODO: figure out if i need to add VK_MEMORY_PROPERTY_HOST_COHERENT_BIT as well. supposedly this removes need for manual memory flushes, but it seems to work fine already...
+                                                        &stagingBufferMemRequirements);
     assert (stagingMem != VK_NULL_HANDLE);
 
     // Bind the allocated memory to the buffer

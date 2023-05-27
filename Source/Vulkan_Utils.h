@@ -97,6 +97,18 @@ VkPipeline CreatePipeline(VkDevice              logicalDevice,
                           const char*           vertShaderPath,
                           VkPipelineLayout*     pPipelineLayoutHandleOut);
 
+VkFormat ChooseDepthFormat (VkPhysicalDevice   physicalDeviceHandle,
+                            uint32_t           numPrefferredDepthFormats,
+                            const VkFormat*    pPreferredDepthFormats);
+
+void CreateAndAllocateDepthImage (VkDevice            logicalDeviceHandle,
+                                  VkPhysicalDevice    physicalDeviceHandle,
+                                  uint32_t            queueFamilyIdx,
+                                  VkFormat            imageFormat,
+                                  VkExtent2D          imageDimensions,
+                                  VkImage*            pImageHandleOut,
+                                  VkDeviceMemory*     pDepthImageMemOut);
+
 void CreateFrameBuffers(VkDevice                    logicalDevice,
                         VkRenderPass                renderPass,
                         VkExtent2D*                 pExtent,
