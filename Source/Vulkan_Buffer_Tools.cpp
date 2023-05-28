@@ -1,41 +1,15 @@
 
 #include "Vulkan_Buffer_Tools.h"
 #include "assimp/scene.h"
-#include "Asset_Tools.h"    
-
-void GetMemoryType (VkPhysicalDevice      physicalDevice,
-                    VkMemoryPropertyFlags requiredPropertyFlags, // ex: a mask of VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, etc...
-                    uint32_t*             pChosenMemTypeIdxOut,
-                    VkMemoryRequirements* memRequirements) //a bitmask and contains one bit set for every supported memory type for the resource. Bit i is set if and only if the memory type i in the VkPhysicalDeviceMemoryProperties structure for the physical device is supported for the resource.
-{
-    assert (requiredPropertyFlags != 0);
-    VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties = {};
-    vkGetPhysicalDeviceMemoryProperties (physicalDevice, &physicalDeviceMemoryProperties);
-
-    for (uint32_t memTypeIdx = 0; memTypeIdx < physicalDeviceMemoryProperties.memoryTypeCount; memTypeIdx++)
-    {
-        VkMemoryPropertyFlags flags = physicalDeviceMemoryProperties.memoryTypes[memTypeIdx].propertyFlags;
-        uint32_t              supportedMemTypesBitMask = memRequirements->memoryTypeBits;
-
-        bool isMemTypeSupportedForResource = ((memRequirements->memoryTypeBits & (1 << memTypeIdx)) > 0) ? true : false;
-        bool areRequiredMemPropertiesSupported = ((flags & requiredPropertyFlags) == requiredPropertyFlags) ? true : false;
-
-        if (isMemTypeSupportedForResource && areRequiredMemPropertiesSupported)
-        {
-            *pChosenMemTypeIdxOut = memTypeIdx;
-            //  *pChosenHeapIndexOut = physicalDeviceMemoryProperties.memoryTypes[memTypeIdx].heapIndex;
-        }
-    }
-}
+#include "Asset_Tools.h"
+#include "Vulkan_Utils.h"
 
 VkDeviceMemory AllocateVkBufferMemory (VkPhysicalDevice      physicalDevice,
                                        VkDevice              logicalDevice,
                                        VkMemoryPropertyFlags requiredPropertyFlags,
                                        VkMemoryRequirements* pBufferMemoryRequirements)
 {
-    uint32_t memTypeIndex;
-
-    GetMemoryType (physicalDevice, requiredPropertyFlags, &memTypeIndex, pBufferMemoryRequirements);
+    uint32_t             memTypeIndex = ChooseMemoryTypeIdx (physicalDevice, requiredPropertyFlags, pBufferMemoryRequirements);
     VkMemoryAllocateInfo allocateInfo =
     {
         /*...VkStructureType....sType..............*/ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
@@ -377,7 +351,7 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice    physicalDev
     }
 
     // Calculate amount of memory needed to hold the vertex data
-    vertexBufferDataSize  = sceneVertexCount * NUM_BYTES_PER_VERTEX_POSITION;
+    vertexBufferDataSize  = sceneVertexCount   * NUM_BYTES_PER_VERTEX_POSITION;
     indexBufferDataSize   = sceneTriangleCount * NUM_INDEX_BYTES_PER_TRIANGLE;
 
     // Create a staging buffer which will be where the cpu writes vertex data to
@@ -440,10 +414,6 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice    physicalDev
             pVertexBuffMemFloatPtr[xCoordIdx + 0] = pVertex->x;
             pVertexBuffMemFloatPtr[xCoordIdx + 1] = pVertex->y;
             pVertexBuffMemFloatPtr[xCoordIdx + 2] = pVertex->z;
-
-            printf ("((vec3*)(pVertexBuffMemFloatPtr))[%u] = { %f, %f, %f }\n", meshVertexIdx, pVertexBuffMemFloatPtr[xCoordIdx    ],
-                                                                                               pVertexBuffMemFloatPtr[xCoordIdx + 1],
-                                                                                               pVertexBuffMemFloatPtr[xCoordIdx + 2]);
 
             // Update mesh aabb as needed
             if (pVertex->x > meshAABB.maxX) { meshAABB.maxX  = pVertex->x; } // update x max

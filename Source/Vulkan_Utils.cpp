@@ -435,12 +435,15 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
                          uint32_t                     graphicsQueueIndex,
                          VkSurfaceKHR                 surface,
                          uint32_t                     numPreferredSurfaceFormats,
+                         uint32_t                     numPreferredDepthFormats,
                          VkFormat*                    pPreferredSurfaceFormats,
+                         VkFormat*                    pPreferredDepthFormats, 
                          VkExtent2D                   prefferredExtent,           // Dimensions of the window
                          VkSwapchainKHR               oldSwapchain,
                          VkSwapchainKHR*              pSwapchainOut,
                          VkExtent2D*                  pSwapchainExtentChosenOut,  // Swapchain format used. see related note in function body
-                         VkSurfaceFormatKHR*          pSurfaceFormatOut,          // pass back the format used
+                         VkSurfaceFormatKHR*          pSurfaceFormatOut,          // pass back the color format and colorspace used
+                         VkFormat*                    pChosenDepthFormatOut,      // pass back the depth format that the depth images will be using
                          uint32_t*                    pNumSwapchainImages,
                          PerSwapchainImageResources** ppPerSwapchainImageResources)
 {
@@ -461,16 +464,16 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
     result = vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice,
                                                   surface,
                                                   &supportedFormatCount,
-pSupportedSwapchainSurfaceFormats);
+                                                  pSupportedSwapchainSurfaceFormats);
 
     //Choose a swapchain format
-    VkSurfaceFormatKHR chosenSwapchainFormat = ChooseSwapchainFormat(pSupportedSwapchainSurfaceFormats, 
-                                                                     supportedFormatCount,
-                                                                     pPreferredSurfaceFormats,
-                                                                     numPreferredSurfaceFormats);
+    const VkSurfaceFormatKHR chosenSwapchainFormat = ChooseSwapchainFormat(pSupportedSwapchainSurfaceFormats, 
+                                                                           supportedFormatCount,
+                                                                           pPreferredSurfaceFormats,
+                                                                           numPreferredSurfaceFormats);
 
     ///@Note: The spec says: "currentExtent is the current width and height of the surface, or the special value (0xFFFFFFFF, 0xFFFFFFFF) indicating that the surface size will be determined by the extent of a swapchain targeting the surface."
-    VkExtent2D swapchainExtent = (surfaceCapabilities.currentExtent.height == 0xFFFFFFFF) ? prefferredExtent : surfaceCapabilities.currentExtent;
+    const VkExtent2D swapchainExtent = (surfaceCapabilities.currentExtent.height == 0xFFFFFFFF) ? prefferredExtent : surfaceCapabilities.currentExtent;
 
     // Saving this for later
     *pSwapchainExtentChosenOut = swapchainExtent;
@@ -479,12 +482,12 @@ pSupportedSwapchainSurfaceFormats);
     // Figure out how many images to use with the swapchain. Make sure we dont use more than the max.
     uint32_t preferredNumSwapChainImages = surfaceCapabilities.minImageCount + 1;
     uint32_t actualNumSwapchainImages    = (preferredNumSwapChainImages <= surfaceCapabilities.maxImageCount) ? 
-                                                                               preferredNumSwapChainImages : surfaceCapabilities.maxImageCount;
+                                                                                  preferredNumSwapChainImages : surfaceCapabilities.maxImageCount;
 
     // Choose a surface transform
     VkSurfaceTransformFlagBitsKHR preferredSurfaceTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-    VkSurfaceTransformFlagBitsKHR preTransform =
-        ((surfaceCapabilities.supportedTransforms & preferredSurfaceTransform) > 0) ? preferredSurfaceTransform : surfaceCapabilities.currentTransform;
+    VkSurfaceTransformFlagBitsKHR preTransform              = ((surfaceCapabilities.supportedTransforms & preferredSurfaceTransform) > 0) ? 
+                                                                                  preferredSurfaceTransform : surfaceCapabilities.currentTransform;
 
     //@TODO: Should look into what to do if VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR isnt supported. that might also require changes to the FS output. 
     VkCompositeAlphaFlagBitsKHR preferredCompositeBit = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
@@ -507,7 +510,7 @@ pSupportedSwapchainSurfaceFormats);
         /*....VkImageUsageFlags................imageUsage..............*/ VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
         /*....VkSharingMode....................imageSharingMode........*/ VK_SHARING_MODE_EXCLUSIVE,
         /*....uint32_t.........................queueFamilyIndexCount...*/ 0, //SPEC: queueFamilyIndexCount is the number of queue families having access to the image(s) of the swapchain when imageSharingMode is VK_SHARING_MODE_CONCURRENT.
-        /*....con st.uint32_t*..................pQueueFamilyIndices.....*/ 0,
+        /*....const.uint32_t*..................pQueueFamilyIndices.....*/ 0,
         /*....VkSurfaceTransformFlagBitsKHR....preTransform............*/ preTransform,
         /*....VkCompositeAlphaFlagBitsKHR......compositeAlpha..........*/ preferredCompositeBit,
         /*....VkPresentModeKHR.................presentMode.............*/ swapchainPresentMode,
@@ -539,9 +542,7 @@ pSupportedSwapchainSurfaceFormats);
         pPerSwapchainImageResources = static_cast<PerSwapchainImageResources*>(calloc(imageCount, sizeof(PerSwapchainImageResources)));
     }
 
-
-     
-
+    // Create fence, create command buffer, and call vkAllocateCommandBuffers() - once for each swapchain image.
     for (uint32_t i = 0; i < imageCount; i++)
     {
         pPerSwapchainImageResources[i].queue_index = graphicsQueueIndex;
@@ -592,10 +593,10 @@ pSupportedSwapchainSurfaceFormats);
     }
 
 
-    // Create image views for each of  the swapchain images
+    // Create color image views for each of the swapchain images
     for (uint32_t imageIdx = 0; imageIdx < imageCount; imageIdx++)
     {
-
+        //I think the code flows better with this struct inisde the loop.Im assuming the compiler will optimize out the initialization after first iteration. 
         VkImageSubresourceRange subResourceRange =
         {
             /*...VkImageAspectFlags....aspectMask.........*/ VK_IMAGE_ASPECT_COLOR_BIT,
@@ -616,10 +617,147 @@ pSupportedSwapchainSurfaceFormats);
             /*...VkComponentMapping.........components..........*/ { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A},
             /*...VkImageSubresourceRange....subresourceRange....*/ subResourceRange
         };
-        result = vkCreateImageView(logicalDevice, &imageViewCreateInfo, 0, &(pPerSwapchainImageResources[imageIdx].imageView));
+        result = vkCreateImageView(logicalDevice, &imageViewCreateInfo, 0, &(pPerSwapchainImageResources[imageIdx].colorImageViewHandle));
         assert(result == VK_SUCCESS);
     }
 
+    // Choose a depth format from the preferred formats array arg
+    VkFormat depthFormat = ChooseDepthFormat (physicalDevice,
+                                              numPreferredDepthFormats,
+                                              pPreferredDepthFormats);
+
+    // This create info is initialized once, and than used multiple times to create a depth image for each of the swapchain framebuffers
+    VkImageCreateInfo depthImagesCreateInfo =
+    {
+        /*...VkStructureType..........sType...................*/ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        /*...const.void*..............pNext...................*/ nullptr,
+        /*...VkImageCreateFlags.......flags...................*/ 0,
+        /*...VkImageType..............imageType...............*/ VK_IMAGE_TYPE_2D,
+        /*...VkFormat.................format..................*/ depthFormat,
+        /*...VkExtent3D...............extent..................*/ {swapchainExtent.width, swapchainExtent.height, 1},
+        /*...uint32_t.................mipLevels...............*/ 1,
+        /*...uint32_t.................arrayLayers.............*/ 1,
+        /*...VkSampleCountFlagBits....samples.................*/ VK_SAMPLE_COUNT_1_BIT, // if i want to use more than 1, i need to check the value the driver returns in VkPhysicalDeviceProperties::::limits::framebufferDepthSampleCounts
+        /*...VkImageTiling............tiling..................*/ VK_IMAGE_TILING_OPTIMAL,
+        /*...VkImageUsageFlags........usage...................*/ VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+        /*...VkSharingMode............sharingMode.............*/ VK_SHARING_MODE_EXCLUSIVE,
+        /*...uint32_t.................queueFamilyIndexCount...*/ 1,
+        /*...const.uint32_t*..........pQueueFamilyIndices.....*/ &graphicsQueueIndex,
+        /*...VkImageLayout............initialLayout...........*/ VK_IMAGE_LAYOUT_UNDEFINED
+    };
+
+    // Initialize depth image for first swapchain so we can than use that imageHandle to get the memory requirements for all of the depth images we will create.
+    VkImage* pDepthImage0 = &(pPerSwapchainImageResources[0].depthImageHandle);
+    result = vkCreateImage (/*...VkDevice.........................device........*/ logicalDevice,
+                            /*...const.VkImageCreateInfo*.........pCreateInfo...*/ &depthImagesCreateInfo,
+                            /*...const.VkAllocationCallbacks*.....pAllocator....*/ nullptr,
+                            /*...VkImage*.........................pImage........*/ pDepthImage0);
+
+    assert (result == VK_SUCCESS);
+
+    VkMemoryRequirements imageMemRequirements = {};
+    vkGetImageMemoryRequirements (/*...VkDevice....................device................*/ logicalDevice,
+                                  /*...VkImage.....................image.................*/ *pDepthImage0,
+                                  /*...VkMemoryRequirements*.......pMemoryRequirements...*/ &imageMemRequirements);
+
+    uint32_t imagesMemTypeIndex = ChooseMemoryTypeIdx (physicalDevice, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &imageMemRequirements);
+    assert (imagesMemTypeIndex != UINT32_MAX);
+
+    VkMemoryAllocateInfo imageMemAllocateInfo =
+    {
+        /*...VkStructureType....sType.............*/ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        /*...const.void*........pNext.............*/ nullptr,
+        /*...VkDeviceSize.......allocationSize....*/ imageMemRequirements.size,
+        /*...uint32_t...........memoryTypeIndex...*/ imagesMemTypeIndex
+    };
+
+    // Allocates memory for a depth image than creates the image
+    for (uint32_t depthImgIdx = 0; depthImgIdx < imageCount; depthImgIdx++)
+    {
+        VkImage*         pDepthImage             = &(pPerSwapchainImageResources[depthImgIdx].depthImageHandle);
+        VkDeviceMemory*  pDepthImageMemoryHandle = &(pPerSwapchainImageResources[depthImgIdx].depthImageMemoryHandle);
+
+        // Since we created one image above already, we want to avoid re-creating it, but still need to allocate and bind memory to it.
+        if (*pDepthImage == VK_NULL_HANDLE)
+        {
+            result = vkCreateImage (/*...VkDevice.........................device........*/ logicalDevice,
+                                    /*...const.VkImageCreateInfo*.........pCreateInfo...*/ &depthImagesCreateInfo,
+                                    /*...const.VkAllocationCallbacks*.....pAllocator....*/ nullptr,
+                                    /*...VkImage*.........................pImage........*/ pDepthImage);
+            assert (result == VK_SUCCESS);
+        }
+
+        // Allocate the memory that will back the depth image
+        result = vkAllocateMemory (/*...VkDevice.......................device.............*/ logicalDevice,
+                                   /*...const.VkMemoryAllocateInfo*....pAllocateInfo......*/ &imageMemAllocateInfo,
+                                   /*...const.VkAllocationCallbacks*...pAllocator.........*/ nullptr,
+                                   /*...VkDeviceMemory*................pMemory............*/ pDepthImageMemoryHandle);
+   
+        assert (*pDepthImageMemoryHandle != VK_NULL_HANDLE);
+        assert (result == VK_SUCCESS);
+
+        result = vkBindImageMemory (/*...VkDevice......................device..........*/ logicalDevice,
+                                    /*...VkImage.......................image...........*/ *pDepthImage,
+                                    /*...VkDeviceMemory................memory..........*/ *pDepthImageMemoryHandle,
+                                    /*...VkDeviceSize..................memoryOffset....*/ 0);
+               
+        assert (result == VK_SUCCESS);
+    }
+
+
+    // Here we start preparing to create the depth image view
+    bool formatAlsoHasStencil = ((depthFormat == VK_FORMAT_D16_UNORM_S8_UINT ) &&
+                                 (depthFormat == VK_FORMAT_D24_UNORM_S8_UINT ) &&
+                                 (depthFormat == VK_FORMAT_D32_SFLOAT_S8_UINT)  ) ? true : false;
+
+    bool formatIsDepthOnly    = ((depthFormat == VK_FORMAT_X8_D24_UNORM_PACK32) &&
+                                 (depthFormat == VK_FORMAT_D16_UNORM          ) &&
+                                 (depthFormat == VK_FORMAT_D32_SFLOAT         )  ) ? true : false;
+    
+    VkImageAspectFlags depthImageAspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+    if (formatAlsoHasStencil == true)
+    {
+        depthImageAspectFlags |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        assert (formatIsDepthOnly == false);
+    }
+
+    //Initialize structs required for depth image view creation
+    VkImageSubresourceRange depthImgsubResourceRange =
+    {
+        /*...VkImageAspectFlags....aspectMask.........*/ depthImageAspectFlags,
+        /*...uint32_t..............baseMipLevel.......*/ 0,
+        /*...uint32_t..............levelCount.........*/ 1,
+        /*...uint32_t..............baseArrayLayer.....*/ 0,
+        /*...uint32_t..............layerCount.........*/ 1
+    };
+    VkImageViewCreateInfo depthImageViewCreateInfo =
+    {
+        /*...VkStructureType............sType...............*/ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        /*...const.void*................pNext...............*/ 0,
+        /*...VkImageViewCreateFlags.....flags...............*/ 0,
+        /*...VkImage....................image...............*/ VK_NULL_HANDLE, // Will be updated inside the loop as each views are created for each of the depth images
+        /*...VkImageViewType............viewType............*/ VK_IMAGE_VIEW_TYPE_2D,
+        /*...VkFormat...................format..............*/ depthFormat,
+        /*...VkComponentMapping.........components..........*/ { VK_COMPONENT_SWIZZLE_IDENTITY },// { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A },
+        /*...VkImageSubresourceRange....subresourceRange....*/ depthImgsubResourceRange
+    };
+
+    //Create depth image views
+    for (uint32_t depthViewIdx = 0; depthViewIdx < imageCount; depthViewIdx++)
+    {
+        VkImage*     pDepthImage           = &(pPerSwapchainImageResources[depthViewIdx].depthImageHandle);
+        VkImageView* pDepthImageViewHandle = &(pPerSwapchainImageResources[depthViewIdx].depthImageViewHandle);
+
+        // Update the contents of the VkImageViewCreateInfo struct declared above with a depth image handle that will be used with the framebuffer at this idx
+        depthImageViewCreateInfo.image = *pDepthImage;
+
+
+        result = vkCreateImageView (logicalDevice, &depthImageViewCreateInfo, 0, pDepthImageViewHandle);
+        assert (result == VK_SUCCESS);
+    }
+
+    *pChosenDepthFormatOut         = depthFormat;
     *ppPerSwapchainImageResources = pPerSwapchainImageResources;
     *pNumSwapchainImages          = imageCount;
     *pSwapchainOut                = swapchain;
@@ -648,9 +786,9 @@ VkSurfaceFormatKHR ChooseSwapchainFormat(VkSurfaceFormatKHR* pSupportedSwapchain
     return chosenFormat;
 }
 
-VkRenderPass CreateRenderpass(VkFormat swapChainFormat, VkDevice logicalDevice)
+VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  VkDevice logicalDevice)
 {
-    VkAttachmentDescription attachmentDescription =
+    VkAttachmentDescription colorAttachmentDescription =
     {
         /*..VkAttachmentDescriptionFlags....flags............*/ 0,
         /*..VkFormat........................format...........*/ swapChainFormat,
@@ -661,6 +799,19 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat, VkDevice logicalDevice)
         /*..VkAttachmentStoreOp.............stencilStoreOp...*/ VK_ATTACHMENT_STORE_OP_DONT_CARE, // Not using stencil so dont care
         /*..VkImageLayout...................initialLayout....*/ VK_IMAGE_LAYOUT_UNDEFINED,
         /*..VkImageLayout...................finalLayout......*/ VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+    };
+
+    VkAttachmentDescription depthAttachmentDescription =
+    {
+        /*..VkAttachmentDescriptionFlags....flags............*/ 0,
+        /*..VkFormat........................format...........*/ depthFormat,
+        /*..VkSampleCountFlagBits...........samples..........*/ VK_SAMPLE_COUNT_1_BIT,
+        /*..VkAttachmentLoadOp..............loadOp...........*/ VK_ATTACHMENT_LOAD_OP_CLEAR,
+        /*..VkAttachmentStoreOp.............storeOp..........*/ VK_ATTACHMENT_STORE_OP_STORE,
+        /*..VkAttachmentLoadOp..............stencilLoadOp....*/ VK_ATTACHMENT_LOAD_OP_DONT_CARE,  // Not using stencil so dont care
+        /*..VkAttachmentStoreOp.............stencilStoreOp...*/ VK_ATTACHMENT_STORE_OP_DONT_CARE, // Not using stencil so dont care
+        /*..VkImageLayout...................initialLayout....*/ VK_IMAGE_LAYOUT_UNDEFINED,
+        /*..VkImageLayout...................finalLayout......*/ VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
     };
 
     VkAttachmentReference colorAttachmentRef =
@@ -686,7 +837,6 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat, VkDevice logicalDevice)
     //subpassDescription.colorAttachmentCount = 1;
     //subpassDescription.pColorAttachments    = &colorAttachmentRef;
 
-
     VkSubpassDescription subpassDescription =
     {
         /*...VkSubpassDescriptionFlags.......flags.....................*/ 0,
@@ -701,6 +851,7 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat, VkDevice logicalDevice)
         /*...const.uint32_t*.................pPreserveAttachments......*/ nullptr
     };
 
+    
     VkSubpassDependency subpassDependency =
     {
         /*....uint32_t................srcSubpass..........*/ VK_SUBPASS_EXTERNAL,
@@ -708,17 +859,24 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat, VkDevice logicalDevice)
         /*....VkPipelineStageFlags....srcStageMask........*/ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
         /*....VkPipelineStageFlags....dstStageMask........*/ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
         /*....VkAccessFlags...........srcAccessMask.......*/ 0, // From khronos sample: "Since we changed the image layout, we need to make the memory visible to color attachment to modify."
-        /*....VkAccessFlags...........dstAccessMask.......*/ VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+        /*....VkAccessFlags...........dstAccessMask.......*/ VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
         /*....VkDependencyFlags.......dependencyFlags.....*/ 0
     };
+    //Note:  Dont think i need a second dependency for depth, since fragment shader wont read depth (double check) once color attachment output is finished, the depth buffer will not be written to any long, since the purpose of the depth buffer is to reject non-visible fragments....right?
+
+    static const uint32_t   numAttachments                          = 2;
+    VkAttachmentDescription pAttachmentDescriptions[numAttachments] = {};
+
+    pAttachmentDescriptions[colorAttachmentRef.attachment] = colorAttachmentDescription;
+    pAttachmentDescriptions[depthAttachmentRef.attachment] = depthAttachmentDescription;
 
     VkRenderPassCreateInfo renderPassCreateInfo =
     {
         /*...VkStructureType...................sType.............*/ VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
         /*...const.void*.......................pNext.............*/ 0,
         /*...VkRenderPassCreateFlags...........flags.............*/ 0,
-        /*...uint32_t..........................attachmentCount...*/ 1,
-        /*...const.VkAttachmentDescription*....pAttachments......*/ &attachmentDescription,
+        /*...uint32_t..........................attachmentCount...*/ 2,
+        /*...const.VkAttachmentDescription*....pAttachments......*/ pAttachmentDescriptions,
         /*...uint32_t..........................subpassCount......*/ 1,
         /*...const.VkSubpassDescription*.......pSubpasses........*/ &subpassDescription,
         /*...uint32_t..........................dependencyCount...*/ 1,
@@ -877,7 +1035,7 @@ VkPipeline CreatePipeline(VkDevice              logicalDevice,
         /*...VkPipelineRasterizationStateCreateFlags....flags......................*/ 0,
         /*...VkBool32...................................depthClampEnable...........*/ VK_FALSE,
         /*...VkBool32...................................rasterizerDiscardEnable....*/ VK_FALSE,
-        /*...VkPolygonMode..............................polygonMode................*/ VK_POLYGON_MODE_FILL, //VK_POLYGON_MODE_FILL == 0, so dont actually need to explicitly set it technically.
+        /*...VkPolygonMode..............................polygonMode................*/ VK_POLYGON_MODE_FILL,
         /*...VkCullModeFlags............................cullMode...................*/ VK_CULL_MODE_NONE,//VK_CULL_MODE_BACK_BIT,
         /*...VkFrontFace................................frontFace..................*/ VK_FRONT_FACE_CLOCKWISE, //@TODO: use normals from assimp to determine which winding order to use
         /*...VkBool32...................................depthBiasEnable............*/ VK_FALSE,
@@ -903,20 +1061,21 @@ VkPipeline CreatePipeline(VkDevice              logicalDevice,
         /*...float.........................................blendConstants[4].....*/ 0
     };
 
-    VkViewport viewport =
-    {
-        /*...float....x.........*/ 0,
-        /*...float....y.........*/ 0,
-        /*...float....width.....*/ float(pExtent->width),
-        /*...float....height....*/ float(pExtent->height),
-        /*...float....minDepth..*/  0.0f,
-        /*...float....maxDepth..*/  1.0f
-    };
 
     VkRect2D scissor =
     {
         /*...VkOffset2D....offset....*/ { 0, 0 },
         /*...VkExtent2D....extent....*/ {pExtent->width, pExtent->height}
+    };
+
+    VkViewport viewport =
+    {
+        /*...float....x.........*/ 0,
+        /*...float....y.........*/ 0,
+        /*...float....width.....*/ float (pExtent->width),
+        /*...float....height....*/ float (pExtent->height),
+        /*...float....minDepth..*/ 0.0f,
+        /*...float....maxDepth..*/ 1.0f
     };
 
     VkPipelineViewportStateCreateInfo viewportStateCreateInfo =
@@ -936,15 +1095,15 @@ VkPipeline CreatePipeline(VkDevice              logicalDevice,
         /*...VkStructureType...........................sType..................*/ VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
         /*...const.void*...............................pNext..................*/ 0,
         /*...VkPipelineDepthStencilStateCreateFlags....flags..................*/ 0,
-        /*...VkBool32..................................depthTestEnable........*/ VK_FALSE,
-        /*...VkBool32..................................depthWriteEnable.......*/ VK_FALSE,
-        /*...VkCompareOp...............................depthCompareOp.........*/ VK_COMPARE_OP_NEVER, // VK_COMPARE_OP_NEVER  == 0
-        /*...VkBool32..................................depthBoundsTestEnable..*/ VK_FALSE,
+        /*...VkBool32..................................depthTestEnable........*/ VK_TRUE,
+        /*...VkBool32..................................depthWriteEnable.......*/ VK_TRUE,
+        /*...VkCompareOp...............................depthCompareOp.........*/ VK_COMPARE_OP_GREATER,
+        /*...VkBool32..................................depthBoundsTestEnable..*/ VK_TRUE,
         /*...VkBool32..................................stencilTestEnable......*/ VK_FALSE,
         /*...VkStencilOpState..........................front..................*/ {},
         /*...VkStencilOpState..........................back...................*/ {},
-        /*...float.....................................minDepthBounds.........*/ 0.0f,
-        /*...float.....................................maxDepthBounds.........*/ 0.0f
+        /*...float.....................................minDepthBounds.........*/ viewport.minDepth,//0.0f,
+        /*...float.....................................maxDepthBounds.........*/ viewport.maxDepth //1.0f
     };
 
     // No Multisampling. 
@@ -1087,17 +1246,20 @@ VkFormat ChooseDepthFormat (VkPhysicalDevice   physicalDeviceHandle,
     return chosenDepthFormat;
 }
 
+// Function to create a single depth image. Not used currently, but is a useful reference.
 void CreateAndAllocateDepthImage (VkDevice            logicalDeviceHandle,
                                   VkPhysicalDevice    physicalDeviceHandle,
                                   uint32_t            queueFamilyIdx,
-                                  VkFormat            imageFormat,
+                                  VkFormat            depthFormat,
                                   VkExtent2D          imageDimensions,
-                                  VkImage*            pImageHandleOut,
-                                  VkDeviceMemory*     pDepthImageMemOut)
+                                  VkDeviceMemory*     pDepthImageMemOut,
+                                  VkImage*            pDepthImageHandleOut,
+                                  VkImageView*        pDepthImageViewHandleOut)
 {
     VkResult       result           = VK_INCOMPLETE;
     VkDeviceMemory depthImageMem    = VK_NULL_HANDLE;
     VkImage        depthImageHandle = VK_NULL_HANDLE;
+    VkImageView    depthImageView   = VK_NULL_HANDLE;
 
     VkImageCreateInfo imageCreateInfo =
     {
@@ -1105,8 +1267,8 @@ void CreateAndAllocateDepthImage (VkDevice            logicalDeviceHandle,
         /*...const.void*..............pNext...................*/ nullptr,
         /*...VkImageCreateFlags.......flags...................*/ 0,
         /*...VkImageType..............imageType...............*/ VK_IMAGE_TYPE_2D,
-        /*...VkFormat.................format..................*/ imageFormat,
-        /*...VkExtent3D...............extent..................*/ {imageDimensions.width, imageDimensions.height, 0}, //@spec: "If imageType is VK_IMAGE_TYPE_1D, both extent.height and extent.depth must be 1"
+        /*...VkFormat.................format..................*/ depthFormat,
+        /*...VkExtent3D...............extent..................*/ {imageDimensions.width, imageDimensions.height, 1}, //@spec: "If imageType is VK_IMAGE_TYPE_1D, both extent.height and extent.depth must be 1"
         /*...uint32_t.................mipLevels...............*/ 1,
         /*...uint32_t.................arrayLayers.............*/ 1,
         /*...VkSampleCountFlagBits....samples.................*/ VK_SAMPLE_COUNT_1_BIT, // if i want to use more than 1, i need to check the value the driver returns in VkPhysicalDeviceProperties::::limits::framebufferDepthSampleCounts
@@ -1130,8 +1292,9 @@ void CreateAndAllocateDepthImage (VkDevice            logicalDeviceHandle,
                                   /*...VkImage.....................image.................*/ depthImageHandle,
                                   /*...VkMemoryRequirements*.......pMemoryRequirements...*/ &imageMemRequirements );
 
-    uint32_t imagesMemTypeIndex = UINT32_MAX;
-    GetMemoryType (physicalDeviceHandle, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &imagesMemTypeIndex, &imageMemRequirements);
+    uint32_t imagesMemTypeIndex = ChooseMemoryTypeIdx (physicalDeviceHandle,
+                                                       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                                       &imageMemRequirements);
     assert (imagesMemTypeIndex != UINT32_MAX);
 
     VkMemoryAllocateInfo imageMemAllocateInfo =
@@ -1143,22 +1306,62 @@ void CreateAndAllocateDepthImage (VkDevice            logicalDeviceHandle,
     };
 
     // Allocate the memory that will back the depth image
-    result = vkAllocateMemory (logicalDeviceHandle, &imageMemAllocateInfo, nullptr, &depthImageMem);
+    result = vkAllocateMemory (/*...VkDevice.......................device..........*/ logicalDeviceHandle,
+                               /*...const.VkMemoryAllocateInfo*....pAllocateInfo...*/ &imageMemAllocateInfo,
+                               /*...const.VkAllocationCallbacks*...pAllocator......*/ nullptr,
+                               /*...VkDeviceMemory*................pMemory.........*/ &depthImageMem);
     assert (depthImageMem != VK_NULL_HANDLE);
 
-    result = vkBindImageMemory (logicalDeviceHandle, depthImageHandle, depthImageMem, 0);
+    // Bind image memory to the depth image
+    result = vkBindImageMemory (/*...VkDevice......................device..........*/ logicalDeviceHandle,
+                                /*...VkImage.......................image...........*/ depthImageHandle,
+                                /*...VkDeviceMemory................memory..........*/ depthImageMem,
+                                /*...VkDeviceSize..................memoryOffset....*/ 0);
     assert (result == VK_SUCCESS);
 
-    *pImageHandleOut   = depthImageHandle;
-    *pDepthImageMemOut = depthImageMem;
 
+    bool formatAlsoHasStencil = ((depthFormat == VK_FORMAT_D16_UNORM_S8_UINT) &&
+                                 (depthFormat == VK_FORMAT_D24_UNORM_S8_UINT) &&
+                                 (depthFormat == VK_FORMAT_D32_SFLOAT_S8_UINT)) ? true : false;
+
+    bool formatIsDepthOnly = ((depthFormat == VK_FORMAT_X8_D24_UNORM_PACK32 ) &&
+                              (depthFormat == VK_FORMAT_D16_UNORM           ) &&
+                              (depthFormat == VK_FORMAT_D32_SFLOAT          )) ? true : false;
+
+    VkImageSubresourceRange subResourceRange =
+    {
+        /*...VkImageAspectFlags....aspectMask.........*/ formatIsDepthOnly ? (VK_IMAGE_ASPECT_DEPTH_BIT) : (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT),
+        /*...uint32_t..............baseMipLevel.......*/ 0,
+        /*...uint32_t..............levelCount.........*/ 1,
+        /*...uint32_t..............baseArrayLayer.....*/ 0,
+        /*...uint32_t..............layerCount.........*/ 1
+    };
+
+    VkImageViewCreateInfo imageViewCreateInfo =
+    {
+        /*...VkStructureType............sType...............*/ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        /*...const.void*................pNext...............*/ 0,
+        /*...VkImageViewCreateFlags.....flags...............*/ 0,
+        /*...VkImage....................image...............*/ depthImageHandle,
+        /*...VkImageViewType............viewType............*/ VK_IMAGE_VIEW_TYPE_2D,
+        /*...VkFormat...................format..............*/ depthFormat,
+        /*...VkComponentMapping.........components..........*/ {},//{ VK_COMPONENT_SWIZZLE_IDENTITY },// { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A },
+        /*...VkImageSubresourceRange....subresourceRange....*/ subResourceRange
+    };
+    //@TODO: Check validation layers for any issues with the component mapping above. I think its only relevant to views using a color format, but not 100% sure.
+
+    result = vkCreateImageView (logicalDeviceHandle, &imageViewCreateInfo, 0, &depthImageView);
+
+
+    *pDepthImageMemOut        = depthImageMem;
+    *pDepthImageHandleOut     = depthImageHandle;
+    *pDepthImageViewHandleOut = depthImageView;
 }
 
 void CreateFrameBuffers(VkDevice                    logicalDevice,
                         VkRenderPass                renderPass,
                         VkExtent2D*                 pExtent,
                         uint32_t                    numSwapchainImages,
-                        const VkImageView*          pDepthImageViewHandle,
                         PerSwapchainImageResources* pPerSwapchainImageResources)
 {
 
@@ -1181,8 +1384,8 @@ void CreateFrameBuffers(VkDevice                    logicalDevice,
      
     for (uint32_t viewIdx = 0; viewIdx < numSwapchainImages; viewIdx++)
     {
-        VkImageView pAttachmentImageViews[numAttachments] = { pPerSwapchainImageResources[viewIdx].imageView, 
-                                                              *pDepthImageViewHandle };
+        VkImageView pAttachmentImageViews[numAttachments] = { pPerSwapchainImageResources[viewIdx].colorImageViewHandle, 
+                                                              pPerSwapchainImageResources[viewIdx].depthImageViewHandle };
 
         framebufferCreateInfo.pAttachments = pAttachmentImageViews;
 
@@ -1294,7 +1497,9 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                            VkQueue                      queue,
                            uint32_t                     gfxQueueIdx,
                            uint32_t                     numPreferredSwapchainFormats,
+                           uint32_t                     numPreferredDepthFormats,
                            VkFormat*                    pPreferredSwapchainFormats,
+                           VkFormat*                    pPreferredDepthFormats,
                            VkSurfaceKHR                 surface,
                            VkRenderPass                 renderpass,
                            VkPipeline                   pipeline,
@@ -1316,30 +1521,35 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
     // This is expected to be hit when the window has resized, or some other change to the rendering surface that requires reinitialization
     if ((result == VK_SUBOPTIMAL_KHR) || (result == VK_ERROR_OUT_OF_DATE_KHR))
     {
-        printf("DONT WANT TO BE HERE!!!!!!\n");
-        swapchain = ReinitializeRenderungSurface(logicalDevice,
-                                                 physicalDevice,
-                                                 gfxQueueIdx,
-                                                 swapchain,
-                                                 *pExtent,
-                                                 numPreferredSwapchainFormats,
-                                                 pPreferredSwapchainFormats,
-                                                 surface,
-                                                 renderpass,
-                                                 queue,
-                                                 pNumSwapchainImages,
-                                                 ppPerSwapchainImageResources);
+        printf ("Resizing window...\n");
+        swapchain = ReinitializeRenderungSurface (/*...VkDevice.....................logicalDevice...................*/ logicalDevice,
+                                                  /*...VkPhysicalDevice.............physicalDevice..................*/ physicalDevice,
+                                                  /*...uint32_t.....................gfxQueueIndex...................*/ gfxQueueIdx,
+                                                  /*...VkSwapchainKHR...............swapchain.......................*/ swapchain,
+                                                  /*...VkExtent2D...................swapchainExtent.................*/ *pExtent,
+                                                  /*...uint32_t.....................numPreferredDepthFormats........*/ numPreferredSwapchainFormats,
+                                                  /*...uint32_t.....................numPreferredSwapchainFormats....*/ numPreferredDepthFormats,
+                                                  /*...VkFormat*.....................pPreferredSwapchainFormats.....*/ pPreferredDepthFormats,
+                                                  /*...VkFormat*.....................pPreferredDepthFormats.........*/ pPreferredDepthFormats,
+                                                  /*...VkSurfaceKHR..................surface........................*/ surface,
+                                                  /*...VkRenderPass..................renderpass.....................*/ renderpass,
+                                                  /*...VkQueue.......................queue..........................*/ queue,
+                                                  /*...uint32_t*.....................pNumSwapchainImages............*/ pNumSwapchainImages,
+                                                  /*...PerSwapchainImageResources**..ppPerSwapchainImageResources...*/ ppPerSwapchainImageResources);
 
         result = AcuireNextSwapchainImageIdx(queue, logicalDevice, swapchain, &imageIdx, pPerFrameResources);
     }
 
 
-    VkClearValue clearValArray[] =
+    VkClearColorValue colorClearValArray[] =
     {
         {0.01f, 0.01f, 0.033f, 1.0f},
         {0.01f, 0.033f, 0.01f, 1.0f},
         {0.033f, 0.01f, 0.01f, 1.0f}
     };
+
+    VkClearDepthStencilValue depthClearValue = {/*...float.......depth.....*/ 0.0f,
+                                                /*...uint32_t....stencil...*/ 0 };
    
     renderCommandBuffer = RecordRenderGeometryBufferCmds (/*...GeometryBufferSet*..........pGeometryBufferSet.............*/ pGeometryBufferSet,
                                                           /*...PerSwapchainImageResources*.pPerSwapchainImageResources....*/ &(pPerFrameResources[imageIdx]),
@@ -1348,8 +1558,8 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                                                           /*...VkPipeline..................pipeline.......................*/ pipeline,
                                                           /*...VkPipelineLayout............pipelineLayout.................*/ pipelineLayout,
                                                           /*...VkExtent2D*.................pExtent........................*/ pExtent,
-                                                          /*...VkClearValue*...............pClearValue....................*/ &(clearValArray[frameIdx % 3]));
-
+                                                          /*...VkClearColorValue*..........pClearValue....................*/ &(colorClearValArray[frameIdx % 3]),
+                                                          /*...VkClearDepthStencilValue*...pClearValue....................*/ &depthClearValue );
 
     result = SubmitRenderCommandBuffer (/*...VkCommandBuffer.............commandBuffer.....................*/ renderCommandBuffer,
                                         /*...VkQueue.....................queue.............................*/ queue,
@@ -1361,18 +1571,20 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
     if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR)
     {
         printf ("Present image returned %s. May not be able to recover.\n", (result == VK_SUBOPTIMAL_KHR) ? "VK_SUBOPTIMAL_KHR" : "VK_ERROR_OUT_OF_DATE_KHR");
-        swapchain = ReinitializeRenderungSurface(logicalDevice,
-                                                 physicalDevice,
-                                                 gfxQueueIdx,
-                                                 swapchain,
-                                                 *pExtent,
-                                                 numPreferredSwapchainFormats,
-                                                 pPreferredSwapchainFormats,
-                                                 surface,
-                                                 renderpass,
-                                                 queue,
-                                                 pNumSwapchainImages,
-                                                 ppPerSwapchainImageResources);
+        swapchain = ReinitializeRenderungSurface (/*...VkDevice.....................logicalDevice...................*/ logicalDevice,
+                                                  /*...VkPhysicalDevice.............physicalDevice..................*/ physicalDevice,
+                                                  /*...uint32_t.....................gfxQueueIndex...................*/ gfxQueueIdx,
+                                                  /*...VkSwapchainKHR...............swapchain.......................*/ swapchain,
+                                                  /*...VkExtent2D...................swapchainExtent.................*/ *pExtent,
+                                                  /*...uint32_t.....................numPreferredDepthFormats........*/ numPreferredSwapchainFormats,
+                                                  /*...uint32_t.....................numPreferredSwapchainFormats....*/ numPreferredDepthFormats,
+                                                  /*...VkFormat*.....................pPreferredSwapchainFormats.....*/ pPreferredDepthFormats,
+                                                  /*...VkFormat*.....................pPreferredDepthFormats.........*/ pPreferredDepthFormats,
+                                                  /*...VkSurfaceKHR..................surface........................*/ surface,
+                                                  /*...VkRenderPass..................renderpass.....................*/ renderpass,
+                                                  /*...VkQueue.......................queue..........................*/ queue,
+                                                  /*...uint32_t*.....................pNumSwapchainImages............*/ pNumSwapchainImages,
+                                                  /*...PerSwapchainImageResources**..ppPerSwapchainImageResources...*/ ppPerSwapchainImageResources);
     }
     else if (result != VK_SUCCESS)
     {
@@ -1388,8 +1600,10 @@ VkSwapchainKHR ReinitializeRenderungSurface(VkDevice                     logical
                                             uint32_t                     gfxQueueIndex,
                                             VkSwapchainKHR               swapchain,
                                             VkExtent2D                   swapchainExtent,
+                                            uint32_t                     numPreferredDepthFormats,
                                             uint32_t                     numPreferredSwapchainFormats,
                                             VkFormat*                    pPreferredSwapchainFormats,
+                                            VkFormat*                    pPreferredDepthFormats,
                                             VkSurfaceKHR                 surface,
                                             VkRenderPass                 renderpass,
                                             VkQueue                      queue,
@@ -1417,20 +1631,23 @@ VkSwapchainKHR ReinitializeRenderungSurface(VkDevice                     logical
         PerSwapchainImageResources* pPerSwapchainImageResources = *ppPerSwapchainImageResources;
         VkExtent2D                  newSwapChainExtent          = {};
         VkSurfaceFormatKHR          newSwapchainSurfaceFormat   = {};
-
-        InitializeSwapchain (/*.VkPhysicalDevice.............physicalDevice...............*/ physicalDevice,
-                             /*.VkDevice.....................logicalDevice................*/ logicalDevice,
-                             /*.uint32_t.....................graphicsQueueIndex...........*/ gfxQueueIndex,
-                             /*.VkSurfaceKHR.................surface......................*/ surface,
-                             /*.uint32_t.....................numPreferredSurfaceFormats...*/ numPreferredSwapchainFormats,
-                             /*.VkFormat*....................pPreferredSurfaceFormats.....*/ pPreferredSwapchainFormats,
-                             /*.VkExtent2D...................prefferredExtent.............*/ swapchainExtent,
-                             /*.VkSwapchainKHR...............oldSwapchain.................*/ swapchain,
-                             /*.VkSwapchainKHR*..............pSwapchainOut................*/ &newSwapChain,
-                             /*.VkExtent2D*..................pSwapchainExtentChosenOut....*/ &newSwapChainExtent,
-                             /*.VkSurfaceFormatKHR*..........pSurfaceFormatOut............*/ &newSwapchainSurfaceFormat,
-                             /*.uint32_t*....................pNumSwapchainImages..........*/ pNumSwapchainImages,
-                             /*.PerSwapchainImageResources**.ppPerSwapchainImageResources.*/ ppPerSwapchainImageResources);
+        VkFormat                    chosenDepthFormat           = VK_FORMAT_UNDEFINED;
+        InitializeSwapchain (/*...VkPhysicalDevice.............physicalDevice.................*/ physicalDevice,
+                             /*...VkDevice.....................logicalDevice..................*/ logicalDevice,
+                             /*...uint32_t.....................graphicsQueueIndex.............*/ gfxQueueIndex,
+                             /*...VkSurfaceKHR.................surface........................*/ surface,
+                             /*...uint32_t.....................numPreferredSurfaceFormats.....*/ numPreferredSwapchainFormats,
+                             /*...uint32_t.....................numPreferredDepthFormats.......*/ numPreferredDepthFormats,
+                             /*...VkFormat*....................pPreferredSurfaceFormats.......*/ pPreferredSwapchainFormats,
+                             /*...VkFormat*....................pPreferredDepthFormats.........*/ pPreferredDepthFormats,
+                             /*...VkExtent2D...................prefferredExtent...............*/ swapchainExtent,
+                             /*...VkSwapchainKHR...............oldSwapchain...................*/ swapchain,
+                             /*...VkSwapchainKHR*..............pSwapchainOut..................*/ &newSwapChain,
+                             /*...VkExtent2D*..................pSwapchainExtentChosenOut......*/ &newSwapChainExtent,
+                             /*...VkSurfaceFormatKHR*..........pSurfaceFormatOut..............*/ &newSwapchainSurfaceFormat,
+                             /*...VkFormat*....................pChosenDepthFormatOut..........*/ &chosenDepthFormat,
+                             /*...uint32_t*....................pNumSwapchainImages............*/ pNumSwapchainImages,
+                             /*...PerSwapchainImageResources**.ppPerSwapchainImageResources...*/ ppPerSwapchainImageResources);
 
         assert ((swapchainExtent.height == newSwapChainExtent.height) &&
                 (swapchainExtent.width  == newSwapChainExtent.width ));
@@ -1456,11 +1673,13 @@ VkCommandBuffer RecordRenderGeometryBufferCmds (GeometryBufferSet*          pGeo
                                                 VkPipeline                  pipeline,
                                                 VkPipelineLayout            pipelineLayout,
                                                 VkExtent2D*                 pExtent,
-                                                VkClearValue*               pClearValue)
+                                                VkClearColorValue*          pColorClearValue,
+                                                VkClearDepthStencilValue*   pDepthStencilClearValue)
 {
-    assert (pGeometryBufferSet != nullptr);
-    assert (pExtent            != nullptr);
-    assert (pClearValue        != nullptr);
+    assert (pGeometryBufferSet      != nullptr);
+    assert (pExtent                 != nullptr);
+    assert (pColorClearValue        != nullptr);
+    assert (pDepthStencilClearValue != nullptr);
 
     VkFramebuffer   framebuffer   = pPerSwapchainImageResources->framebufferHandle;
     VkCommandBuffer commandBuffer = pPerSwapchainImageResources->commandBuffer;
@@ -1482,6 +1701,12 @@ VkCommandBuffer RecordRenderGeometryBufferCmds (GeometryBufferSet*          pGeo
         /*...VkExtent2D....extent....*/ *pExtent
     };
 
+    // 2 clear values: one for color, one for depth.
+    const uint32_t numClearValues             = 2;
+    VkClearValue pClearValues[numClearValues] = {};
+    pClearValues[0].color                     = *pColorClearValue;
+    pClearValues[1].depthStencil              = *pDepthStencilClearValue;
+
     VkRenderPassBeginInfo renderPassBeginInfo =
     {
         /*...VkStructureType........sType..............*/ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
@@ -1489,8 +1714,8 @@ VkCommandBuffer RecordRenderGeometryBufferCmds (GeometryBufferSet*          pGeo
         /*...VkRenderPass...........renderPass.........*/ renderPass,
         /*...VkFramebuffer..........framebuffer........*/ framebuffer,
         /*...VkRect2D...............renderArea.........*/ renderArea,
-        /*...uint32_t...............clearValueCount....*/ 1,
-        /*...const.VkClearValue*....pClearValues.......*/ pClearValue
+        /*...uint32_t...............clearValueCount....*/ numClearValues,
+        /*...const.VkClearValue*....pClearValues.......*/ pClearValues
     };
 
     vkCmdBeginRenderPass (commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -1538,6 +1763,10 @@ VkCommandBuffer RecordRenderGeometryBufferCmds (GeometryBufferSet*          pGeo
                           /*...VkBuffer.................buffer...........*/ pGeometryBufferSet->indexBufferInfo.bufferHandle,
                           /*...VkDeviceSize.............offset...........*/ 0, //offset is the starting offset in bytes within buffer used in index buffer address calculations
                           /*...VkIndexType..............indexType........*/ VK_INDEX_TYPE_UINT32);
+
+    //VkClearAttachment clearDepthInfo = { VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT, 0, 0 };
+    //VkClearRect clearRect
+    //vkCmdClearAttachments(commandBuffer,2, &clearDepthInfo, 1)
 
     for (uint32_t meshIdx = 0; meshIdx < pGeometryBufferSet->numMeshes; meshIdx++)
     {

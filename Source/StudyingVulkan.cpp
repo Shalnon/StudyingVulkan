@@ -59,29 +59,37 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
 
     VkExtent2D                   preferredFrameDimensions    = {WINDOW_WIDTH, WINDOW_HEIGHT};
     VkExtent2D                   actualFrameDimensions       = {};
-    VkSurfaceFormatKHR           surfaceFormat               = {};
+    VkSurfaceFormatKHR           chosenSurfaceFormat         = {};
     VkSwapchainKHR               swapchain                   = VK_NULL_HANDLE;
     uint32_t                     numSwapChainImages          = 0;
     PerSwapchainImageResources*  pPerSwapchainImageResources = 0;
 
-    static const uint32_t    numPreferredSurfaceFormats                           = NUM_PREFERRED_SURFACE_FORMATS;
-    VkFormat                 pPreferredSurfaceFormats[numPreferredSurfaceFormats] = PREFERRED_SURRFACE_FORMATS;
+    static const uint32_t    numPreferredSurfaceFormats              = NUM_PREFERRED_SURFACE_FORMATS;
+    static const uint32_t    numPreferredDepthFormats            = NUM_PREFFERRED_DEPTH_FORMATS;
+    VkFormat    pPreferredSurfaceFormats[numPreferredSurfaceFormats] = PREFERRED_SURRFACE_FORMATS;
+    VkFormat    pPreferredDepthFormats[numPreferredDepthFormats] = PREFERRED_DEPTH_FORMATS;
 
-    InitializeSwapchain (/*.VkPhysicalDevice.............physicalDevice...............*/ physicalDevice,
-                         /*.VkDevice.....................logicalDevice................*/ logicalDevice,
-                         /*.uint32_t.....................graphicsQueueIndex...........*/ queueFamilyIndex,
-                         /*.VkSurfaceKHR.................surface......................*/ surface,
-                         /*.uint32_t.....................numPreferredSurfaceFormats...*/ numPreferredSurfaceFormats,
-                         /*.VkFormat*....................pPreferredSurfaceFormats.....*/ pPreferredSurfaceFormats,
-                         /*.VkExtent2D...................prefferredExtent.............*/ preferredFrameDimensions,
-                         /*.VkSwapchainKHR...............oldSwapchain.................*/ VK_NULL_HANDLE,
-                         /*.VkSwapchainKHR*..............pSwapchainOut................*/ &swapchain,
-                         /*.VkExtent2D*..................pSwapchainExtentChosenOut....*/ &actualFrameDimensions,
-                         /*.VkSurfaceFormatKHR*..........pSurfaceFormatOut............*/ &surfaceFormat,
-                         /*.uint32_t*....................pNumSwapchainImages..........*/ &numSwapChainImages,
-                         /*.PerSwapchainImageResources**.ppPerSwapchainImageResources.*/ &pPerSwapchainImageResources);
+    VkFormat chosenDepthFormat = VK_FORMAT_UNDEFINED;
 
-    VkRenderPass          renderpass                = CreateRenderpass (surfaceFormat.format, logicalDevice);
+
+    InitializeSwapchain (/*...VkPhysicalDevice.............physicalDevice.................*/ physicalDevice,
+                         /*...VkDevice.....................logicalDevice..................*/ logicalDevice,
+                         /*...uint32_t.....................graphicsQueueIndex.............*/ queueFamilyIndex,
+                         /*...VkSurfaceKHR.................surface........................*/ surface,
+                         /*...uint32_t.....................numPreferredSurfaceFormats.....*/ numPreferredSurfaceFormats,
+                         /*...uint32_t.....................numPreferredDepthFormats.......*/ numPreferredDepthFormats,
+                         /*...VkFormat*....................pPreferredSurfaceFormats.......*/ pPreferredSurfaceFormats,
+                         /*...VkFormat*....................pPreferredDepthFormats.........*/ pPreferredDepthFormats,
+                         /*...VkExtent2D...................prefferredExtent...............*/ preferredFrameDimensions,
+                         /*...VkSwapchainKHR...............oldSwapchain...................*/ VK_NULL_HANDLE,
+                         /*...VkSwapchainKHR*..............pSwapchainOut..................*/ &swapchain,
+                         /*...VkExtent2D*..................pSwapchainExtentChosenOut......*/ &actualFrameDimensions,
+                         /*...VkSurfaceFormatKHR*..........pSurfaceFormatOut..............*/ &chosenSurfaceFormat,
+                         /*...VkFormat*....................pChosenDepthFormatOut..........*/ &chosenDepthFormat,
+                         /*...uint32_t*....................pNumSwapchainImages............*/ &numSwapChainImages,
+                         /*...PerSwapchainImageResources**.ppPerSwapchainImageResources...*/ &pPerSwapchainImageResources);
+
+    VkRenderPass          renderpass                = CreateRenderpass (chosenSurfaceFormat.format, chosenDepthFormat, logicalDevice);
 
     VkDescriptorSetLayout descriptorSetLayoutHandle = CreateDescriptorSetLayout (logicalDevice);
 
@@ -93,23 +101,6 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                                                      fragmentShaderPath.c_str(),
                                                                      vertexShaderPath.c_str(),
                                                                      &pipelineLayoutHandle);
-
-    // Create depth attachment image
-    VkImage        depthImageHandle       = VK_NULL_HANDLE;
-    VkDeviceMemory depthImageMemoryHandle = VK_NULL_HANDLE;
-
-    static const VkFormat pPreferredDepthFormats[NUM_PREFFERRED_DEPTH_FORMATS] = PREFERRED_DEPTH_FORMATS;
-    VkFormat chosenDepthFormat = ChooseDepthFormat (physicalDevice,
-                                                    NUM_PREFFERRED_DEPTH_FORMATS,
-                                                    pPreferredDepthFormats);
-
-    CreateAndAllocateDepthImage (logicalDevice,
-                                 physicalDevice,
-                                 queueFamilyIndex,
-                                 chosenDepthFormat,
-                                 actualFrameDimensions,
-                                 &depthImageHandle,
-                                 &depthImageMemoryHandle);
 
     CreateFrameBuffers(logicalDevice,
                        renderpass,
@@ -127,6 +118,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
 
     printf ("model path = %s\n", modelPath.c_str ());
 
+    glm::vec3          sceneScale  = { 1.0f, 1.0f, 1.0f };
     //Ndc bounds on the z axis are [0,1] for vulkan, whereas for opengl it is [-1,1]
     VkAabbPositionsKHR sceneBounds =
     {
@@ -142,7 +134,6 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     const aiScene* pScene = aiImportFile (modelPath.c_str (), MY_ASSIMP_PREPROCESSING_FLAGS);//aiProcessPreset_TargetRealtime_MaxQuality);
     PrintGeometryInformation (pScene);
 
-    glm::vec3                 sceneScale           = { 1.0f, 1.0f, 1.0f };
 
     // Create a vertex and index buffer
     GeometryBufferSet         geometrysBuffers     = CreateGeometryBuffersAndAABBs (physicalDevice,
@@ -171,23 +162,26 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     for (uint32_t i = 0; i < numFramesToRender; i++)
     {
         printf ("\n--Frame %u begin--\n", i);
-        ExecuteRenderLoop ( /*.VkDevice.....................logicalDevice................*/ logicalDevice,
-                            /*.VkPhysicalDevice.............physicalDevice,..............*/ physicalDevice,
-                            /*.VkSwapchainKHR...............swapchain....................*/ swapchain,
-                            /*.VkDescriptorSet..............descriptorSetHandle..........*/ descriptorSetHandle,
-                            /*.VkQueue......................queue........................*/ queue,
-                            /*.uint32_t.....................gfxQueueIdx..................*/ queueFamilyIndex,
-                            /*.uint32_t.....................numPreferredSwapchainFormats.*/ numPreferredSurfaceFormats,
-                            /*.VkFormat*....................pPreferredSwapchainFormats...*/ pPreferredSurfaceFormats,
-                            /*.VkSurfaceKHR.................surface......................*/ surface,
-                            /*.VkRenderPass.................renderpass...................*/ renderpass,
-                            /*.VkPipeline...................pipelineHandle...............*/ pipelineHandle,
-                            /*.VkPipelineLayout.............pipelineLayoutHandle.........*/ pipelineLayoutHandle,
-                            /*.PerSwapchainImageResources**.ppPerSwapchainImageResources.*/ &pPerSwapchainImageResources,
-                            /*.uint32_t*....................pNumSwapchainImages..........*/ &numSwapChainImages,
-                            /*.VkExtent2D*..................pFramebufferExtent...........*/ &actualFrameDimensions,
-                            /*.GeometryBufferSet*...........vertexBuffer.................*/ &geometrysBuffers,
-                            /*.uint32_t.....................frameIdx.....................*/ i                     );
+        ExecuteRenderLoop (/*...VkDevice  ........................logicalDevice..................*/ logicalDevice,
+                           /*...VkPhysicalDevice..................physicalDevice.................*/ physicalDevice,
+                           /*...VkSwapchainKHR....................swapchain......................*/ swapchain,
+                           /*...VkDescriptorSet...................descriptorSetHandle............*/ descriptorSetHandle,
+                           /*...VkQueue...........................queue..........................*/ queue,
+                           /*...uint32_t..........................gfxQueueIdx....................*/ queueFamilyIndex,
+                           /*...uint32_t..........................numPreferredSwapchainFormats...*/ numPreferredSurfaceFormats,
+                           /*...uint32_t..........................numPreferredDepthFormats.......*/ numPreferredDepthFormats,
+                           /*...VkFormat*.........................pPreferredSwapchainFormats.....*/ pPreferredSurfaceFormats,
+                           /*...VkFormat*.........................pPreferredDepthFormats.........*/ pPreferredDepthFormats,
+                           /*...VkSurfaceKHR......................surface........................*/ surface,
+                           /*...VkRenderPass......................renderpass.....................*/ renderpass,
+                           /*...VkPipeline........................pipeline.......................*/ pipelineHandle,
+                           /*...VkPipelineLayout  ................pipelineLayout.................*/ pipelineLayoutHandle,
+                           /*...PerSwapchainImageResources**......ppPerSwapchainImageResources...*/ &pPerSwapchainImageResources,
+                           /*...uint32_t*.........................pNumSwapchainImages............*/ &numSwapChainImages,
+                           /*...VkExtent2D*.......................pExtent........................*/ &actualFrameDimensions,
+                           /*...GeometryBufferSet*................pGeometryBufferSet.............*/ &geometrysBuffers,
+                           /*...uint32_t..........................frameIdx.......................*/ i);
+
         printf ("\n--Frame %u end--\n",i);
     }
    
@@ -215,9 +209,9 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                 vkFreeCommandBuffers (logicalDevice, pSwapImageResources->commandPool, 1, &pSwapImageResources->commandBuffer);
             }
 
-            if (pSwapImageResources->imageView != VK_NULL_HANDLE)
+            if (pSwapImageResources->colorImageViewHandle != VK_NULL_HANDLE)
             {
-                vkDestroyImageView (logicalDevice, pSwapImageResources->imageView, nullptr);
+                vkDestroyImageView (logicalDevice, pSwapImageResources->colorImageViewHandle, nullptr);
             }
 
             if (pSwapImageResources->framebufferHandle != VK_NULL_HANDLE)

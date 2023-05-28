@@ -33,7 +33,6 @@ struct SwapchainInfo
     static const VkFormat const pPreferredSwapchainFormats[NUM_PREFERRED_SURFACE_FORMATS];
 };
 
-
 struct PerSwapchainImageResources
 {
     VkFence         queueSubmitFence;
@@ -42,7 +41,10 @@ struct PerSwapchainImageResources
     VkSemaphore     acquireSwapchainImageSemaphore;
     VkSemaphore     releaseSwapchainImageSemaphore;
     int32_t         queue_index;
-    VkImageView     imageView;
+    VkImageView     colorImageViewHandle;
+    VkImageView     depthImageViewHandle;
+    VkImage         depthImageHandle;
+    VkDeviceMemory  depthImageMemoryHandle;
     VkFramebuffer   framebufferHandle;
 };
 
@@ -78,16 +80,19 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
                          uint32_t                     graphicsQueueIndex,
                          VkSurfaceKHR                 surface,
                          uint32_t                     numPreferredSurfaceFormats,
+                         uint32_t                     numPreferredDepthFormats,
                          VkFormat*                    pPreferredSurfaceFormats,
+                         VkFormat*                    pPreferredDepthFormats, 
                          VkExtent2D                   prefferredExtent,           // Dimensions of the window
                          VkSwapchainKHR               oldSwapchain,
                          VkSwapchainKHR*              pSwapchainOut,
                          VkExtent2D*                  pSwapchainExtentChosenOut,  // Swapchain format used. see related note in function body
                          VkSurfaceFormatKHR*          pSurfaceFormatOut,          // pass back the format used
-                         uint32_t*                    pNumSwapchainImagesOut,
-                         PerSwapchainImageResources** ppPerFrameResourcesOut);
+                         VkFormat*                    pChosenDepthFormatOut,
+                         uint32_t*                    pNumSwapchainImages,
+                         PerSwapchainImageResources** ppPerSwapchainImageResources);
 
-VkRenderPass CreateRenderpass(VkFormat swapChainFormat, VkDevice logicalDevice);
+VkRenderPass CreateRenderpass(VkFormat swapChainFormat, VkFormat depthFormat, VkDevice logicalDevice);
 
 VkPipeline CreatePipeline(VkDevice              logicalDevice, 
                           VkRenderPass          renderpass, 
@@ -101,13 +106,15 @@ VkFormat ChooseDepthFormat (VkPhysicalDevice   physicalDeviceHandle,
                             uint32_t           numPrefferredDepthFormats,
                             const VkFormat*    pPreferredDepthFormats);
 
+//Need to make one per swapchain image 
 void CreateAndAllocateDepthImage (VkDevice            logicalDeviceHandle,
                                   VkPhysicalDevice    physicalDeviceHandle,
                                   uint32_t            queueFamilyIdx,
                                   VkFormat            imageFormat,
                                   VkExtent2D          imageDimensions,
+                                  VkDeviceMemory*     pDepthImageMemOut,
                                   VkImage*            pImageHandleOut,
-                                  VkDeviceMemory*     pDepthImageMemOut);
+                                  VkImageView*        pDepthImageViewHandleOut);
 
 void CreateFrameBuffers(VkDevice                    logicalDevice,
                         VkRenderPass                renderPass,
@@ -137,7 +144,9 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                            VkQueue                      queue,
                            uint32_t                     gfxQueueIdx,
                            uint32_t                     numPreferredSwapchainFormats,
+                           uint32_t                     numPreferredDepthFormats,
                            VkFormat*                    pPreferredSwapchainFormats,
+                           VkFormat*                    pPreferredDepthFormats,
                            VkSurfaceKHR                 surface,
                            VkRenderPass                 renderpass,
                            VkPipeline                   pipeline,
@@ -153,12 +162,14 @@ VkSwapchainKHR ReinitializeRenderungSurface(VkDevice                     logical
                                             uint32_t                     gfxQueueIndex,
                                             VkSwapchainKHR               swapchain,
                                             VkExtent2D                   swapchainExtent,
+                                            uint32_t                     numPreferredDepthFormats,
                                             uint32_t                     numPreferredSwapchainFormats,
                                             VkFormat*                    pPreferredSwapchainFormats,
+                                            VkFormat*                    pPreferredDepthFormats,
                                             VkSurfaceKHR                 surface,
                                             VkRenderPass                 renderpass,
                                             VkQueue                      queue,
-                                            uint32_t*                    numSwapchainImages,
+                                            uint32_t*                    pNumSwapchainImages,
                                             PerSwapchainImageResources** ppPerSwapchainImageResources);
 
 VkCommandBuffer RecordRenderGeometryBufferCmds(GeometryBufferSet*          pGeometryBufferSet,
@@ -168,7 +179,8 @@ VkCommandBuffer RecordRenderGeometryBufferCmds(GeometryBufferSet*          pGeom
                                                VkPipeline                  pipeline,
                                                VkPipelineLayout            pipelineLayout,
                                                VkExtent2D*                 pExtent,
-                                               VkClearValue*               pClearValue);
+                                               VkClearColorValue*          pColorClearValue,
+                                               VkClearDepthStencilValue*   pDepthStencilClearValue);
 
 VkResult SubmitRenderCommandBuffer (VkCommandBuffer             commandBuffer,
                                     VkQueue                     queue,
@@ -219,5 +231,35 @@ inline void ResestPerSwapchainImageResources (VkDevice                      logi
 VkDescriptorSet AllocateAndWriteDescriptorSet (VkDevice               logicalDevice,
                                                VkDescriptorSetLayout  descriptorSetLayoutHandle,
                                                VkBuffer               uniformBufferHandle);
+
+
+// Returns memory index of memory type that meets the requirements based on the  memRequirements and requiredPropertyFlags args
+inline uint32_t ChooseMemoryTypeIdx (VkPhysicalDevice      physicalDevice,
+                                     VkMemoryPropertyFlags requiredPropertyFlags, // ex: a mask of VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, etc...
+                                     VkMemoryRequirements* memRequirements) //a bitmask and contains one bit set for every supported memory type for the resource. Bit i is set if and only if the memory type i in the VkPhysicalDeviceMemoryProperties structure for the physical device is supported for the resource.
+{
+    uint32_t chosenMemTypeIdxOut = UINT32_MAX;
+
+    assert (requiredPropertyFlags != 0);
+    VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties = {};
+    vkGetPhysicalDeviceMemoryProperties (physicalDevice, &physicalDeviceMemoryProperties);
+
+    for (uint32_t memTypeIdx = 0; memTypeIdx < physicalDeviceMemoryProperties.memoryTypeCount; memTypeIdx++)
+    {
+        VkMemoryPropertyFlags flags = physicalDeviceMemoryProperties.memoryTypes[memTypeIdx].propertyFlags;
+        uint32_t              supportedMemTypesBitMask = memRequirements->memoryTypeBits;
+
+        bool isMemTypeSupportedForResource = ((memRequirements->memoryTypeBits & (1 << memTypeIdx)) > 0) ? true : false;
+        bool areRequiredMemPropertiesSupported = ((flags & requiredPropertyFlags) == requiredPropertyFlags) ? true : false;
+
+        if (isMemTypeSupportedForResource && areRequiredMemPropertiesSupported)
+        {
+            chosenMemTypeIdxOut = memTypeIdx;
+            //  *pChosenHeapIndexOut = physicalDeviceMemoryProperties.memoryTypes[memTypeIdx].heapIndex;
+        }
+    }
+
+    return chosenMemTypeIdxOut;
+}
 
 #endif
