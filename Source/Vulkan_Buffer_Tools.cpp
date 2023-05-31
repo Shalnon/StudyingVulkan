@@ -3,6 +3,7 @@
 #include "assimp/scene.h"
 #include "Asset_Tools.h"
 #include "Vulkan_Utils.h"
+#include "Logging.h"
 
 VkDeviceMemory AllocateVkBufferMemory (VkPhysicalDevice      physicalDevice,
                                        VkDevice              logicalDevice,
@@ -298,7 +299,7 @@ vulkanAllocatedBufferInfo CreateAndAllocaStagingBuffer (VkPhysicalDevice physica
             /*...uint32_t.......offset............*/ 0 };
 }
 
-GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice    physicalDevice,
+GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physicalDevice,
                                                     VkDevice            logicalDevice,
                                                     VkQueue             queue,
                                                     uint32_t            queueFamilyIndex,
@@ -316,7 +317,7 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice    physicalDev
                                                         0.0f, 0.0f, 0.0f, 1.0f);
 
     // Initialize scene aabb with min/max coordinates derived from the first vertex in the first mesh
-    //    Cant initialzie fields with 0, because 0 isnt guarenteed to be inside a meshs actual AABB and so will end up incorrectly always be the min or max
+    //    Cant initialzie fields with 0, because 0 isnt guarenteed to be inside a meshs actual AABB and could incorrectly set the min or max for some or all axis.
     VkAabbPositionsKHR sceneAABB =
     {
         /*...float....minX...*/ pScene->mMeshes[0]->mVertices[0].x,
@@ -327,7 +328,6 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice    physicalDev
         /*...float....maxZ...*/ pScene->mMeshes[0]->mVertices[0].z
     };
 
-    //GeometryBufferSet         geometryBuffersOut       = {};
     vulkanAllocatedBufferInfo vertexStagingBufferInfo  = {}; // Will correspond to a buffer backed by host visible memory, and will be where we initally write vertex data
     vulkanAllocatedBufferInfo indexStagingBufferInfo   = {}; // Will correspond to a buffer backed by host visible memory, and will be where vert indices defining primitives will be written
     vulkanAllocatedBufferInfo vertexBufferInfo         = {};
@@ -377,7 +377,6 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice    physicalDev
     sceneTriangleCount = 0;
     sceneVertexCount   = 0;
 
-
     // This loop accomplishes 4 things:
     // - Write vertex position data to the vertex staging buffer
     // - Initialize MeshInfo structs
@@ -409,7 +408,8 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice    physicalDev
         for (uint32_t meshVertexIdx = 0; meshVertexIdx < pAiMesh->mNumVertices; meshVertexIdx++)
         {
             const aiVector3D* pVertex   = &(pAiMesh->mVertices[meshVertexIdx]);
-            const uint32_t    xCoordIdx = (firstVertexForMesh + meshVertexIdx)* COORDS_PER_POSITION;
+            const uint32_t    bufferVertexIdx = firstVertexForMesh + meshVertexIdx;
+            const uint32_t    xCoordIdx = (firstVertexForMesh + meshVertexIdx) * COORDS_PER_POSITION;
 
             pVertexBuffMemFloatPtr[xCoordIdx + 0] = pVertex->x;
             pVertexBuffMemFloatPtr[xCoordIdx + 1] = pVertex->y;
@@ -426,7 +426,7 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice    physicalDev
 
         sceneVertexCount += pAiMesh->mNumVertices;
 
-        printf ("----------===== Vertex Data for mesh %u  =====------\n", meshIdx);
+        printf ("----------===== Triangle Index Data for mesh %u  =====------\n", meshIdx);
         //Reading and updating per-triangle data. 
         //   Specifically: Write vertex index data to the vertex index staging buffer
         printf ("faces list addr:%p\n", &(pAiMesh->mFaces[0]));
@@ -444,10 +444,6 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice    physicalDev
                 pIndexBuffMemUintPtr[index0WriteLoc    ] = firstVertexForMesh + pFace->mIndices[2];
                 pIndexBuffMemUintPtr[index0WriteLoc + 1] = firstVertexForMesh + pFace->mIndices[1];
                 pIndexBuffMemUintPtr[index0WriteLoc + 2] = firstVertexForMesh + pFace->mIndices[0];
-
-                printf ("((uvec3*)(pIndexBuffMemUintPtr))[%u] = { %u, %u, %u }\n", meshPrimIndex, pIndexBuffMemUintPtr[index0WriteLoc    ],
-                                                                                                  pIndexBuffMemUintPtr[index0WriteLoc + 1],
-                                                                                                  pIndexBuffMemUintPtr[index0WriteLoc + 2]);
             }
             else if (pFace->mNumIndices < 3) {    printf ("Warning: found degenerate primitive!\n"); } // degenerate prim
             else if (pFace->mNumIndices > 3) {    printf("Warning: found Ngon!\n");                  } // an Ngon
@@ -543,7 +539,7 @@ vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             phys
     VkDeviceSize uniformBufferDataSize = NUM_BYTES_PER_MODEL_MATRIX;
 
     // Add size reqiored to store the ubo.sceneScale vector. Length of vector expected to match width of model matrix
-    uniformBufferDataSize += NUM_MODEL_MATRIX_COLUMNS;
+    uniformBufferDataSize += NUM_MODEL_MATRIX_COLUMNS * sizeof(float);
 
     //Create a staging buffer which will be where the cpu writes matrix data to
     vulkanAllocatedBufferInfo uniformStagingBufferInfo = CreateAndAllocaStagingBuffer (physicalDevice,
@@ -555,6 +551,8 @@ vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             phys
     glm::mat4x4 sceneTransform = GetTransform_FitAABBToAABB (/*...VkAabbPositionsKHR...originalAABB...............*/ pGeometryBufferSet->sceneAABB,
                                                              /*...VkAabbPositionsKHR...desiredBounds..............*/ *pDesiredSceneBounds,
                                                              /*...bool.................maintainSceneAspectRatio...*/ maintainAspectRatio);
+
+    PrintNamedMatrix ("sceneTransform", &sceneTransform);
     //  Expected UBO data layout:
     //  layout(binding = 0) uniform UniformBufferObject
     //  {
@@ -563,16 +561,16 @@ vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             phys
     //  } ubo;
 
     void*  pMappedUniformStagingBufferMem = MapBufferMemory (uniformStagingBufferInfo, logicalDevice);
-    float* pUniformBuffMemFloatPtr        = reinterpret_cast<float*>(pMappedUniformStagingBufferMem);
+    float* pUniformStagingBuffMemFloatPtr = reinterpret_cast<float*>(pMappedUniformStagingBufferMem);
 
     // Write the sceneTransform matrix to the UBO staging buffer memory
-    memcpy (pUniformBuffMemFloatPtr, &(sceneTransform[0][0]), NUM_BYTES_PER_MODEL_MATRIX);
+    memcpy (pUniformStagingBuffMemFloatPtr, &(sceneTransform[0][0]), NUM_BYTES_PER_MODEL_MATRIX);
 
     // Write a second vector to seaprately control scene scale...This is mostly a temporary variable to demonstrate the struct-like nature of UBOs
-    float* pUboSceneScale = &pUniformBuffMemFloatPtr[pGeometryBufferSet->numMeshes * NUM_FLOATS_PER_TRASNFORM_MATRIX];
+    float* pUboSceneScale = &pUniformStagingBuffMemFloatPtr[pGeometryBufferSet->numMeshes * NUM_FLOATS_PER_TRASNFORM_MATRIX];
     pUboSceneScale[0] = 1.0;
     pUboSceneScale[1] = 1.0;
-    pUboSceneScale[2] = 1.0;
+    pUboSceneScale[2] = 0.5;
     pUboSceneScale[3] = 1.0;
 
     // Unmap staging buffer

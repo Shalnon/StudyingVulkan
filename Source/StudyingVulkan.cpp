@@ -64,14 +64,25 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     uint32_t                     numSwapChainImages          = 0;
     PerSwapchainImageResources*  pPerSwapchainImageResources = 0;
 
-    static const uint32_t    numPreferredSurfaceFormats              = NUM_PREFERRED_SURFACE_FORMATS;
-    static const uint32_t    numPreferredDepthFormats            = NUM_PREFFERRED_DEPTH_FORMATS;
-    VkFormat    pPreferredSurfaceFormats[numPreferredSurfaceFormats] = PREFERRED_SURRFACE_FORMATS;
-    VkFormat    pPreferredDepthFormats[numPreferredDepthFormats] = PREFERRED_DEPTH_FORMATS;
+    // Defines a list of formats that meet our needs. One color, and one depth fromat will be chosen inside InitializeSwapchain.
+    static const uint32_t    numPreferredSurfaceFormats                           = NUM_PREFERRED_SURFACE_FORMATS;
+    VkFormat                 pPreferredSurfaceFormats[numPreferredSurfaceFormats] = PREFERRED_SURRFACE_FORMATS;
+    static const uint32_t    numPreferredDepthFormats                             = NUM_PREFFERRED_DEPTH_FORMATS;
+    VkFormat                 pPreferredDepthFormats[numPreferredDepthFormats]     = PREFERRED_DEPTH_FORMATS;
 
     VkFormat chosenDepthFormat = VK_FORMAT_UNDEFINED;
 
-
+    // InitializeSwapchain() does the following:
+    // - Chooses a supported surface format from the lists above.
+    // - Establishes how many swapchain images we will be using
+    // - Sets up swapchain images as color attachments and creates the swapchain
+    // - Creates a fence for each swapchain image that can be used to find when that image is no longer being used by GPU
+    // - Creates Command Pool
+    // - Allocates a command buffer for each of the swapchain images  -- @todo: pull this out? not sure if it fits this otherwise image focused function
+    // - Creates image views for swapchain images
+    // - Chooses a supported depth format from the lists above.
+    // - Allocates and binds image memory to the depth images.
+    // - Creates image views for the depth images.
     InitializeSwapchain (/*...VkPhysicalDevice.............physicalDevice.................*/ physicalDevice,
                          /*...VkDevice.....................logicalDevice..................*/ logicalDevice,
                          /*...uint32_t.....................graphicsQueueIndex.............*/ queueFamilyIndex,
@@ -132,7 +143,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
 
     //glm::vec3 sceneBounds 
     const aiScene* pScene = aiImportFile (modelPath.c_str (), MY_ASSIMP_PREPROCESSING_FLAGS);//aiProcessPreset_TargetRealtime_MaxQuality);
-    PrintGeometryInformation (pScene);
+   // PrintGeometryInformation (pScene);
 
 
     // Create a vertex and index buffer

@@ -27,7 +27,7 @@ add_executable (StudyingVulkan "Source/AppWindowingSystem.cpp"
                                "Source/Vulkan_Buffer_tools.h"
                                "Source/Vulkan_Buffer_Tools.cpp"
                                "Source/Asset_Tools.h"
-                               "Source/Asset_Tools.cpp" "Source/Vulkan_Descriptor_Tools.cpp" "Source/Vulkan_Descriptor_Tools.h" "Source/AppExecutionArgsProcessing.h")
+                               "Source/Asset_Tools.cpp" "Source/Vulkan_Descriptor_Tools.cpp" "Source/Vulkan_Descriptor_Tools.h" "Source/AppExecutionArgsProcessing.h" "Source/Logging.h")
 
 set_property(TARGET StudyingVulkan PROPERTY CXX_STANDARD 17)
 
