@@ -129,7 +129,16 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
 
     printf ("model path = %s\n", modelPath.c_str ());
 
-    glm::vec3          sceneScale  = { 1.0f, 1.0f, 1.0f };
+    const aiScene* pScene = aiImportFile (modelPath.c_str (), MY_ASSIMP_PREPROCESSING_FLAGS);//aiProcessPreset_TargetRealtime_MaxQuality);
+
+
+    // Create a vertex and index buffer
+    GeometryBufferSet         geometrysBuffers     = CreateGeometryBuffersAndAABBs (physicalDevice,
+                                                                                    logicalDevice,
+                                                                                    queue,
+                                                                                    queueFamilyIndex,
+                                                                                    pScene);
+
     //Ndc bounds on the z axis are [0,1] for vulkan, whereas for opengl it is [-1,1]
     VkAabbPositionsKHR sceneBounds =
     {
@@ -140,18 +149,6 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
         /*...float....maxY...*/  1.0f,
         /*...float....maxZ...*/  1.0f
     };
-
-    //glm::vec3 sceneBounds 
-    const aiScene* pScene = aiImportFile (modelPath.c_str (), MY_ASSIMP_PREPROCESSING_FLAGS);//aiProcessPreset_TargetRealtime_MaxQuality);
-   // PrintGeometryInformation (pScene);
-
-
-    // Create a vertex and index buffer
-    GeometryBufferSet         geometrysBuffers     = CreateGeometryBuffersAndAABBs (physicalDevice,
-                                                                                    logicalDevice,
-                                                                                    queue,
-                                                                                    queueFamilyIndex,
-                                                                                    pScene);
     // Creates UBO and fills it with data. Contains scene transform
     vulkanAllocatedBufferInfo uniformBufferInfo    = CreateUniformBuffer (physicalDevice,
                                                                           logicalDevice,

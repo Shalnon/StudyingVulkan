@@ -407,9 +407,9 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physical
         printf ("     ---firstPrimInMesh%u = %u\n", meshIdx, firstPrimInMesh);
         for (uint32_t meshVertexIdx = 0; meshVertexIdx < pAiMesh->mNumVertices; meshVertexIdx++)
         {
-            const aiVector3D* pVertex   = &(pAiMesh->mVertices[meshVertexIdx]);
+            const aiVector3D* pVertex         = &(pAiMesh->mVertices[meshVertexIdx]);
             const uint32_t    bufferVertexIdx = firstVertexForMesh + meshVertexIdx;
-            const uint32_t    xCoordIdx = (firstVertexForMesh + meshVertexIdx) * COORDS_PER_POSITION;
+            const uint32_t    xCoordIdx       = (firstVertexForMesh + meshVertexIdx) * COORDS_PER_POSITION;
 
             pVertexBuffMemFloatPtr[xCoordIdx + 0] = pVertex->x;
             pVertexBuffMemFloatPtr[xCoordIdx + 1] = pVertex->y;
@@ -447,7 +447,8 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physical
             }
             else if (pFace->mNumIndices < 3) {    printf ("Warning: found degenerate primitive!\n"); } // degenerate prim
             else if (pFace->mNumIndices > 3) {    printf("Warning: found Ngon!\n");                  } // an Ngon
-        }
+        } 
+
         sceneTriangleCount += pAiMesh->mNumFaces;
 
         pMeshInfos[meshIdx] = { /*...uint32_t...........firstPrimIdx........*/ firstPrimInMesh,
@@ -546,7 +547,6 @@ vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             phys
                                                                                        logicalDevice,
                                                                                        uniformBufferDataSize,
                                                                                        queueFamilyIndex);
-
     // Initializing sceneTransform to a transform that will translate and scale the scene such that if fits inside the AABB defined by *pDesiredSceneBounds
     glm::mat4x4 sceneTransform = GetTransform_FitAABBToAABB (/*...VkAabbPositionsKHR...originalAABB...............*/ pGeometryBufferSet->sceneAABB,
                                                              /*...VkAabbPositionsKHR...desiredBounds..............*/ *pDesiredSceneBounds,

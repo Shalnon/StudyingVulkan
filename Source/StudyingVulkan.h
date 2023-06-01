@@ -25,6 +25,12 @@
 #define NUM_BYTES_PER_VERTEX_POSITION sizeof (float) * COORDS_PER_POSITION
 #define NUM_INDEX_BYTES_PER_TRIANGLE sizeof (uint32_t) * NUM_VERTICES_PER_TRIANGLE
 
+//RGB
+#define NUM_COLOR_CHANNELS_PER_VERTEX 3
+#define NUM_BYTES_PER_COLOR_CHANNEL sizeof(float)
+#define NUM_COLOR_BYTES_PER_VERTEX NUM_COLOR_CHANNELS_PER_VERTEX * NUM_BYTES_PER_COLOR_CHANNEL
+
+
 //Define our model matrix format. Doing it this way because im not actually sure i need a full 4x4 matrix and this makes it easier to experiment
 #define NUM_MODEL_MATRIX_COLUMNS 4
 #define NUM_MODEL_MATRIX_ROWS    4 

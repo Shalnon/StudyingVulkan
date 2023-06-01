@@ -38,6 +38,20 @@ glm::mat4 GetTransform_FitAABBToAABB (VkAabbPositionsKHR originalAABB,
                                       VkAabbPositionsKHR desiredBounds,
                                       bool               maintainSceneAspectRatio);
 
-
 void Copy3dModelAssetFromFile (const char*        pFilePath, 
                                 MeshGeometryData** pMeshesOut);
+
+inline VkAabbPositionsKHR TranslateAabb (VkAabbPositionsKHR* pAABB, glm::vec3 translation)
+{
+    VkAabbPositionsKHR aabbOut =
+    {
+        /*...float....minX....*/ pAABB->minX + translation.x,
+        /*...float....minY....*/ pAABB->maxX + translation.x,
+        /*...float....minZ....*/ pAABB->minY + translation.y,
+        /*...float....maxX....*/ pAABB->maxY + translation.y,
+        /*...float....maxY....*/ pAABB->minZ + translation.z,
+        /*...float....maxZ....*/ pAABB->maxZ + translation.z
+    };
+
+    return aabbOut;
+}
