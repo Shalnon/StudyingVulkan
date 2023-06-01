@@ -567,10 +567,10 @@ vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             phys
     memcpy (pUniformStagingBuffMemFloatPtr, &(sceneTransform[0][0]), NUM_BYTES_PER_MODEL_MATRIX);
 
     // Write a second vector to seaprately control scene scale...This is mostly a temporary variable to demonstrate the struct-like nature of UBOs
-    float* pUboSceneScale = &pUniformStagingBuffMemFloatPtr[pGeometryBufferSet->numMeshes * NUM_FLOATS_PER_TRASNFORM_MATRIX];
-    pUboSceneScale[0] = 1.0;
+    float* pUboSceneScale = &pUniformStagingBuffMemFloatPtr[NUM_FLOATS_PER_TRASNFORM_MATRIX];
+    pUboSceneScale[0] = 0.75;
     pUboSceneScale[1] = 1.0;
-    pUboSceneScale[2] = 0.5;
+    pUboSceneScale[2] = 1.0;
     pUboSceneScale[3] = 1.0;
 
     // Unmap staging buffer

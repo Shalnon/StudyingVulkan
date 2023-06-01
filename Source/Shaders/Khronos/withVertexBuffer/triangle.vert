@@ -22,8 +22,8 @@ void main()
 {
     mat4 meshTransform = ubo.sceneTransform;
 
-    vec4 vpos = vec4(inPosition.xyz, 1.0);
-    gl_Position = vpos * meshTransform;
+    vec4 vpos = vec4(inPosition.xyz, 1.0) * meshTransform;
+    gl_Position = vpos * ubo.sceneScale;
 
     out_color = triangle_colors[gl_VertexIndex%3];
 }
