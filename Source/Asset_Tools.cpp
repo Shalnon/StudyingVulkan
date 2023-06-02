@@ -2,6 +2,7 @@
 #define ASSET_TOOLS_H
 
 #include "Asset_Tools.h"
+#include "StudyingVulkan.h"
 #include <assert.h> 
 #include <glm/gtx/transform.hpp>
 
@@ -139,37 +140,51 @@ glm::mat4 GetTransform_FitAABBToAABB (VkAabbPositionsKHR originalAABB,
                                       VkAabbPositionsKHR desiredBounds, // for now, im going to assume the center of this box is always 0,0,0
                                       bool               maintainSceneAspectRatio)    
 {
-    glm::vec3 originalAabbSize = { originalAABB.maxX - originalAABB.minX,     // original AABB width
-                                   originalAABB.maxY - originalAABB.minY,     // original AABB height
+    glm::vec3 originalAabbSize = { originalAABB.maxX - originalAABB.minX,    // original AABB width
+                                   originalAABB.maxY - originalAABB.minY,    // original AABB height
                                    originalAABB.maxZ - originalAABB.minZ };  // original AABB depth
-    {
+#ifdef DEBUG
         assert (originalAabbSize.x == fabs (originalAabbSize.x));
         assert (originalAabbSize.y == fabs (originalAabbSize.y));
         assert (originalAabbSize.z == fabs (originalAabbSize.z));
-    }
+#endif
 
     glm::vec3 desiredBoundsSize = { desiredBounds.maxX - desiredBounds.minX,   // Desired bounds width
                                     desiredBounds.maxY - desiredBounds.minY,   // Desired bounds height
                                     desiredBounds.maxZ - desiredBounds.minZ }; // Desired bounds depth
-    {// check size is positive
+#ifdef DEBUG // check size is positive
         assert (desiredBoundsSize.x == fabs (desiredBoundsSize.x));
         assert (desiredBoundsSize.y == fabs (desiredBoundsSize.y));
         assert (desiredBoundsSize.z == fabs (desiredBoundsSize.z));
-    }
-    float    largestGap              = 0.0f;
-    uint32_t idxOfAxisWithLargestGap = UINT32_MAX;
+#endif
 
-    glm::vec3 boundsDifference = originalAabbSize - desiredBoundsSize;
+    glm::vec3 scaleAmt      = glm::vec3 (1.0f, 1.0f, 1.0f);
+    glm::vec3 boundsDivided = desiredBoundsSize / originalAabbSize;
 
-    for (uint32_t i = 0; i < 3; i++)
+    if (maintainSceneAspectRatio == true)
     {
-        if (boundsDifference[i] > largestGap)
+        float smallestScale = 1.0f;
+        for (uint32_t i = 0; i < 3; i++)
         {
-            largestGap              = boundsDifference[i];
-            idxOfAxisWithLargestGap = i;
+            if (boundsDivided[i] < smallestScale)
+            {
+                smallestScale = boundsDivided[i];
+            }
         }
+        scaleAmt = glm::vec3 (smallestScale, smallestScale, smallestScale);
+    }
+    else
+    {
+        scaleAmt = boundsDivided;
     }
     
+    printf ("scaleAmt = { %.4f, %.4f, %.4f }\n", scaleAmt.x, scaleAmt.y, scaleAmt.z);
+
+    glm::mat4 scaleToDesiredBoundsSize = glm::mat4 (scaleAmt.x, 0.0f,       0.0f,       0.0f,
+                                                    0.0f,       scaleAmt.y, 0.0f,       0.0f,
+                                                    0.0f,       0.0f,       scaleAmt.z, 0.0f,
+                                                    0.0f,       0.0f,       0.0f,       1.0f);
+
     glm::vec3 originalAABBCenter = { originalAABB.minX + (originalAabbSize.x / 2),
                                      originalAABB.minY + (originalAabbSize.y / 2),
                                      originalAABB.minZ + (originalAabbSize.z / 2) };
@@ -186,19 +201,6 @@ glm::mat4 GetTransform_FitAABBToAABB (VkAabbPositionsKHR originalAABB,
                                                   0.0f, 1.0f, 0.0f, -(originalAABBCenter.y),
                                                   0.0f, 0.0f, 1.0f, -(originalAABBCenter.z),
                                                   0.0f, 0.0f, 0.0f, 1.0f);
-
-    glm::vec3 scaleAmt = glm::vec3 (1.0f, 1.0f, 1.0f);
-
-    if (idxOfAxisWithLargestGap != UINT32_MAX)
-    {
-        float scale = desiredBoundsSize[idxOfAxisWithLargestGap] / originalAabbSize[idxOfAxisWithLargestGap];
-        scaleAmt = glm::vec3 (scale, scale, scale);
-    }
-    printf ("scaleAmt = { %.4f, %.4f, %.4f }\n", scaleAmt.x, scaleAmt.y, scaleAmt.z);
-    glm::mat4 scaleToDesiredBoundsSize = glm::mat4 (scaleAmt.x, 0.0f,       0.0f,       0.0,
-                                                    0.0f,       scaleAmt.y, 0.0f,       0.0,
-                                                    0.0f,       0.0f,       scaleAmt.z * 0.5, 0.0,
-                                                    0.0f,       0.0f,       0.0f,       1.0f);
 
     glm::mat4 translate2DesiredAabbCenter = glm::mat4 (1.0f, 0.0f, 0.0f, (desiredBoundsCenter.x),
                                                        0.0f, 1.0f, 0.0f, (desiredBoundsCenter.y),

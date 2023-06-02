@@ -850,21 +850,8 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
         /*...const.uint32_t*.................pPreserveAttachments......*/ nullptr
     };
 
-    
-   // VkSubpassDependency subpassDependency =
-   // {
-   //     /*....uint32_t................srcSubpass..........*/ VK_SUBPASS_EXTERNAL,
-   //     /*....uint32_t................dstSubpass..........*/ 0,
-   //     /*....VkPipelineStageFlags....srcStageMask........*/ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-   //     /*....VkPipelineStageFlags....dstStageMask........*/ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-   //     /*....VkAccessFlags...........srcAccessMask.......*/ 0, // From khronos sample: "Since we changed the image layout, we need to make the memory visible to color attachment to modify."
-   //     /*....VkAccessFlags...........dstAccessMask.......*/ VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-   //     /*....VkDependencyFlags.......dependencyFlags.....*/ 0
-   // };
-    //Note:  Dont think i need a second dependency for depth, since fragment shader wont read depth (double check) once color attachment output is finished, the depth buffer will not be written to any long, since the purpose of the depth buffer is to reject non-visible fragments....right?
-
-
-    VkSubpassDependency subpassDependencies[2] =
+    static const uint32_t numDependencies                      = 2;
+    VkSubpassDependency   subpassDependencies[numDependencies] =
     {
         {
             /*....uint32_t................srcSubpass..........*/ VK_SUBPASS_EXTERNAL,
@@ -897,11 +884,11 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
         /*...VkStructureType...................sType.............*/ VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
         /*...const.void*.......................pNext.............*/ 0,
         /*...VkRenderPassCreateFlags...........flags.............*/ 0,
-        /*...uint32_t..........................attachmentCount...*/ 2,
+        /*...uint32_t..........................attachmentCount...*/ numAttachments,
         /*...const.VkAttachmentDescription*....pAttachments......*/ pAttachmentDescriptions,
         /*...uint32_t..........................subpassCount......*/ 1,
         /*...const.VkSubpassDescription*.......pSubpasses........*/ &subpassDescription,
-        /*...uint32_t..........................dependencyCount...*/ 2,
+        /*...uint32_t..........................dependencyCount...*/ numDependencies,
         /*...const.VkSubpassDependency*........pDependencies.....*/ subpassDependencies
     };
 
@@ -919,6 +906,7 @@ struct AlignedAllocation
     uint8_t* alignedBaseAddress;     // base address which satisfies the requested alignment, and which has alignedSize num bytes allocated starting there.
     size_t   alignedSize;            // size of allocation starting at alignedBaseAddress
 };
+
 /*
 inline AlignedAllocation AlignedAlloc(uint32_t baseAddrAlignment,  // in bytes. Must be 1, 4, 8 or 16 for now
                                       uint32_t allocSize)
@@ -933,20 +921,20 @@ inline AlignedAllocation AlignedAlloc(uint32_t baseAddrAlignment,  // in bytes. 
     uint64_t rawAllocSize = static_cast<uint64_t>(allocSize) + static_cast<uint64_t>(baseAddrAlignment); //Adding alignment num bytes to the size ensures theres an aligned address with enough space
     void*    pAllocation  = calloc(rawAllocSize, 1);
 
-    uint64_t  rawBaseAddr = reinterpret_cast<uint64_t>(pAllocation);
-    uint64_t  remainder   = rawBaseAddr % baseAddrAlignment; //this probably doesnt need to be uint64_t. probs could even just use an uint8_t
+    uint64_t  rawBaseAddr     = reinterpret_cast<uint64_t>(pAllocation);
+    uint64_t  remainder       = rawBaseAddr % baseAddrAlignment; //this probably doesnt need to be uint64_t. probs could even just use an uint8_t
     uint64_t  alignedBaseAddr = rawBaseAddr + remainder;
 
     AlignedAllocation alignedAlloc      = {};
     alignedAlloc.pRawAllocatiotBaseAddr = static_cast<uint8_t*>(pAllocation);
     alignedAlloc.alignedBaseAddress     = reinterpret_cast<uint8_t*>(alignedBaseAddr);
-    alignedAlloc.alignedSize             = (rawBaseAddr + rawAllocSize) - alignedBaseAddr; // subtract aligned base addr, from addr of last byte in allocation
+    alignedAlloc.alignedSize            = (rawBaseAddr + rawAllocSize) - alignedBaseAddr; // subtract aligned base addr, from addr of last byte in allocation
 
     return alignedAlloc;
 }*/
 
 /// <summary>
-/// Tales a VkDevice and a path to a binary .spv file and uses it to create a module.
+/// Takes a VkDevice and a path to a binary .spv file and uses it to create a module.
 /// </summary>
 /// <param name="logicalDevice">- A VkDevice</param>
 /// <param name="spvPath">- binary .spv file. likely produced via glslc</param>
@@ -1058,8 +1046,8 @@ VkPipeline CreatePipeline(VkDevice              logicalDevice,
         /*...VkBool32...................................depthClampEnable...........*/ VK_FALSE,
         /*...VkBool32...................................rasterizerDiscardEnable....*/ VK_FALSE,
         /*...VkPolygonMode..............................polygonMode................*/ VK_POLYGON_MODE_FILL,
-        /*...VkCullModeFlags............................cullMode...................*/ VK_CULL_MODE_NONE,//VK_CULL_MODE_BACK_BIT,
-        /*...VkFrontFace................................frontFace..................*/ VK_FRONT_FACE_CLOCKWISE, //@TODO: use normals from assimp to determine which winding order to use
+        /*...VkCullModeFlags............................cullMode...................*/ VK_CULL_MODE_NONE,
+        /*...VkFrontFace................................frontFace..................*/ VK_FRONT_FACE_CLOCKWISE, 
         /*...VkBool32...................................depthBiasEnable............*/ VK_FALSE,
         /*...float......................................depthBiasConstantFactor....*/ 0.0,
         /*...float......................................depthBiasClamp.............*/ 0.0,
@@ -1293,7 +1281,7 @@ void CreateAndAllocateDepthImage (VkDevice            logicalDeviceHandle,
         /*...VkExtent3D...............extent..................*/ {imageDimensions.width, imageDimensions.height, 1}, //@spec: "If imageType is VK_IMAGE_TYPE_1D, both extent.height and extent.depth must be 1"
         /*...uint32_t.................mipLevels...............*/ 1,
         /*...uint32_t.................arrayLayers.............*/ 1,
-        /*...VkSampleCountFlagBits....samples.................*/ VK_SAMPLE_COUNT_1_BIT, // if i want to use more than 1, i need to check the value the driver returns in VkPhysicalDeviceProperties::::limits::framebufferDepthSampleCounts
+        /*...VkSampleCountFlagBits....samples.................*/ VK_SAMPLE_COUNT_1_BIT, // if i want to use more than 1, i need to check the value the driver returns in VkPhysicalDeviceProperties::limits::framebufferDepthSampleCounts
         /*...VkImageTiling............tiling..................*/ VK_IMAGE_TILING_OPTIMAL,
         /*...VkImageUsageFlags........usage...................*/ VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
         /*...VkSharingMode............sharingMode.............*/ VK_SHARING_MODE_EXCLUSIVE,
@@ -1370,8 +1358,7 @@ void CreateAndAllocateDepthImage (VkDevice            logicalDeviceHandle,
         /*...VkComponentMapping.........components..........*/ {},//{ VK_COMPONENT_SWIZZLE_IDENTITY },// { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A },
         /*...VkImageSubresourceRange....subresourceRange....*/ subResourceRange
     };
-    //@TODO: Check validation layers for any issues with the component mapping above. I think its only relevant to views using a color format, but not 100% sure.
-
+      
     result = vkCreateImageView (logicalDeviceHandle, &imageViewCreateInfo, 0, &depthImageView);
 
 
@@ -1573,19 +1560,19 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
     VkClearDepthStencilValue depthClearValue = {/*...float.......depth.....*/ 0.0f,
                                                 /*...uint32_t....stencil...*/ 0 };
    
-    renderCommandBuffer = RecordRenderGeometryBufferCmds (/*...GeometryBufferSet*..........pGeometryBufferSet.............*/ pGeometryBufferSet,
-                                                          /*...PerSwapchainImageResources*.pPerSwapchainImageResources....*/ &(pPerFrameResources[imageIdx]),
-                                                          /*...VkRenderPass................renderPass.....................*/ renderpass,
-                                                          /*...VkDescriptorSet.............descriptorSet..................*/ descriptorSetHandle,
-                                                          /*...VkPipeline..................pipeline.......................*/ pipeline,
-                                                          /*...VkPipelineLayout............pipelineLayout.................*/ pipelineLayout,
-                                                          /*...VkExtent2D*.................pExtent........................*/ pExtent,
-                                                          /*...VkClearColorValue*..........pClearValue....................*/ &(colorClearValArray[frameIdx % 3]),
-                                                          /*...VkClearDepthStencilValue*...pClearValue....................*/ &depthClearValue );
+    renderCommandBuffer = RecordRenderGeometryBufferCmds (/*...GeometryBufferSet*...........pGeometryBufferSet............*/ pGeometryBufferSet,
+                                                          /*...PerSwapchainImageResources*..pPerSwapchainImageResources...*/ &(pPerFrameResources[imageIdx]),
+                                                          /*...VkRenderPass.................renderPass....................*/ renderpass,
+                                                          /*...VkDescriptorSet..............descriptorSet.................*/ descriptorSetHandle,
+                                                          /*...VkPipeline...................pipeline......................*/ pipeline,
+                                                          /*...VkPipelineLayout.............pipelineLayout................*/ pipelineLayout,
+                                                          /*...VkExtent2D*..................pExtent.......................*/ pExtent,
+                                                          /*...VkClearColorValue*...........pClearValue...................*/ &(colorClearValArray[frameIdx % 3]),
+                                                          /*...VkClearDepthStencilValue*....pClearValue...................*/ &depthClearValue );
 
-    result = SubmitRenderCommandBuffer (/*...VkCommandBuffer.............commandBuffer.....................*/ renderCommandBuffer,
-                                        /*...VkQueue.....................queue.............................*/ queue,
-                                        /*...PerSwapchainImageResources*.pPerSwapchainImageResources.......*/ &(pPerFrameResources[imageIdx]));
+    result = SubmitRenderCommandBuffer (/*...VkCommandBuffer...............commandBuffer.................*/ renderCommandBuffer,
+                                        /*...VkQueue.......................queue.........................*/ queue,
+                                        /*...PerSwapchainImageResources*...pPerSwapchainImageResources...*/ &(pPerFrameResources[imageIdx]));
 
     // present image
     result = PresentImage(swapchain, imageIdx, pPerFrameResources[imageIdx].releaseSwapchainImageSemaphore, queue);
@@ -1634,12 +1621,11 @@ VkSwapchainKHR ReinitializeRenderungSurface(VkDevice                     logical
 {
     assert(logicalDevice != VK_NULL_HANDLE);
 
-    VkResult                 result              = VK_INCOMPLETE;
+    VkSwapchainKHR           newSwapChain        = VK_NULL_HANDLE;
     VkSurfaceCapabilitiesKHR surfaceCapabilities = {};
+    VkResult                 result              = VK_INCOMPLETE;
 
     result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfaceCapabilities);
-
-    VkSwapchainKHR     newSwapChain              = VK_NULL_HANDLE;
 
     //If window/surface resolution has changed
     if ((surfaceCapabilities.currentExtent.height != swapchainExtent.height) ||
@@ -1654,31 +1640,31 @@ VkSwapchainKHR ReinitializeRenderungSurface(VkDevice                     logical
         VkExtent2D                  newSwapChainExtent          = {};
         VkSurfaceFormatKHR          newSwapchainSurfaceFormat   = {};
         VkFormat                    chosenDepthFormat           = VK_FORMAT_UNDEFINED;
-        InitializeSwapchain (/*...VkPhysicalDevice.............physicalDevice.................*/ physicalDevice,
-                             /*...VkDevice.....................logicalDevice..................*/ logicalDevice,
-                             /*...uint32_t.....................graphicsQueueIndex.............*/ gfxQueueIndex,
-                             /*...VkSurfaceKHR.................surface........................*/ surface,
-                             /*...uint32_t.....................numPreferredSurfaceFormats.....*/ numPreferredSwapchainFormats,
-                             /*...uint32_t.....................numPreferredDepthFormats.......*/ numPreferredDepthFormats,
-                             /*...VkFormat*....................pPreferredSurfaceFormats.......*/ pPreferredSwapchainFormats,
-                             /*...VkFormat*....................pPreferredDepthFormats.........*/ pPreferredDepthFormats,
-                             /*...VkExtent2D...................prefferredExtent...............*/ swapchainExtent,
-                             /*...VkSwapchainKHR...............oldSwapchain...................*/ swapchain,
-                             /*...VkSwapchainKHR*..............pSwapchainOut..................*/ &newSwapChain,
-                             /*...VkExtent2D*..................pSwapchainExtentChosenOut......*/ &newSwapChainExtent,
-                             /*...VkSurfaceFormatKHR*..........pSurfaceFormatOut..............*/ &newSwapchainSurfaceFormat,
-                             /*...VkFormat*....................pChosenDepthFormatOut..........*/ &chosenDepthFormat,
-                             /*...uint32_t*....................pNumSwapchainImages............*/ pNumSwapchainImages,
-                             /*...PerSwapchainImageResources**.ppPerSwapchainImageResources...*/ ppPerSwapchainImageResources);
+        InitializeSwapchain (/*...VkPhysicalDevice..............physicalDevice.................*/ physicalDevice,
+                             /*...VkDevice......................logicalDevice..................*/ logicalDevice,
+                             /*...uint32_t......................graphicsQueueIndex.............*/ gfxQueueIndex,
+                             /*...VkSurfaceKHR..................surface........................*/ surface,
+                             /*...uint32_t......................numPreferredSurfaceFormats.....*/ numPreferredSwapchainFormats,
+                             /*...uint32_t......................numPreferredDepthFormats.......*/ numPreferredDepthFormats,
+                             /*...VkFormat*.....................pPreferredSurfaceFormats.......*/ pPreferredSwapchainFormats,
+                             /*...VkFormat*.....................pPreferredDepthFormats.........*/ pPreferredDepthFormats,
+                             /*...VkExtent2D....................prefferredExtent...............*/ swapchainExtent,
+                             /*...VkSwapchainKHR................oldSwapchain...................*/ swapchain,
+                             /*...VkSwapchainKHR*...............pSwapchainOut..................*/ &newSwapChain,
+                             /*...VkExtent2D*...................pSwapchainExtentChosenOut......*/ &newSwapChainExtent,
+                             /*...VkSurfaceFormatKHR*...........pSurfaceFormatOut..............*/ &newSwapchainSurfaceFormat,
+                             /*...VkFormat*.....................pChosenDepthFormatOut..........*/ &chosenDepthFormat,
+                             /*...uint32_t*.....................pNumSwapchainImages............*/ pNumSwapchainImages,
+                             /*...PerSwapchainImageResources**..ppPerSwapchainImageResources...*/ ppPerSwapchainImageResources);
 
         assert ((swapchainExtent.height == newSwapChainExtent.height) &&
                 (swapchainExtent.width  == newSwapChainExtent.width ));
 
-        CreateFrameBuffers(/*...VkDevice....................logicalDevice....................*/ logicalDevice,
-                           /*...VkRenderPass................renderPass.......................*/ renderpass,
-                           /*...VkExtent2D*.................pExtent..........................*/ &swapchainExtent,
-                           /*...uint32_t....................numSwapchainImages...............*/ *pNumSwapchainImages,
-                           /*...PerSwapchainImageResources*.pPerSwapchainImageResources......*/ *ppPerSwapchainImageResources);
+        CreateFrameBuffers(/*...VkDevice......................logicalDevice.................*/ logicalDevice,
+                           /*...VkRenderPass..................renderPass....................*/ renderpass,
+                           /*...VkExtent2D*...................pExtent.......................*/ &swapchainExtent,
+                           /*...uint32_t......................numSwapchainImages............*/ *pNumSwapchainImages,
+                           /*...PerSwapchainImageResources*...pPerSwapchainImageResources...*/ *ppPerSwapchainImageResources);
     }
     else
     {
@@ -1708,10 +1694,10 @@ VkCommandBuffer RecordRenderGeometryBufferCmds (GeometryBufferSet*          pGeo
 
     VkCommandBufferBeginInfo cmdBufferBeginInfo =
     {
-        /*...VkStructureType..........................sType................*/ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        /*...const.void*..............................pNext................*/ 0,
-        /*...VkCommandBufferUsageFlags................flags................*/ VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-        /*...const.VkCommandBufferInheritanceInfo*....pInheritanceInfo.....*/ 0
+        /*...VkStructureType..........................sType..............*/ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        /*...const.void*..............................pNext..............*/ 0,
+        /*...VkCommandBufferUsageFlags................flags..............*/ VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+        /*...const.VkCommandBufferInheritanceInfo*....pInheritanceInfo...*/ 0
     };
 
     // Begin command buffer
@@ -1719,15 +1705,16 @@ VkCommandBuffer RecordRenderGeometryBufferCmds (GeometryBufferSet*          pGeo
 
     VkRect2D renderArea =
     {
-        /*...VkOffset2D....offset....*/ {0, 0},
-        /*...VkExtent2D....extent....*/ *pExtent
+        /*...VkOffset2D...offset...*/ {0, 0},
+        /*...VkExtent2D...extent...*/ *pExtent
     };
 
     // 2 clear values: one for color, one for depth.
-    const uint32_t numClearValues             = 2;
-    VkClearValue pClearValues[numClearValues] = {};
-    pClearValues[0].color                     = *pColorClearValue;
-    pClearValues[1].depthStencil              = *pDepthStencilClearValue;
+    const uint32_t numClearValues               = 2;
+    VkClearValue   pClearValues[numClearValues] = {};
+
+    pClearValues[0].color        = *pColorClearValue;
+    pClearValues[1].depthStencil = *pDepthStencilClearValue;
 
     VkRenderPassBeginInfo renderPassBeginInfo =
     {
@@ -1744,14 +1731,14 @@ VkCommandBuffer RecordRenderGeometryBufferCmds (GeometryBufferSet*          pGeo
 
     vkCmdBindPipeline (commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-    vkCmdBindDescriptorSets (/*...VkCommandBuffer.............................commandBuffer.........*/ commandBuffer,
-                             /*...VkPipelineBindPoint.........................pipelineBindPoint.....*/ VK_PIPELINE_BIND_POINT_GRAPHICS,
-                             /*...VkPipelineLayout............................layout................*/ pipelineLayout,
-                             /*...uint32_t....................................firstSet..............*/ 0,
-                             /*...uint32_t....................................descriptorSetCount....*/ 1,
-                             /*...const.VkDescriptorSet*......................pDescriptorSets.......*/ &descriptorSet,
-                             /*...uint32_t....................................dynamicOffsetCount....*/ 0,
-                             /*...const.uint32_t*.............................pDynamicOffsets.......*/ nullptr);
+    vkCmdBindDescriptorSets (/*...VkCommandBuffer..........commandBuffer.........*/ commandBuffer,
+                             /*...VkPipelineBindPoint......pipelineBindPoint.....*/ VK_PIPELINE_BIND_POINT_GRAPHICS,
+                             /*...VkPipelineLayout.........layout................*/ pipelineLayout,
+                             /*...uint32_t.................firstSet..............*/ 0,
+                             /*...uint32_t.................descriptorSetCount....*/ 1,
+                             /*...const.VkDescriptorSet*...pDescriptorSets.......*/ &descriptorSet,
+                             /*...uint32_t.................dynamicOffsetCount....*/ 0,
+                             /*...const.uint32_t*..........pDynamicOffsets.......*/ nullptr);
 
     VkViewport viewport =
     {
@@ -1775,43 +1762,28 @@ VkCommandBuffer RecordRenderGeometryBufferCmds (GeometryBufferSet*          pGeo
 
     VkDeviceSize offsets[] = { 0 };
 
-    vkCmdBindVertexBuffers (/*..VkCommandBuffer........commandBuffer....*/ commandBuffer,
-                            /*..uint32_t...............firstBinding.....*/ 0,
-                            /*..uint32_t...............bindingCount.....*/ 1,
-                            /*..const.VkBuffer*........pBuffers.........*/ &(pGeometryBufferSet->vertexBufferInfo.bufferHandle),
-                            /*..const.VkDeviceSize*....pOffsets.........*/ offsets);
+    vkCmdBindVertexBuffers (/*..VkCommandBuffer........commandBuffer...*/ commandBuffer,
+                            /*..uint32_t...............firstBinding....*/ 0,
+                            /*..uint32_t...............bindingCount....*/ 1,
+                            /*..const.VkBuffer*........pBuffers........*/ &(pGeometryBufferSet->vertexBufferInfo.bufferHandle),
+                            /*..const.VkDeviceSize*....pOffsets........*/ offsets);
 
-    vkCmdBindIndexBuffer (/*...VkCommandBuffer..........commandBuffer....*/ commandBuffer,
-                          /*...VkBuffer.................buffer...........*/ pGeometryBufferSet->indexBufferInfo.bufferHandle,
-                          /*...VkDeviceSize.............offset...........*/ 0, //offset is the starting offset in bytes within buffer used in index buffer address calculations
-                          /*...VkIndexType..............indexType........*/ VK_INDEX_TYPE_UINT32);
-
-    //VkClearAttachment clearDepthInfo = { VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT, 0, 0 };
-    //VkClearRect clearRect
-    //vkCmdClearAttachments(commandBuffer,2, &clearDepthInfo, 1)
+    vkCmdBindIndexBuffer (/*...VkCommandBuffer..........commandBuffer...*/ commandBuffer,
+                          /*...VkBuffer.................buffer..........*/ pGeometryBufferSet->indexBufferInfo.bufferHandle,
+                          /*...VkDeviceSize.............offset..........*/ 0, //offset is the starting offset in bytes within buffer used in index buffer address calculations
+                          /*...VkIndexType..............indexType.......*/ VK_INDEX_TYPE_UINT32);
 
     for (uint32_t meshIdx = 0; meshIdx < pGeometryBufferSet->numMeshes; meshIdx++)
     {
         const MeshInfo* pMeshInfo = &(pGeometryBufferSet->pMeshes[meshIdx]);
 
-
-        ///@TODO: add per mesh draw commands and pass in mesh Idx via firstInstance arg
         vkCmdDrawIndexed (/*...VkCommandBuffer.......commandBuffer......*/ commandBuffer,
                           /*...uint32_t..............indexCount.........*/ pMeshInfo->numPrims * NUM_VERTICES_PER_TRIANGLE,
                           /*...uint32_t..............instanceCount......*/ 1,
-                          /*...uint32_t..............firstIndex.........*/ pMeshInfo->firstPrimIdx * NUM_VERTICES_PER_TRIANGLE, // firstIndex is the base index within the index buffer.  // what is base index?
+                          /*...uint32_t..............firstIndex.........*/ pMeshInfo->firstPrimIdx * NUM_VERTICES_PER_TRIANGLE, // firstIndex is "the base index within the index buffer"....so like idx of the first index in the bufferfor this draw
                           /*...int32_t...............vertexOffset.......*/ 0, // vertexOffset is the value added to the vertex index before indexing into the vertex buffer.
-                          /*...uint32_t..............firstInstance......*/ pMeshInfo->materialIdx);//meshIdx
+                          /*...uint32_t..............firstInstance......*/ pMeshInfo->materialIdx);
     }
-
-
-   // ///@TODO: add per mesh draw commands and pass in mesh Idx via firstInstance arg
-   // vkCmdDrawIndexed (/*...VkCommandBuffer.......commandBuffer......*/ commandBuffer,
-   //                   /*...uint32_t..............indexCount.........*/ pGeometryBufferSet->numTriangles * NUM_VERTICES_PER_TRIANGLE,
-   //                   /*...uint32_t..............instanceCount......*/ 1,
-   //                   /*...uint32_t..............firstIndex.........*/ 0,
-   //                   /*...int32_t...............vertexOffset.......*/ 0,
-   //                   /*...uint32_t..............firstInstance......*/ 0);
 
     vkCmdEndRenderPass (commandBuffer);
 

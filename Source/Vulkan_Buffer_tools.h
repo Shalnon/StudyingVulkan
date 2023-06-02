@@ -1,6 +1,5 @@
 #ifndef VULKAN_BUFFER_TOOLS_H
 #define VULKAN_BUFFER_TOOLS_H
-//#include "StudyingVulkan.h"
 #include "Vulkan_Utils.h"
 #include <glm\glm.hpp>
 
@@ -75,22 +74,17 @@ inline void* MapBufferMemory (vulkanAllocatedBufferInfo bufferInfo,
                               VkDevice                  logicalDevice)
 {
     void* pMem = nullptr;
-    vkMapMemory (/*...VkDevice...........device.....*/ logicalDevice,
-                 /*...VkDeviceMemory.....memory.....*/ bufferInfo.memoryHandle,
-                 /*...VkDeviceSize.......offset.....*/ bufferInfo.offset,
-                 /*...VkDeviceSize.......size.......*/ bufferInfo.buffersize,
-                 /*...VkMemoryMapFlags...flags......*/ 0, //@spec:  "reserved for future use"
-                 /*...void**.............ppData.....*/ &pMem);
+    vkMapMemory (/*...VkDevice...........device...*/ logicalDevice,
+                 /*...VkDeviceMemory.....memory...*/ bufferInfo.memoryHandle,
+                 /*...VkDeviceSize.......offset...*/ bufferInfo.offset,
+                 /*...VkDeviceSize.......size.....*/ bufferInfo.buffersize,
+                 /*...VkMemoryMapFlags...flags....*/ 0, //@spec:  "reserved for future use"
+                 /*...void**.............ppData...*/ &pMem);
 
     assert (pMem);
 
     return pMem;
 }
-
-void GetMemoryType (VkPhysicalDevice      physicalDevice,
-                    VkMemoryPropertyFlags requiredPropertyFlags, // ex: a mask of VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, etc...
-                    uint32_t*             pChosenMemTypeIdxOut,
-                    VkMemoryRequirements* memRequirements);
 
 VkDeviceMemory AllocateVkBufferMemory (VkPhysicalDevice      physicalDevice,
                                        VkDevice              logicalDevice,

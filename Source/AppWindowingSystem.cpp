@@ -43,7 +43,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
-            // TODO: Add any drawing code that uses hdc here...
             EndPaint(hWnd, &ps);
         
             break;
@@ -194,21 +193,20 @@ void PrintLastWin32Error(const wchar_t * lpszFunction)
             0, NULL);
 
         // Display the error message and exit the process
-
-
         LPVOID lpMsgBu      = 0;
         LPVOID lpDisplayBuf = 0;
 
         lpDisplayBuf = (LPVOID)LocalAlloc(LMEM_ZEROINIT,
-            (lstrlen((LPCTSTR)lpMsgBuf) + lstrlen((LPCTSTR)lpszFunction) + 40) * sizeof(TCHAR));
+                                          (lstrlen((LPCTSTR)lpMsgBuf)     +
+                                           lstrlen((LPCTSTR)lpszFunction) + 40) * sizeof(TCHAR));
+
         StringCchPrintf((LPTSTR)lpDisplayBuf,
-            LocalSize(lpDisplayBuf) / sizeof(TCHAR),
-            TEXT("%s failed with error %d: %s"),
-            lpszFunction, dw, lpMsgBuf);
+                         LocalSize(lpDisplayBuf) / sizeof(TCHAR),
+                         TEXT("%s failed with error %d: %s"),
+                         lpszFunction, dw, lpMsgBuf);
 
         printf("Error: %ls\n", lpDisplayBuf);
         std::cout << "Error:" << reinterpret_cast<char*>(lpDisplayBuf) << std::endl;
-        
     }
     else
     {

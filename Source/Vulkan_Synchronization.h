@@ -4,7 +4,7 @@
 
 #include "StudyingVulkan.h"
 
-
+///@note: Currently unused
 namespace VkSync
 {
 	static_assert(sizeof(uint64_t)                   == 8);

@@ -15,11 +15,10 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                      _In_     LPWSTR    lpCmdLine,
                      _In_     int       nCmdShow)
 {
-    ShowConsole();
-
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
-    
+    ShowConsole();
+
     HWND window_handle = InitWindowInstance(hInstance, nCmdShow, szWindowClass, szTitle, WINDOW_WIDTH, WINDOW_HEIGHT);
 
     std::string vertexShaderPath   = std::string(VERT_PATH); //@TODO: change these to use a relative path from the working directory
@@ -27,7 +26,6 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
 
     printf("Vertex shader path: %s\n",   vertexShaderPath.c_str());
     printf("Fragment shader path: %s\n", fragmentShaderPath.c_str());
-
 
     VkInstance    instance = InitializeVulkanAndCreateInstance();
     VkSurfaceKHR  surface  = CreateVkSurface(instance, hInstance, window_handle);
@@ -121,11 +119,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
      
     std::string currentPath   = std::filesystem::current_path ().string ();
     std::string assetsDirPath = currentPath   + std::string ("\\..\\..\\..\\Assets");
-    //std::string modelPath = assetsDirPath + std::string ("\\Models\\simple_triangle.obj");
-    //std::string modelPath = assetsDirPath + std::string ("\\Models\\three_tris_within_ndc\\3tris_within_ndc.obj");
-    //std::string modelPath = assetsDirPath + std::string ("\\Models\\three_triangles\\tris_singleObject_matGroups.obj");
-    std::string modelPath = assetsDirPath + std::string ("\\Models\\monkey_with_color.obj");
-    //monkey_with_color
+    std::string modelPath     = assetsDirPath + std::string ("\\Models\\monkey_with_color.obj");
 
     printf ("model path = %s\n", modelPath.c_str ());
 
@@ -164,15 +158,12 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                                                           &sceneBounds,
                                                                           true);
                                                    
-                                                   
     // Fills out a VkDescriptorSetAllocateInfo and calls vkAllocateDescriptorSets
     VkDescriptorSet            descriptorSetHandle = AllocateAndWriteDescriptorSet (logicalDevice,
                                                                                     descriptorSetLayoutHandle,
                                                                                     uniformBufferInfo.bufferHandle,
                                                                                     colorsStorageBufferInfo.bufferHandle);
-
     uint32_t numFramesToRender = 5;
-    
 
     printf("about to start executing renderloop\n");
     for (uint32_t i = 0; i < numFramesToRender; i++)

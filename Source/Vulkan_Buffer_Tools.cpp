@@ -5,7 +5,7 @@
 #include "Vulkan_Utils.h"
 #include "Logging.h"
 #include <assimp/material.h>
-#include <glm/gtc/color_space.hpp> 
+#include <glm/gtc/color_space.hpp>
 
 VkDeviceMemory AllocateVkBufferMemory (VkPhysicalDevice      physicalDevice,
                                        VkDevice              logicalDevice,
@@ -22,8 +22,8 @@ VkDeviceMemory AllocateVkBufferMemory (VkPhysicalDevice      physicalDevice,
     };
 
     VkDeviceMemory deviceMem = VK_NULL_HANDLE;
+    VkResult       result    = vkAllocateMemory (logicalDevice, &allocateInfo, nullptr, &deviceMem);
 
-    VkResult result = vkAllocateMemory (logicalDevice, &allocateInfo, nullptr, &deviceMem);
     assert (result == VK_SUCCESS);
     assert (deviceMem != VK_NULL_HANDLE);
 
@@ -57,7 +57,10 @@ inline vulkanAllocatedBufferInfo CreateAndAllocateVertexBuffer (VkPhysicalDevice
     vkGetBufferMemoryRequirements (logicalDevice, vertexBuffer, &vertexBufferMemRequirements);
 
     // Allocate device local memory that will hold the vertex data to be accessed from the gpu
-    VkDeviceMemory vertexMem = AllocateVkBufferMemory (physicalDevice, logicalDevice, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertexBufferMemRequirements);
+    VkDeviceMemory vertexMem = AllocateVkBufferMemory (physicalDevice,
+                                                       logicalDevice,
+                                                       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                                       &vertexBufferMemRequirements);
 
     //bind the vertex buffer memory
     vkBindBufferMemory (logicalDevice, vertexBuffer, vertexMem, 0);
@@ -74,7 +77,6 @@ inline vulkanAllocatedBufferInfo CreateAndAllocateIndexBuffer (VkPhysicalDevice 
                                                                uint32_t         bufferSizeInBytes,
                                                                uint32_t         queueIndex)
 {
-
     VkBuffer           indexBuffer           = VK_NULL_HANDLE;
     VkBufferUsageFlags indexBufferUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
     VkBufferCreateInfo indexBufferCreateInfo =
@@ -130,6 +132,8 @@ inline vulkanAllocatedBufferInfo CreateAndAllocateSsbo (VkPhysicalDevice physica
     VkMemoryRequirements storageBufferMemRequirements = {};
     vkGetBufferMemoryRequirements (logicalDevice, storageBufferHandle, &storageBufferMemRequirements);
 
+    assert (storageBufferMemRequirements.alignment >= REQUIRED_SSBO_MEMORY_ALIGNMENT);
+
     // Allocate device local memory that will hold the storage buffer data to be accessed from the gpu
     VkDeviceMemory storageBufMem = AllocateVkBufferMemory (physicalDevice, logicalDevice, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &storageBufferMemRequirements);
 
@@ -148,32 +152,34 @@ inline vulkanAllocatedBufferInfo CreateAndAllocateUniformBuffer (VkPhysicalDevic
                                                                  uint32_t         queueIndex)
 {
     //@TODO: change the naming here so its not matrix buffer
-    VkBuffer           matrixBuffer           = VK_NULL_HANDLE;
-    VkBufferUsageFlags matrixBufferUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-    VkBufferCreateInfo matrixBufferCreateInfo =
+    VkBuffer           sceneTransformUBO               = VK_NULL_HANDLE;
+    VkBufferUsageFlags sceneTransformBufferUsageFlags  = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    VkBufferCreateInfo sceneTransformxBufferCreateInfo =
     {
         /*...VkStructureType........sType.....................*/ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
         /*...const.void*............pNext.....................*/ 0, //reminder: buffer device address struct would need to go here if using that feature
         /*...VkBufferCreateFlags....flags.....................*/ 0,
         /*...VkDeviceSize...........size......................*/ bufferSizeInBytes,
-        /*...VkBufferUsageFlags.....usage.....................*/ matrixBufferUsageFlags,
+        /*...VkBufferUsageFlags.....usage.....................*/ sceneTransformBufferUsageFlags,
         /*...VkSharingMode..........sharingMode...............*/ VK_SHARING_MODE_EXCLUSIVE,
         /*...uint32_t...............queueFamilyIndexCount.....*/ 1,
         /*...const.uint32_t*........pQueueFamilyIndices.......*/ &queueIndex
     };
 
-    VkResult result = vkCreateBuffer (logicalDevice, &matrixBufferCreateInfo, 0, &matrixBuffer);
-
+    VkResult             result                      = vkCreateBuffer (logicalDevice, &sceneTransformxBufferCreateInfo, 0, &sceneTransformUBO);
     VkMemoryRequirements matrixBufferMemRequirements = {};
-    vkGetBufferMemoryRequirements (logicalDevice, matrixBuffer, &matrixBufferMemRequirements);
+    vkGetBufferMemoryRequirements (logicalDevice, sceneTransformUBO, &matrixBufferMemRequirements);
 
     // Allocate device local memory that will hold the vertex data to be accessed from the gpu
-    VkDeviceMemory matrixMem = AllocateVkBufferMemory (physicalDevice, logicalDevice, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &matrixBufferMemRequirements);
+    VkDeviceMemory matrixMem = AllocateVkBufferMemory (physicalDevice,
+                                                       logicalDevice,
+                                                       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                                       &matrixBufferMemRequirements);
 
     //bind the vertex buffer memory
-    vkBindBufferMemory (logicalDevice, matrixBuffer, matrixMem, 0);
+    vkBindBufferMemory (logicalDevice, sceneTransformUBO, matrixMem, 0);
 
-    return {/*...VkBuffer.......bufferHandle......*/ matrixBuffer,
+    return {/*...VkBuffer.......bufferHandle......*/ sceneTransformUBO,
             /*...VkDeviceMemory.memoryHandle......*/ matrixMem,
             /*...VkDeviceSize...buffersize........*/ matrixBufferMemRequirements.size,
             /*...uint32_t.......offset............*/ 0 };
@@ -197,11 +203,10 @@ void ExecuteBuffer2BufferCopy (VkPhysicalDevice          physicalDevice,
     };
 
     VkCommandPool commandPool = VK_NULL_HANDLE;
-
-    VkResult result = vkCreateCommandPool (logicalDevice, &commandPoolCreateInfo, 0, &commandPool);
+    VkResult      result      = vkCreateCommandPool (logicalDevice, &commandPoolCreateInfo, 0, &commandPool);
     assert (result == VK_SUCCESS);
 
-    VkCommandBuffer             bufferCopyCmdBuffer = VK_NULL_HANDLE;
+    VkCommandBuffer             bufferCopyCmdBuffer       = VK_NULL_HANDLE;
     VkCommandBufferAllocateInfo commandBufferAllocateInfo =
     {
         /*..VkStructureType.........sType................*/ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -278,9 +283,14 @@ vulkanAllocatedBufferInfo CreateAndAllocaStagingBuffer (VkPhysicalDevice physica
         /*...uint32_t...............queueFamilyIndexCount.....*/ 1,
         /*...const.uint32_t*........pQueueFamilyIndices.......*/ &queueIndex
     };
-    
-    VkResult result = vkCreateBuffer (logicalDevice, &stagingBufferCreateInfo, nullptr, &stagingBufferHandle);
 
+    // Create the staging buffer
+    VkResult result = vkCreateBuffer (logicalDevice,
+                                      &stagingBufferCreateInfo,
+                                      nullptr,
+                                      &stagingBufferHandle);
+
+    // Get the memory requirements and check that they meet our needs
     VkMemoryRequirements stagingBufferMemRequirements = {};
     vkGetBufferMemoryRequirements (logicalDevice, stagingBufferHandle, &stagingBufferMemRequirements);
     assert (bufferSizeInBytes <= stagingBufferMemRequirements.size);
@@ -313,10 +323,12 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physical
     assert(pScene              != nullptr       );
     assert(pScene->HasMeshes() == true          );
 
+
     static const glm::mat4 sIdentityMat4x4 = glm::mat4 (1.0f, 0.0f, 0.0f, 0.0f,
                                                         0.0f, 1.0f, 0.0f, 0.0f,
                                                         0.0f, 0.0f, 1.0f, 0.0f,
                                                         0.0f, 0.0f, 0.0f, 1.0f);
+    const uint32_t numMeshes = pScene->mNumMeshes;
 
     // Initialize scene aabb with min/max coordinates derived from the first vertex in the first mesh
     //    Cant initialzie fields with 0, because 0 isnt guarenteed to be inside a meshs actual AABB and could incorrectly set the min or max for some or all axis.
@@ -338,10 +350,6 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physical
     VkDeviceSize              indexBufferDataSize      = 0;
     uint32_t                  sceneTriangleCount       = 0;
     uint32_t                  sceneVertexCount         = 0;
-
-    const uint32_t   numMeshes  = pScene->mNumMeshes;
-
-
 
     MeshInfo*  pMeshInfos = static_cast<MeshInfo*>(calloc(numMeshes, sizeof(MeshInfo)));
 
@@ -406,8 +414,6 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physical
 
         printf ("----------===== Vertex Data for mesh %u  =====------\n", meshIdx);
         // Write vertex position data to the vertex position staging buffer, and update the mesh AABB.
-        printf ("     ---firstVertexForMesh%u = %u\n", meshIdx, firstVertexForMesh);
-        printf ("     ---firstPrimInMesh%u = %u\n", meshIdx, firstPrimInMesh);
         for (uint32_t meshVertexIdx = 0; meshVertexIdx < pAiMesh->mNumVertices; meshVertexIdx++)
         {
             const aiVector3D* pVertex         = &(pAiMesh->mVertices[meshVertexIdx]);
@@ -455,11 +461,11 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physical
         sceneTriangleCount += pAiMesh->mNumFaces;
 
         // Update meshInfo struct
-        pMeshInfos[meshIdx] = { /*...uint32_t...........firstPrimIdx........*/ firstPrimInMesh,
-                                /*...uint32_t...........numPrims............*/ sceneTriangleCount - firstPrimInMesh,
-                                /*...uint32_t...........materialIdx.........*/ pAiMesh->mMaterialIndex,
-                                /*...glm::mat4x4........modelMatrix.........*/ sIdentityMat4x4,
-                                /*...VkAabbPositionsKHR.aabb................*/ meshAABB };
+        pMeshInfos[meshIdx] = { /*...uint32_t.............firstPrimIdx...*/ firstPrimInMesh,
+                                /*...uint32_t.............numPrims.......*/ sceneTriangleCount - firstPrimInMesh,
+                                /*...uint32_t.............materialIdx....*/ pAiMesh->mMaterialIndex,
+                                /*...glm::mat4x4..........modelMatrix....*/ sIdentityMat4x4,
+                                /*...VkAabbPositionsKHR...aabb...........*/ meshAABB };
 
         // Updating AABB for the whole scene based on mesh AABBs
         if (meshAABB.maxX > sceneAABB.maxX) { sceneAABB.maxX = meshAABB.maxX; } // update x max
@@ -474,12 +480,14 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physical
     vkUnmapMemory (logicalDevice, vertexStagingBufferInfo.memoryHandle);
     vkUnmapMemory (logicalDevice, indexStagingBufferInfo.memoryHandle);
 
-    vertexBufferInfo = CreateAndAllocateVertexBuffer (physicalDevice,   // Create and allocate memory for a device local vertex buffer
+    // Create and allocate memory for a device local vertex buffer
+    vertexBufferInfo = CreateAndAllocateVertexBuffer (physicalDevice,
                                                       logicalDevice,
                                                       vertexBufferDataSize,
                                                       queueFamilyIndex);
 
-    indexBufferInfo  = CreateAndAllocateIndexBuffer (physicalDevice,    // Create and allocate memory for a device local index buffer
+    // Create and allocate memory for a device local index buffer
+    indexBufferInfo  = CreateAndAllocateIndexBuffer (physicalDevice,
                                                      logicalDevice,
                                                      indexBufferDataSize,
                                                      queueFamilyIndex);
@@ -498,22 +506,22 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physical
     //             I doubt index and vertex buffers need to use different memory types, so it should be fine. but double check
             
     // Upload vertex buffer data to the device local buffer
-    ExecuteBuffer2BufferCopy (/*...VkPhysicalDevice..........physicalDevice........*/ physicalDevice,
-                              /*...VkDevice..................logicalDevice.........*/ logicalDevice,
-                              /*...VkQueue...................queue.................*/ queue,
-                              /*...uint32_t..................queueFamilyIndex......*/ queueFamilyIndex,
-                              /*...VkDeviceSize..............copySize..............*/ vertexBufferDataSize,
-                              /*...vulkanAllocatedBufferInfo.srcBufferInfo.........*/ vertexStagingBufferInfo,  // Src buffer
-                              /*...vulkanAllocatedBufferInfo.dstBufferInfo.........*/ vertexBufferInfo);        // Dst buffer
+    ExecuteBuffer2BufferCopy (/*...VkPhysicalDevice..........physicalDevice.....*/ physicalDevice,
+                              /*...VkDevice..................logicalDevice......*/ logicalDevice,
+                              /*...VkQueue...................queue..............*/ queue,
+                              /*...uint32_t..................queueFamilyIndex...*/ queueFamilyIndex,
+                              /*...VkDeviceSize..............copySize...........*/ vertexBufferDataSize,
+                              /*...vulkanAllocatedBufferInfo.srcBufferInfo......*/ vertexStagingBufferInfo,  // Src buffer
+                              /*...vulkanAllocatedBufferInfo.dstBufferInfo......*/ vertexBufferInfo);        // Dst buffer
 
     // Upload index buffer data to the device local buffer
-    ExecuteBuffer2BufferCopy (/*...VkPhysicalDevice..........physicalDevice........*/ physicalDevice,
-                                /*...VkDevice..................logicalDevice.........*/ logicalDevice,
-                                /*...VkQueue...................queue.................*/ queue,
-                                /*...uint32_t..................queueFamilyIndex......*/ queueFamilyIndex,
-                                /*...VkDeviceSize..............copySize..............*/ indexBufferDataSize,
-                                /*...vulkanAllocatedBufferInfo.srcBufferInfo.........*/ indexStagingBufferInfo, // Src buffer
-                                /*...vulkanAllocatedBufferInfo.dstBufferInfo.........*/ indexBufferInfo);       // Dst buffer
+    ExecuteBuffer2BufferCopy (/*...VkPhysicalDevice..........physicalDevice.......*/ physicalDevice,
+                                /*...VkDevice..................logicalDevice......*/ logicalDevice,
+                                /*...VkQueue...................queue..............*/ queue,
+                                /*...uint32_t..................queueFamilyIndex...*/ queueFamilyIndex,
+                                /*...VkDeviceSize..............copySize...........*/ indexBufferDataSize,
+                                /*...vulkanAllocatedBufferInfo.srcBufferInfo......*/ indexStagingBufferInfo, // Src buffer
+                                /*...vulkanAllocatedBufferInfo.dstBufferInfo......*/ indexBufferInfo);       // Dst buffer
 
     // We dont need the staging buffers anymore since the data is now in the buffers backed by device local memory
     //     so we destroy the staging buffers and free their memory.
@@ -539,9 +547,9 @@ vulkanAllocatedBufferInfo CreateMeshColorsStorageBuffer (VkPhysicalDevice    phy
                                                          uint32_t            queueFamilyIndex,
                                                          const aiScene*      pScene)
 {
-    // Defining a vector struct to be used locally here just so i can guarentee packed data
-    //   without worrying about glms or assimp's internal vector representation
-    struct float3
+    // Defining a vector struct here to be used locally just so i can guarentee packed data
+    //   without worrying about glm's or assimp's internal vector representation
+    struct float4
     {
         union
         {
@@ -550,16 +558,30 @@ vulkanAllocatedBufferInfo CreateMeshColorsStorageBuffer (VkPhysicalDevice    phy
                 float r;
                 float g;
                 float b;
+                float a;
             };
             struct
             {
                 float x;
                 float y;
                 float z;
+                float w;
             };
-            float data[3];
+            float data[4];
         };
     };
+
+#ifdef DEBUG
+    assert (sizeof   (float4) == (sizeof (float) * NUM_CHANNELS_PER_COLOR));
+    assert (offsetof (float4, r) ==                 0);
+    assert (offsetof (float4, g) == sizeof(float) * 1);
+    assert (offsetof (float4, b) == sizeof(float) * 2);
+    assert (offsetof (float4, a) == sizeof(float) * 3);
+    assert (offsetof (float4, x) ==                 0);
+    assert (offsetof (float4, y) == sizeof(float) * 1);
+    assert (offsetof (float4, z) == sizeof(float) * 2);
+    assert (offsetof (float4, w) == sizeof(float) * 3);
+#endif
 
     uint32_t numMaterialColors = pScene->HasMaterials () ? pScene->mNumMaterials : 0;
     assert (numMaterialColors > 0);
@@ -574,19 +596,8 @@ vulkanAllocatedBufferInfo CreateMeshColorsStorageBuffer (VkPhysicalDevice    phy
                                                                                        storageBufferDataSize,
                                                                                        queueFamilyIndex);
 
-    void*   pMappedStagingMemVoidPtr    = MapBufferMemory (storageStagingBufferInfo, logicalDevice);
-   // float3* pStorageStagingMemFloat3Ptr = reinterpret_cast<float3*>(pMappedStagingMemVoidPtr);
-    float* pStorageStagingMemFloatPtr = reinterpret_cast<float*>(pMappedStagingMemVoidPtr);
-    uint32_t currentFloatIdx = 0;
-
-  /*  assert (sizeof (float3) == (sizeof (float) * 3));
-      assert (offsetof (float3, r) == 0);
-      assert (offsetof (float3, g) == sizeof(float) * 1);
-      assert (offsetof (float3, b) == sizeof(float) * 2);
-    
-      assert (offsetof (float3, x) == 0);
-      assert (offsetof (float3, y) == sizeof (float) * 1);
-      assert (offsetof (float3, z) == sizeof (float) * 2);*/
+    //Map the buffer memory and than cast it to a float4 for convenience.
+    float4* pStorageStagingMemFloat4Ptr = reinterpret_cast<float4*>(MapBufferMemory (storageStagingBufferInfo, logicalDevice));
 
     //@TODO: Account for different alignments: Subsequent colors must be at addresses that are >= the alignment reported from the memRequirements.
     printf ("\n============== Material Colors ==============\n");
@@ -603,14 +614,15 @@ vulkanAllocatedBufferInfo CreateMeshColorsStorageBuffer (VkPhysicalDevice    phy
         glm::vec3       colorInSrgbSpace   = glm::convertLinearToSRGB (colorInLinearSpace);
 
         //Write the color to the correct location in the staging buffer
-        pStorageStagingMemFloatPtr[currentFloatIdx++] = colorInSrgbSpace.r;
-        pStorageStagingMemFloatPtr[currentFloatIdx++] = colorInSrgbSpace.g;
-        pStorageStagingMemFloatPtr[currentFloatIdx++] = colorInSrgbSpace.b;
-        pStorageStagingMemFloatPtr[currentFloatIdx++] = 1.0f;// alpha
+        pStorageStagingMemFloat4Ptr[materialIdx] = { /*.r.*/ colorInSrgbSpace.r,
+                                                     /*.g.*/ colorInSrgbSpace.g,
+                                                     /*.b.*/ colorInSrgbSpace.b,
+                                                     /*.a.*/ 1.0f               };
 
-        printf ("pScene->mMaterials[%u].get(AI_MATKEY_COLOR_DIFFUSE) = { %.4f, %.4f, %.4f }\n", materialIdx, colorInSrgbSpace.r,
-                                                                                                             colorInSrgbSpace.g,
-                                                                                                             colorInSrgbSpace.b);
+        printf ("pScene->mMaterials[%u].get(AI_MATKEY_COLOR_DIFFUSE) = srgb - { %.4f, %.4f, %.4f }\n", materialIdx,
+                                                                                                       colorInSrgbSpace.r,
+                                                                                                       colorInSrgbSpace.g,
+                                                                                                       colorInSrgbSpace.b);
     }
     printf ("\n\n");
 
@@ -636,7 +648,6 @@ vulkanAllocatedBufferInfo CreateMeshColorsStorageBuffer (VkPhysicalDevice    phy
     vkFreeMemory (logicalDevice, storageStagingBufferInfo.memoryHandle, nullptr);
     vkDestroyBuffer (logicalDevice, storageStagingBufferInfo.bufferHandle, nullptr);
 
-
     return colorStorageBufferInfo;
 }
 
@@ -659,7 +670,7 @@ vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             phys
                                                                                        logicalDevice,
                                                                                        uniformBufferDataSize,
                                                                                        queueFamilyIndex);
-    // Initializing sceneTransform to a transform that will translate and scale the scene such that if fits inside the AABB defined by *pDesiredSceneBounds
+    // Initializing sceneTransformUBO to a transform that will translate and scale the scene such that if fits inside the AABB defined by *pDesiredSceneBounds
     glm::mat4x4 sceneTransform = GetTransform_FitAABBToAABB (/*...VkAabbPositionsKHR...originalAABB...............*/ pGeometryBufferSet->sceneAABB,
                                                              /*...VkAabbPositionsKHR...desiredBounds..............*/ *pDesiredSceneBounds,
                                                              /*...bool.................maintainSceneAspectRatio...*/ maintainAspectRatio);
@@ -668,14 +679,14 @@ vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             phys
     //  Expected UBO data layout:
     //  layout(binding = 0) uniform UniformBufferObject
     //  {
-    //      mat4 sceneTransform;
+    //      mat4 sceneTransformUBO;
     //      vec4 sceneScale;
     //  } ubo;
 
     void*  pMappedUniformStagingBufferMem = MapBufferMemory (uniformStagingBufferInfo, logicalDevice);
     float* pUniformStagingBuffMemFloatPtr = reinterpret_cast<float*>(pMappedUniformStagingBufferMem);
 
-    // Write the sceneTransform matrix to the UBO staging buffer memory
+    // Write the sceneTransformUBO matrix to the UBO staging buffer memory
     memcpy (pUniformStagingBuffMemFloatPtr, &(sceneTransform[0][0]), NUM_BYTES_PER_MODEL_MATRIX);
 
     // Write a second vector to seprately control scene scale...This is mostly a temporary variable to demonstrate the struct-like nature of UBOs
@@ -695,13 +706,13 @@ vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             phys
                                                                                   queueFamilyIndex);
 
     // Upload transform uniform data to device local buffer
-    ExecuteBuffer2BufferCopy (/*...VkPhysicalDevice..........physicalDevice........*/ physicalDevice,
-                              /*...VkDevice..................logicalDevice.........*/ logicalDevice,
-                              /*...VkQueue...................queue.................*/ queue,
-                              /*...uint32_t..................queueFamilyIndex......*/ queueFamilyIndex,
-                              /*...VkDeviceSize..............copySize..............*/ uniformBufferDataSize,
-                              /*...vulkanAllocatedBufferInfo.srcBufferInfo.........*/ uniformStagingBufferInfo,   // Src buffer
-                              /*...vulkanAllocatedBufferInfo.dstBufferInfo.........*/ uniformBufferInfo);         // Dst buffer
+    ExecuteBuffer2BufferCopy (/*...VkPhysicalDevice..........physicalDevice.....*/ physicalDevice,
+                              /*...VkDevice..................logicalDevice......*/ logicalDevice,
+                              /*...VkQueue...................queue..............*/ queue,
+                              /*...uint32_t..................queueFamilyIndex...*/ queueFamilyIndex,
+                              /*...VkDeviceSize..............copySize...........*/ uniformBufferDataSize,
+                              /*...vulkanAllocatedBufferInfo.srcBufferInfo......*/ uniformStagingBufferInfo,   // Src buffer
+                              /*...vulkanAllocatedBufferInfo.dstBufferInfo......*/ uniformBufferInfo);         // Dst buffer
 
     // Dont need the staging buffer or memory anymore
     vkFreeMemory    (logicalDevice, uniformStagingBufferInfo.memoryHandle, nullptr);
@@ -711,11 +722,11 @@ vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             phys
 }
 
 
-inline vulkanAllocatedBufferInfo CreateAndModelMatrixStorageBuffer (VkPhysicalDevice             physicalDevice,
-                                                                    VkDevice                     logicalDevice,
-                                                                    VkQueue                      queue,
-                                                                    uint32_t                     queueFamilyIndex,
-                                                                    const GeometryBufferSet*     pGeometryBufferSet)
+inline vulkanAllocatedBufferInfo CreateAndModelMatrixStorageBuffer (VkPhysicalDevice         physicalDevice,
+                                                                    VkDevice                 logicalDevice,
+                                                                    VkQueue                  queue,
+                                                                    uint32_t                 queueFamilyIndex,
+                                                                    const GeometryBufferSet* pGeometryBufferSet)
 {
     // Initialize with size required for the storing the one model matrix per mesh
     VkDeviceSize storageBufferDataSize = NUM_BYTES_PER_MODEL_MATRIX * pGeometryBufferSet->numMeshes;
@@ -742,12 +753,11 @@ inline vulkanAllocatedBufferInfo CreateAndModelMatrixStorageBuffer (VkPhysicalDe
                                                                      queueFamilyIndex);
 
     // Upload transform uniform data to device local buffer
-    ExecuteBuffer2BufferCopy (/*...VkPhysicalDevice..........physicalDevice........*/ physicalDevice,
-                              /*...VkDevice..................logicalDevice.........*/ logicalDevice,
-                              /*...VkQueue...................queue.................*/ queue,
-                              /*...uint32_t..................queueFamilyIndex......*/ queueFamilyIndex,
-                              /*...VkDeviceSize..............copySize..............*/ storageBufferDataSize,
-                              /*...vulkanAllocatedBufferInfo.srcBufferInfo.........*/ ssboStagingBufferInfo,  // Src buffer
-                              /*...vulkanAllocatedBufferInfo.dstBufferInfo.........*/ storageBuffer);         // Dst buffer
-
+    ExecuteBuffer2BufferCopy (/*...VkPhysicalDevice..........physicalDevice.....*/ physicalDevice,
+                              /*...VkDevice..................logicalDevice......*/ logicalDevice,
+                              /*...VkQueue...................queue..............*/ queue,
+                              /*...uint32_t..................queueFamilyIndex...*/ queueFamilyIndex,
+                              /*...VkDeviceSize..............copySize...........*/ storageBufferDataSize,
+                              /*...vulkanAllocatedBufferInfo.srcBufferInfo......*/ ssboStagingBufferInfo,  // Src buffer
+                              /*...vulkanAllocatedBufferInfo.dstBufferInfo......*/ storageBuffer);         // Dst buffer
  }
