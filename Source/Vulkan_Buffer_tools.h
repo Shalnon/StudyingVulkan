@@ -41,6 +41,7 @@ struct MeshInfo
 {
     uint32_t           firstPrimIdx;
     uint32_t           numPrims;
+    uint32_t           materialIdx;
     glm::mat4x4        modelMatrix;
     VkAabbPositionsKHR aabb; // AABB for the individual mesh
 };
@@ -78,7 +79,7 @@ inline void* MapBufferMemory (vulkanAllocatedBufferInfo bufferInfo,
                  /*...VkDeviceMemory.....memory.....*/ bufferInfo.memoryHandle,
                  /*...VkDeviceSize.......offset.....*/ bufferInfo.offset,
                  /*...VkDeviceSize.......size.......*/ bufferInfo.buffersize,
-                 /*...VkMemoryMapFlags...flags......*/ 0,
+                 /*...VkMemoryMapFlags...flags......*/ 0, //@spec:  "reserved for future use"
                  /*...void**.............ppData.....*/ &pMem);
 
     assert (pMem);
@@ -139,6 +140,12 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice    physicalDev
                                                  VkQueue             queue,
                                                  uint32_t            queueFamilyIndex,
                                                  const aiScene*      pScene);
+
+vulkanAllocatedBufferInfo CreateMeshColorsStorageBuffer (VkPhysicalDevice    physicalDevice,
+                                                         VkDevice            logicalDevice,
+                                                         VkQueue             queue,
+                                                         uint32_t            queueFamilyIndex,
+                                                         const aiScene*      pScene);
 
 // Creates and initilizes UBO and fills it with data
 vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             physicalDevice,

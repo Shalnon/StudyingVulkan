@@ -230,7 +230,8 @@ inline void ResestPerSwapchainImageResources (VkDevice                      logi
 
 VkDescriptorSet AllocateAndWriteDescriptorSet (VkDevice               logicalDevice,
                                                VkDescriptorSetLayout  descriptorSetLayoutHandle,
-                                               VkBuffer               uniformBufferHandle);
+                                               VkBuffer               uniformBufferHandle,
+                                               VkBuffer               storageBufferHandle);
 
 
 // Returns memory index of memory type that meets the requirements based on the  memRequirements and requiredPropertyFlags args

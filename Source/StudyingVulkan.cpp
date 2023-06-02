@@ -132,6 +132,12 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     const aiScene* pScene = aiImportFile (modelPath.c_str (), MY_ASSIMP_PREPROCESSING_FLAGS);//aiProcessPreset_TargetRealtime_MaxQuality);
 
 
+    vulkanAllocatedBufferInfo colorsStorageBufferInfo = CreateMeshColorsStorageBuffer (physicalDevice,
+                                                                                       logicalDevice,
+                                                                                       queue,
+                                                                                       queueFamilyIndex,
+                                                                                       pScene);
+
     // Create a vertex and index buffer
     GeometryBufferSet         geometrysBuffers     = CreateGeometryBuffersAndAABBs (physicalDevice,
                                                                                     logicalDevice,
@@ -139,7 +145,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                                                                     queueFamilyIndex,
                                                                                     pScene);
 
-    //Ndc bounds on the z axis are [0,1] for vulkan, whereas for opengl it is [-1,1]
+    //@NOTE: Ndc bounds on the z axis are [0,1] for vulkan, whereas for opengl it is [-1,1]
     VkAabbPositionsKHR sceneBounds =
     {
         /*...float....minX...*/ -1.0f,
@@ -162,10 +168,12 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     // Fills out a VkDescriptorSetAllocateInfo and calls vkAllocateDescriptorSets
     VkDescriptorSet            descriptorSetHandle = AllocateAndWriteDescriptorSet (logicalDevice,
                                                                                     descriptorSetLayoutHandle,
-                                                                                    uniformBufferInfo.bufferHandle);
+                                                                                    uniformBufferInfo.bufferHandle,
+                                                                                    colorsStorageBufferInfo.bufferHandle);
 
     uint32_t numFramesToRender = 5;
     
+
     printf("about to start executing renderloop\n");
     for (uint32_t i = 0; i < numFramesToRender; i++)
     {

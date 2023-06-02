@@ -449,12 +449,11 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
 {
     // Get Surface capabilities
     VkSurfaceCapabilitiesKHR surfaceCapabilities = {};
-    VkResult                 result = VK_SUCCESS;
+    VkResult                 result              = VK_SUCCESS;
 
     result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfaceCapabilities);
     assert(result == VK_SUCCESS);
     assert(surfaceCapabilities.maxImageCount > 0);
-
 
     //Choose a surface format to use with swapchain
     uint32_t                 supportedFormatCount              = GetPhysicalDeviceSurfaceFormatCount(physicalDevice, surface);
@@ -614,7 +613,7 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
             /*...VkImage....................image...............*/ pSwapchainImages[imageIdx],
             /*...VkImageViewType............viewType............*/ VK_IMAGE_VIEW_TYPE_2D,
             /*...VkFormat...................format..............*/ chosenSwapchainFormat.format,
-            /*...VkComponentMapping.........components..........*/ { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A},
+            /*...VkComponentMapping.........components..........*/ { VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
             /*...VkImageSubresourceRange....subresourceRange....*/ subResourceRange
         };
         result = vkCreateImageView(logicalDevice, &imageViewCreateInfo, 0, &(pPerSwapchainImageResources[imageIdx].colorImageViewHandle));
@@ -852,17 +851,40 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
     };
 
     
-    VkSubpassDependency subpassDependency =
-    {
-        /*....uint32_t................srcSubpass..........*/ VK_SUBPASS_EXTERNAL,
-        /*....uint32_t................dstSubpass..........*/ 0,
-        /*....VkPipelineStageFlags....srcStageMask........*/ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        /*....VkPipelineStageFlags....dstStageMask........*/ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        /*....VkAccessFlags...........srcAccessMask.......*/ 0, // From khronos sample: "Since we changed the image layout, we need to make the memory visible to color attachment to modify."
-        /*....VkAccessFlags...........dstAccessMask.......*/ VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-        /*....VkDependencyFlags.......dependencyFlags.....*/ 0
-    };
+   // VkSubpassDependency subpassDependency =
+   // {
+   //     /*....uint32_t................srcSubpass..........*/ VK_SUBPASS_EXTERNAL,
+   //     /*....uint32_t................dstSubpass..........*/ 0,
+   //     /*....VkPipelineStageFlags....srcStageMask........*/ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+   //     /*....VkPipelineStageFlags....dstStageMask........*/ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+   //     /*....VkAccessFlags...........srcAccessMask.......*/ 0, // From khronos sample: "Since we changed the image layout, we need to make the memory visible to color attachment to modify."
+   //     /*....VkAccessFlags...........dstAccessMask.......*/ VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+   //     /*....VkDependencyFlags.......dependencyFlags.....*/ 0
+   // };
     //Note:  Dont think i need a second dependency for depth, since fragment shader wont read depth (double check) once color attachment output is finished, the depth buffer will not be written to any long, since the purpose of the depth buffer is to reject non-visible fragments....right?
+
+
+    VkSubpassDependency subpassDependencies[2] =
+    {
+        {
+            /*....uint32_t................srcSubpass..........*/ VK_SUBPASS_EXTERNAL,
+            /*....uint32_t................dstSubpass..........*/ 0,
+            /*....VkPipelineStageFlags....srcStageMask........*/ VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            /*....VkPipelineStageFlags....dstStageMask........*/ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            /*....VkAccessFlags...........srcAccessMask.......*/ VK_ACCESS_SHADER_READ_BIT, // From khronos sample: "Since we changed the image layout, we need to make the memory visible to color attachment to modify."
+            /*....VkAccessFlags...........dstAccessMask.......*/ VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+            /*....VkDependencyFlags.......dependencyFlags.....*/ VK_DEPENDENCY_BY_REGION_BIT
+        },
+        {
+            /*....uint32_t................srcSubpass..........*/ VK_SUBPASS_EXTERNAL,
+            /*....uint32_t................dstSubpass..........*/ 0,
+            /*....VkPipelineStageFlags....srcStageMask........*/ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            /*....VkPipelineStageFlags....dstStageMask........*/ VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+            /*....VkAccessFlags...........srcAccessMask.......*/ VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+            /*....VkAccessFlags...........dstAccessMask.......*/ VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+            /*....VkDependencyFlags.......dependencyFlags.....*/ VK_DEPENDENCY_BY_REGION_BIT
+        }
+    };
 
     static const uint32_t   numAttachments                          = 2;
     VkAttachmentDescription pAttachmentDescriptions[numAttachments] = {};
@@ -879,8 +901,8 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
         /*...const.VkAttachmentDescription*....pAttachments......*/ pAttachmentDescriptions,
         /*...uint32_t..........................subpassCount......*/ 1,
         /*...const.VkSubpassDescription*.......pSubpasses........*/ &subpassDescription,
-        /*...uint32_t..........................dependencyCount...*/ 1,
-        /*...const.VkSubpassDependency*........pDependencies.....*/ &subpassDependency
+        /*...uint32_t..........................dependencyCount...*/ 2,
+        /*...const.VkSubpassDependency*........pDependencies.....*/ subpassDependencies
     };
 
     VkRenderPass renderpass = VK_NULL_HANDLE;
@@ -1779,7 +1801,7 @@ VkCommandBuffer RecordRenderGeometryBufferCmds (GeometryBufferSet*          pGeo
                           /*...uint32_t..............instanceCount......*/ 1,
                           /*...uint32_t..............firstIndex.........*/ pMeshInfo->firstPrimIdx * NUM_VERTICES_PER_TRIANGLE, // firstIndex is the base index within the index buffer.  // what is base index?
                           /*...int32_t...............vertexOffset.......*/ 0, // vertexOffset is the value added to the vertex index before indexing into the vertex buffer.
-                          /*...uint32_t..............firstInstance......*/ 0);//meshIdx
+                          /*...uint32_t..............firstInstance......*/ pMeshInfo->materialIdx);//meshIdx
     }
 
 
@@ -1851,10 +1873,16 @@ VkResult PresentImage(VkSwapchainKHR swapchain,
 // Creates and writes descriptor set. 
 VkDescriptorSet AllocateAndWriteDescriptorSet (VkDevice               logicalDevice,
                                                VkDescriptorSetLayout  descriptorSetLayoutHandle,
-                                               VkBuffer               uniformBufferHandle)
+                                               VkBuffer               uniformBufferHandle,
+                                               VkBuffer               storageBufferHandle)
 {
     //@TODO: add some output variables for descriptor pool so it can be destroyed later.
     VkDescriptorPool      descriptorPoolHandle = CreateDescriptorPool (logicalDevice);
+
+    // Fills out a VkDescriptorSetAllocateInfo and calls vkAllocateDescriptorSets
+    VkDescriptorSet descriptorSetHandle = AllocateDescriptorSet (logicalDevice,
+                                                                 descriptorPoolHandle,
+                                                                 descriptorSetLayoutHandle);
 
     VkDescriptorBufferInfo uniformBufferDescriptorInfo =
     {
@@ -1863,29 +1891,46 @@ VkDescriptorSet AllocateAndWriteDescriptorSet (VkDevice               logicalDev
         /*...VkDeviceSize....range....*/ VK_WHOLE_SIZE
     };
 
-    // Fills out a VkDescriptorSetAllocateInfo and calls vkAllocateDescriptorSets
-    VkDescriptorSet descriptorSetHandle = AllocateDescriptorSet (logicalDevice,
-                                                                 descriptorPoolHandle,
-                                                                 descriptorSetLayoutHandle);
+    VkDescriptorBufferInfo storageBufferDescriptorInfo =
+    {
+        /*...VkBuffer........buffer...*/ storageBufferHandle,
+        /*...VkDeviceSize....offset...*/ 0,
+        /*...VkDeviceSize....range....*/ VK_WHOLE_SIZE
+    };
 
     // Write the descriptor set with info about the resources backing the ubo
-    VkWriteDescriptorSet descriptorSetUpdateWrite =
+    static const uint32_t numDescriptorsToUpdate = 2;
+    VkWriteDescriptorSet pDescriptorUpdateWrites[numDescriptorsToUpdate] =
     {
-        /*...VkStructureType..................sType..............*/ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-        /*...const.void*......................pNext..............*/ nullptr,
-        /*...VkDescriptorSet..................dstSet.............*/ descriptorSetHandle,
-        /*...uint32_t.........................dstBinding.........*/ 0,
-        /*...uint32_t.........................dstArrayElement....*/ 0,
-        /*...uint32_t.........................descriptorCount....*/ 1,
-        /*...VkDescriptorType.................descriptorType.....*/ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-        /*...const.VkDescriptorImageInfo*.....pImageInfo.........*/ nullptr,
-        /*...const.VkDescriptorBufferInfo*....pBufferInfo........*/ &uniformBufferDescriptorInfo,
-        /*...const.VkBufferView*..............pTexelBufferView...*/ nullptr
+        { // struct describing the descriptor update for the uniform buffer at binding 0
+                /*...VkStructureType..................sType..............*/ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                /*...const.void*......................pNext..............*/ nullptr,
+                /*...VkDescriptorSet..................dstSet.............*/ descriptorSetHandle,
+                /*...uint32_t.........................dstBinding.........*/ 0, // ubo binding in descriptor layout
+                /*...uint32_t.........................dstArrayElement....*/ 0,
+                /*...uint32_t.........................descriptorCount....*/ 1,
+                /*...VkDescriptorType.................descriptorType.....*/ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                /*...const.VkDescriptorImageInfo*.....pImageInfo.........*/ nullptr,
+                /*...const.VkDescriptorBufferInfo*....pBufferInfo........*/ &uniformBufferDescriptorInfo,
+                /*...const.VkBufferView*..............pTexelBufferView...*/ nullptr
+        },
+        { // struct describing the descriptor update for the storage buffer at binding 1
+            /*...VkStructureType..................sType..............*/ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            /*...const.void*......................pNext..............*/ nullptr,
+            /*...VkDescriptorSet..................dstSet.............*/ descriptorSetHandle,
+            /*...uint32_t.........................dstBinding.........*/ 1, // ssbo binding in descriptor layout
+            /*...uint32_t.........................dstArrayElement....*/ 0,
+            /*...uint32_t.........................descriptorCount....*/ 1,
+            /*...VkDescriptorType.................descriptorType.....*/ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            /*...const.VkDescriptorImageInfo*.....pImageInfo.........*/ nullptr,
+            /*...const.VkDescriptorBufferInfo*....pBufferInfo........*/ &storageBufferDescriptorInfo,
+            /*...const.VkBufferView*..............pTexelBufferView...*/ nullptr
+        }
     };
 
     vkUpdateDescriptorSets (/*...VkDevice....................................device.................*/ logicalDevice,
-                            /*...uint32_t....................................descriptorWriteCount...*/ 1,
-                            /*...const.VkWriteDescriptorSet*.................pDescriptorWrites......*/ &descriptorSetUpdateWrite,
+                            /*...uint32_t....................................descriptorWriteCount...*/ numDescriptorsToUpdate,
+                            /*...const.VkWriteDescriptorSet*.................pDescriptorWrites......*/ pDescriptorUpdateWrites,
                             /*...uint32_t....................................descriptorCopyCount....*/ 0,
                             /*...const.VkCopyDescriptorSet*..................pDescriptorCopies......*/ nullptr);
 

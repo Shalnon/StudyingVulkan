@@ -4,6 +4,8 @@
 #include "Asset_Tools.h"
 #include "Vulkan_Utils.h"
 #include "Logging.h"
+#include <assimp/material.h>
+#include <glm/gtc/color_space.hpp> 
 
 VkDeviceMemory AllocateVkBufferMemory (VkPhysicalDevice      physicalDevice,
                                        VkDevice              logicalDevice,
@@ -276,7 +278,7 @@ vulkanAllocatedBufferInfo CreateAndAllocaStagingBuffer (VkPhysicalDevice physica
         /*...uint32_t...............queueFamilyIndexCount.....*/ 1,
         /*...const.uint32_t*........pQueueFamilyIndices.......*/ &queueIndex
     };
-
+    
     VkResult result = vkCreateBuffer (logicalDevice, &stagingBufferCreateInfo, nullptr, &stagingBufferHandle);
 
     VkMemoryRequirements stagingBufferMemRequirements = {};
@@ -286,7 +288,7 @@ vulkanAllocatedBufferInfo CreateAndAllocaStagingBuffer (VkPhysicalDevice physica
     // Allocate memory for the buffer.
     VkDeviceMemory stagingMem = AllocateVkBufferMemory (physicalDevice,
                                                         logicalDevice,
-                                                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, // @TODO: figure out if i need to add VK_MEMORY_PROPERTY_HOST_COHERENT_BIT as well. supposedly this removes need for manual memory flushes, but it seems to work fine already...
+                                                        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
                                                         &stagingBufferMemRequirements);
     assert (stagingMem != VK_NULL_HANDLE);
 
@@ -338,6 +340,8 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physical
     uint32_t                  sceneVertexCount         = 0;
 
     const uint32_t   numMeshes  = pScene->mNumMeshes;
+
+
 
     MeshInfo*  pMeshInfos = static_cast<MeshInfo*>(calloc(numMeshes, sizeof(MeshInfo)));
 
@@ -401,8 +405,7 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physical
         };
 
         printf ("----------===== Vertex Data for mesh %u  =====------\n", meshIdx);
-        //Reading and updating per-vertex data. 
-        //   Specifically: Write vertex position data to the vertex position staging buffer, and update the mesh AABB.
+        // Write vertex position data to the vertex position staging buffer, and update the mesh AABB.
         printf ("     ---firstVertexForMesh%u = %u\n", meshIdx, firstVertexForMesh);
         printf ("     ---firstPrimInMesh%u = %u\n", meshIdx, firstPrimInMesh);
         for (uint32_t meshVertexIdx = 0; meshVertexIdx < pAiMesh->mNumVertices; meshVertexIdx++)
@@ -411,9 +414,11 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physical
             const uint32_t    bufferVertexIdx = firstVertexForMesh + meshVertexIdx;
             const uint32_t    xCoordIdx       = (firstVertexForMesh + meshVertexIdx) * COORDS_PER_POSITION;
 
+            // Position attribute
             pVertexBuffMemFloatPtr[xCoordIdx + 0] = pVertex->x;
             pVertexBuffMemFloatPtr[xCoordIdx + 1] = pVertex->y;
             pVertexBuffMemFloatPtr[xCoordIdx + 2] = pVertex->z;
+
 
             // Update mesh aabb as needed
             if (pVertex->x > meshAABB.maxX) { meshAABB.maxX  = pVertex->x; } // update x max
@@ -427,9 +432,7 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physical
         sceneVertexCount += pAiMesh->mNumVertices;
 
         printf ("----------===== Triangle Index Data for mesh %u  =====------\n", meshIdx);
-        //Reading and updating per-triangle data. 
-        //   Specifically: Write vertex index data to the vertex index staging buffer
-        printf ("faces list addr:%p\n", &(pAiMesh->mFaces[0]));
+        // Write vertex index data to the vertex index staging buffer
         for (uint32_t meshPrimIndex = 0; meshPrimIndex < pAiMesh->mNumFaces; meshPrimIndex++)
         {
             const aiFace* pFace = &(pAiMesh->mFaces[meshPrimIndex]);
@@ -451,8 +454,10 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physical
 
         sceneTriangleCount += pAiMesh->mNumFaces;
 
+        // Update meshInfo struct
         pMeshInfos[meshIdx] = { /*...uint32_t...........firstPrimIdx........*/ firstPrimInMesh,
                                 /*...uint32_t...........numPrims............*/ sceneTriangleCount - firstPrimInMesh,
+                                /*...uint32_t...........materialIdx.........*/ pAiMesh->mMaterialIndex,
                                 /*...glm::mat4x4........modelMatrix.........*/ sIdentityMat4x4,
                                 /*...VkAabbPositionsKHR.aabb................*/ meshAABB };
 
@@ -528,6 +533,113 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physical
              /*...VkAabbPositionsKHR........sceneAABB..........*/ sceneAABB  };
 }
 
+vulkanAllocatedBufferInfo CreateMeshColorsStorageBuffer (VkPhysicalDevice    physicalDevice,
+                                                         VkDevice            logicalDevice,
+                                                         VkQueue             queue,
+                                                         uint32_t            queueFamilyIndex,
+                                                         const aiScene*      pScene)
+{
+    // Defining a vector struct to be used locally here just so i can guarentee packed data
+    //   without worrying about glms or assimp's internal vector representation
+    struct float3
+    {
+        union
+        {
+            struct
+            {
+                float r;
+                float g;
+                float b;
+            };
+            struct
+            {
+                float x;
+                float y;
+                float z;
+            };
+            float data[3];
+        };
+    };
+
+    uint32_t numMaterialColors = pScene->HasMaterials () ? pScene->mNumMaterials : 0;
+    assert (numMaterialColors > 0);
+
+    // Initialize with size required for the storing the per material values. At this point thats just one color per material.
+    printf ("numBytesPerColorValue: %u\n", NUM_BYTES_PER_COLOR_VALUE);
+    VkDeviceSize storageBufferDataSize = numMaterialColors * NUM_BYTES_PER_COLOR_VALUE;
+
+    //Create a staging buffer which will that the cpu writes color data to
+    vulkanAllocatedBufferInfo storageStagingBufferInfo = CreateAndAllocaStagingBuffer (physicalDevice,
+                                                                                       logicalDevice,
+                                                                                       storageBufferDataSize,
+                                                                                       queueFamilyIndex);
+
+    void*   pMappedStagingMemVoidPtr    = MapBufferMemory (storageStagingBufferInfo, logicalDevice);
+   // float3* pStorageStagingMemFloat3Ptr = reinterpret_cast<float3*>(pMappedStagingMemVoidPtr);
+    float* pStorageStagingMemFloatPtr = reinterpret_cast<float*>(pMappedStagingMemVoidPtr);
+    uint32_t currentFloatIdx = 0;
+
+  /*  assert (sizeof (float3) == (sizeof (float) * 3));
+      assert (offsetof (float3, r) == 0);
+      assert (offsetof (float3, g) == sizeof(float) * 1);
+      assert (offsetof (float3, b) == sizeof(float) * 2);
+    
+      assert (offsetof (float3, x) == 0);
+      assert (offsetof (float3, y) == sizeof (float) * 1);
+      assert (offsetof (float3, z) == sizeof (float) * 2);*/
+
+    //@TODO: Account for different alignments: Subsequent colors must be at addresses that are >= the alignment reported from the memRequirements.
+    printf ("\n============== Material Colors ==============\n");
+    printf ("numMaterials = %u\n", pScene->mNumMaterials);
+    for (uint32_t materialIdx = 0; materialIdx < pScene->mNumMaterials; materialIdx++)
+    {
+        // Get the material's diffuse color using assimp's material interface
+        aiMaterial* pMaterial = pScene->mMaterials[materialIdx];
+        aiColor3D   color     = {};
+        pMaterial->Get (AI_MATKEY_COLOR_DIFFUSE, color);
+
+        //
+        const glm::vec3 colorInLinearSpace = { color.r, color.g, color.b };
+        glm::vec3       colorInSrgbSpace   = glm::convertLinearToSRGB (colorInLinearSpace);
+
+        //Write the color to the correct location in the staging buffer
+        pStorageStagingMemFloatPtr[currentFloatIdx++] = colorInSrgbSpace.r;
+        pStorageStagingMemFloatPtr[currentFloatIdx++] = colorInSrgbSpace.g;
+        pStorageStagingMemFloatPtr[currentFloatIdx++] = colorInSrgbSpace.b;
+        pStorageStagingMemFloatPtr[currentFloatIdx++] = 1.0f;// alpha
+
+        printf ("pScene->mMaterials[%u].get(AI_MATKEY_COLOR_DIFFUSE) = { %.4f, %.4f, %.4f }\n", materialIdx, colorInSrgbSpace.r,
+                                                                                                             colorInSrgbSpace.g,
+                                                                                                             colorInSrgbSpace.b);
+    }
+    printf ("\n\n");
+
+    // Unmap staging buffer
+    vkUnmapMemory (logicalDevice, storageStagingBufferInfo.memoryHandle);
+
+
+    vulkanAllocatedBufferInfo colorStorageBufferInfo = CreateAndAllocateSsbo (physicalDevice,
+                                                                              logicalDevice,
+                                                                              storageBufferDataSize,
+                                                                              queueFamilyIndex);
+
+    // Upload transform uniform data to device local buffer
+    ExecuteBuffer2BufferCopy (/*...VkPhysicalDevice............physicalDevice........*/ physicalDevice,
+                              /*...VkDevice....................logicalDevice.........*/ logicalDevice,
+                              /*...VkQueue.....................queue.................*/ queue,
+                              /*...uint32_t....................queueFamilyIndex......*/ queueFamilyIndex,
+                              /*...VkDeviceSize................copySize..............*/ storageBufferDataSize,
+                              /*...vulkanAllocatedBufferInfo...srcBufferInfo.........*/ storageStagingBufferInfo,   // Src buffer
+                              /*...vulkanAllocatedBufferInfo...dstBufferInfo.........*/ colorStorageBufferInfo);    // Dst buffer
+
+    // Dont need the staging buffer or memory anymore
+    vkFreeMemory (logicalDevice, storageStagingBufferInfo.memoryHandle, nullptr);
+    vkDestroyBuffer (logicalDevice, storageStagingBufferInfo.bufferHandle, nullptr);
+
+
+    return colorStorageBufferInfo;
+}
+
 vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             physicalDevice,
                                                VkDevice                     logicalDevice,
                                                VkQueue                      queue,
@@ -566,7 +678,7 @@ vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             phys
     // Write the sceneTransform matrix to the UBO staging buffer memory
     memcpy (pUniformStagingBuffMemFloatPtr, &(sceneTransform[0][0]), NUM_BYTES_PER_MODEL_MATRIX);
 
-    // Write a second vector to seaprately control scene scale...This is mostly a temporary variable to demonstrate the struct-like nature of UBOs
+    // Write a second vector to seprately control scene scale...This is mostly a temporary variable to demonstrate the struct-like nature of UBOs
     float* pUboSceneScale = &pUniformStagingBuffMemFloatPtr[NUM_FLOATS_PER_TRASNFORM_MATRIX];
     pUboSceneScale[0] = 0.75;
     pUboSceneScale[1] = 1.0;

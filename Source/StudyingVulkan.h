@@ -25,10 +25,10 @@
 #define NUM_BYTES_PER_VERTEX_POSITION sizeof (float) * COORDS_PER_POSITION
 #define NUM_INDEX_BYTES_PER_TRIANGLE sizeof (uint32_t) * NUM_VERTICES_PER_TRIANGLE
 
-//RGB
-#define NUM_COLOR_CHANNELS_PER_VERTEX 3
+//RGBA because there needs to be a 16 byte stride between elements
+#define NUM_COLOR_CHANNELS_PER_VALUE 4
 #define NUM_BYTES_PER_COLOR_CHANNEL sizeof(float)
-#define NUM_COLOR_BYTES_PER_VERTEX NUM_COLOR_CHANNELS_PER_VERTEX * NUM_BYTES_PER_COLOR_CHANNEL
+#define NUM_BYTES_PER_COLOR_VALUE    NUM_COLOR_CHANNELS_PER_VALUE * NUM_BYTES_PER_COLOR_CHANNEL
 
 
 //Define our model matrix format. Doing it this way because im not actually sure i need a full 4x4 matrix and this makes it easier to experiment
@@ -61,7 +61,7 @@
 #define VERT_PATH  "C:\\git\\CmakeExperiments\\StudyingVulkan\\StudyingVulkan\\Source\\Shaders\\Khronos\\withVertexBuffer\\vert.spv"
 
 #define NUM_PREFERRED_SURFACE_FORMATS 2
-#define PREFERRED_SURRFACE_FORMATS  { VK_FORMAT_R8G8B8A8_SRGB,  VK_FORMAT_B8G8R8A8_SRGB }
+#define PREFERRED_SURRFACE_FORMATS  { VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_B8G8R8A8_SRGB }
 #define NUM_PREFFERRED_DEPTH_FORMATS 1
 #define PREFERRED_DEPTH_FORMATS { VK_FORMAT_D32_SFLOAT }
 

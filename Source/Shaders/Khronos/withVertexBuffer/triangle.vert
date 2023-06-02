@@ -1,22 +1,21 @@
 //glslc --target-env=vulkan1.3 -fshader-stage=vert -o vert.spv triangle.vert 
 
-#version 420
+#version 450
 precision highp float;
 
-layout(binding = 0) uniform UniformBufferObject
+layout(location = 0) in  vec3 inPosition;
+layout(location = 0) out vec3 out_color;
+
+layout( binding = 0) uniform UniformBufferObject
 {
     mat4 sceneTransform;
     vec4 sceneScale;
 } ubo;
 
-layout(location = 0) in  vec3 inPosition;
-layout(location = 0) out vec3 out_color;
-
-vec3 triangle_colors[3] = vec3[](
-    vec3(1.0, 0.0, 0.0),
-    vec3(0.0, 1.0, 0.0),
-    vec3(0.0, 0.0, 1.0)
-);
+layout( binding = 1) readonly buffer MaterialsSSBO
+{
+    vec4 colors[];
+} ssbo;
 
 void main()
 {
@@ -25,5 +24,5 @@ void main()
     vec4 vpos = vec4(inPosition.xyz, 1.0) * meshTransform;
     gl_Position = vpos * ubo.sceneScale;
 
-    out_color = triangle_colors[gl_VertexIndex%3];
+    out_color = ssbo.colors[gl_InstanceIndex].rgb;
 }
