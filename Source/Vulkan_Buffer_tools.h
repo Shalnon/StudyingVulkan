@@ -10,6 +10,7 @@
 struct VertexAttributeData
 {
     float position[3];
+    float normal[3];
 };
 
 struct AttributeInfo
@@ -22,15 +23,23 @@ struct AttributeInfo
 };
 
 #define VERTEX_ATTRIB_POSITION_IDX 0
+#define VERTEX_ATTRIB_NORMAL_IDX 1
 
 // All attributes will come from the same buffer for now
 static AttributeInfo s_VertexShaderAttributes[] =
 {
     { // POSITION ATTRIBUTE
         /*...uint32_t...bufferBindingIdx..*/ 0,
-        /*...uint32_t...attributeIdx......*/ 0,
+        /*...uint32_t...attributeIdx......*/ VERTEX_ATTRIB_POSITION_IDX, //0
         /*...uint32_t...stride............*/ sizeof (VertexAttributeData::position),
         /*...uint32_t...offset............*/ offsetof (VertexAttributeData, position),
+        /*...VkFormat...format............*/ VK_FORMAT_R32G32B32_SFLOAT
+    },
+    { // VERTEX NORMAL ATTRIBUTE
+        /*...uint32_t...bufferBindingIdx..*/ 0,
+        /*...uint32_t...attributeIdx......*/ VERTEX_ATTRIB_NORMAL_IDX, //1
+        /*...uint32_t...stride............*/ sizeof (VertexAttributeData::normal),
+        /*...uint32_t...offset............*/ offsetof (VertexAttributeData, normal),
         /*...VkFormat...format............*/ VK_FORMAT_R32G32B32_SFLOAT
     }
 };

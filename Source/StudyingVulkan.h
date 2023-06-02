@@ -17,14 +17,18 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 //#define  VK_NO_PROTOTYPES
 
+//@TODO: Clean up all these defines 
+
 #define USE_VOLK
 //Max must be a multiple of 64
 #define MAX_SEMAPHORE_LIST_SIZE 512
 #define MIN_SEMAPHORE_LIST_SIZE 64
 #define SEMAPHORE_LIST_GROWTH_RATE 64
 #define COORDS_PER_POSITION 3
+#define COORDS_PER_NORMAL 3
 #define NUM_VERTICES_PER_TRIANGLE 3
 #define NUM_BYTES_PER_VERTEX_POSITION sizeof (float) * COORDS_PER_POSITION
+#define NUM_BYTES_PER_NORMAL_VECTOR sizeof (float) * COORDS_PER_POSITION
 #define NUM_INDEX_BYTES_PER_TRIANGLE sizeof (uint32_t) * NUM_VERTICES_PER_TRIANGLE
 
 //RGBA because there needs to be a 16 byte stride between elements

@@ -398,6 +398,9 @@ bool CreatePhysicalDeviceAndQueue(VkInstance                instance,
         /*..const.float*................pQueuePriorities.....*/ &queuePriority
     };
 
+    VkPhysicalDeviceFeatures featuresToEnable = {};
+    featuresToEnable.depthBounds = true;
+
     VkDeviceCreateInfo deviceCreateInfo =
     {
         /*....VkStructureType....................sType.......................*/ VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
@@ -409,7 +412,7 @@ bool CreatePhysicalDeviceAndQueue(VkInstance                instance,
         /*....const.char*.const*.................ppEnabledLayerNames.........*/ 0,
         /*....uint32_t...........................enabledExtensionCount.......*/ numnRequiredExtensions,
         /*....const.char*.const*.................ppEnabledExtensionNames.....*/ ppRequiredDeviceExtensionNames,
-        /*....const.VkPhysicalDeviceFeatures*....pEnabledFeatures............*/ 0//&physicalDeviceFeatures
+        /*....const.VkPhysicalDeviceFeatures*....pEnabledFeatures............*/ &featuresToEnable
     };
 
     *pQueueOut         = VK_NULL_HANDLE;
@@ -983,31 +986,45 @@ VkPipeline CreatePipeline(VkDevice              logicalDevice,
     uint32_t numVertexAttributes = sizeof (s_VertexShaderAttributes) / sizeof (AttributeInfo);
     assert (numVertexAttributes > 0);
  
-    VkVertexInputAttributeDescription inputAttributeDescription =
-    {
-        /*...uint32_t....location....*/ s_VertexShaderAttributes[VERTEX_ATTRIB_POSITION_IDX].attributeIdx,
-        /*...uint32_t....binding.....*/ s_VertexShaderAttributes[VERTEX_ATTRIB_POSITION_IDX].bufferBindingIdx,
-        /*...VkFormat....format......*/ s_VertexShaderAttributes[VERTEX_ATTRIB_POSITION_IDX].format,
-        /*...uint32_t....offset......*/ s_VertexShaderAttributes[VERTEX_ATTRIB_POSITION_IDX].offset
-    };
 
-    // Position binding
-    VkVertexInputBindingDescription       vertexInputDescription =
+    VkVertexInputAttributeDescription pInputAttributeDescriptions[] =
     {
-        /*..uint32_t.............binding......*/ s_VertexShaderAttributes[VERTEX_ATTRIB_POSITION_IDX].bufferBindingIdx,
-        /*..uint32_t.............stride.......*/ s_VertexShaderAttributes[VERTEX_ATTRIB_POSITION_IDX].stride,
-        /*..VkVertexInputRate....inputRate....*/ VK_VERTEX_INPUT_RATE_VERTEX
+        {
+            /*...uint32_t....location....*/ s_VertexShaderAttributes[VERTEX_ATTRIB_POSITION_IDX].attributeIdx,
+            /*...uint32_t....binding.....*/ s_VertexShaderAttributes[VERTEX_ATTRIB_POSITION_IDX].bufferBindingIdx,
+            /*...VkFormat....format......*/ s_VertexShaderAttributes[VERTEX_ATTRIB_POSITION_IDX].format,
+            /*...uint32_t....offset......*/ s_VertexShaderAttributes[VERTEX_ATTRIB_POSITION_IDX].offset
+        },
+        {
+            /*...uint32_t....location....*/ s_VertexShaderAttributes[VERTEX_ATTRIB_NORMAL_IDX].attributeIdx,
+            /*...uint32_t....binding.....*/ s_VertexShaderAttributes[VERTEX_ATTRIB_NORMAL_IDX].bufferBindingIdx,
+            /*...VkFormat....format......*/ s_VertexShaderAttributes[VERTEX_ATTRIB_NORMAL_IDX].format,
+            /*...uint32_t....offset......*/ s_VertexShaderAttributes[VERTEX_ATTRIB_NORMAL_IDX].offset
+        }
     };
+    assert ((sizeof (pInputAttributeDescriptions) / sizeof (VkVertexInputAttributeDescription)) == numVertexAttributes);
+
+    uint32_t numInputBindings = 1;
+    VkVertexInputBindingDescription pVertexInputBindingDescriptions[] =
+    {
+        {
+            /*..uint32_t.............binding......*/ s_VertexShaderAttributes[VERTEX_ATTRIB_POSITION_IDX].bufferBindingIdx,
+            /*..uint32_t.............stride.......*/ s_VertexShaderAttributes[VERTEX_ATTRIB_POSITION_IDX].stride +
+                                                     s_VertexShaderAttributes[VERTEX_ATTRIB_NORMAL_IDX].stride,
+            /*..VkVertexInputRate....inputRate....*/ VK_VERTEX_INPUT_RATE_VERTEX
+        }
+    };
+    assert ((sizeof (pVertexInputBindingDescriptions) / sizeof (VkVertexInputBindingDescription)) == numInputBindings);
 
     VkPipelineVertexInputStateCreateInfo   vertexInputStateCreateInfo =
     {
         /*...VkStructureType.............................sType.............................*/ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
         /*...const.void*.................................pNext.............................*/ nullptr,
         /*...VkPipelineVertexInputStateCreateFlags.......flags.............................*/ 0, // Reserved for future use as of vulkan 1.3
-        /*...uint32_t....................................vertexBindingDescriptionCount.....*/ 1,
-        /*...const.VkVertexInputBindingDescription*......pVertexBindingDescriptions........*/ &vertexInputDescription,
+        /*...uint32_t....................................vertexBindingDescriptionCount.....*/ numInputBindings,
+        /*...const.VkVertexInputBindingDescription*......pVertexBindingDescriptions........*/ pVertexInputBindingDescriptions,
         /*...uint32_t....................................vertexAttributeDescriptionCount...*/ numVertexAttributes,
-        /*...const.VkVertexInputAttributeDescription*....pVertexAttributeDescriptions......*/ &inputAttributeDescription
+        /*...const.VkVertexInputAttributeDescription*....pVertexAttributeDescriptions......*/ pInputAttributeDescriptions
     };
 
     VkPipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo =

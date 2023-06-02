@@ -346,6 +346,7 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physical
     vulkanAllocatedBufferInfo indexStagingBufferInfo   = {}; // Will correspond to a buffer backed by host visible memory, and will be where vert indices defining primitives will be written
     vulkanAllocatedBufferInfo vertexBufferInfo         = {};
     vulkanAllocatedBufferInfo indexBufferInfo          = {};
+    VkDeviceSize              singleVertexSize         = 0; // Size of all the vertex attributes
     VkDeviceSize              vertexBufferDataSize     = 0;
     VkDeviceSize              indexBufferDataSize      = 0;
     uint32_t                  sceneTriangleCount       = 0;
@@ -361,9 +362,13 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physical
         sceneVertexCount   += pAiMesh->mNumVertices;
         sceneTriangleCount += pAiMesh->mNumFaces;
     }
+    
+    singleVertexSize = NUM_BYTES_PER_VERTEX_POSITION + NUM_BYTES_PER_NORMAL_VECTOR;
 
     // Calculate amount of memory needed to hold the vertex data
-    vertexBufferDataSize  = sceneVertexCount   * NUM_BYTES_PER_VERTEX_POSITION;
+    vertexBufferDataSize  = sceneVertexCount * singleVertexSize;
+
+    // Calculated amount of memory needed to hold the index buffer data
     indexBufferDataSize   = sceneTriangleCount * NUM_INDEX_BYTES_PER_TRIANGLE;
 
     // Create a staging buffer which will be where the cpu writes vertex data to
@@ -374,21 +379,22 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physical
 
     // Create a staging buffer which will be where the cpu writes index data to
     indexStagingBufferInfo = CreateAndAllocaStagingBuffer (physicalDevice,
-                                                            logicalDevice,
-                                                            indexBufferDataSize,
-                                                            queueFamilyIndex);
+                                                           logicalDevice,
+                                                           indexBufferDataSize,
+                                                           queueFamilyIndex);
 
     // Map vertex buffer and index buffer memory , than get typed pointers to it
     void*     pMappedPositionStagingBufferMem = MapBufferMemory (vertexStagingBufferInfo, logicalDevice);
     void*     pMappedIndexStagingBufferMem    = MapBufferMemory (indexStagingBufferInfo,  logicalDevice);
 
-    float*    pVertexBuffMemFloatPtr          = reinterpret_cast<  float*   >(pMappedPositionStagingBufferMem);
-    uint32_t* pIndexBuffMemUintPtr            = reinterpret_cast< uint32_t* >(pMappedIndexStagingBufferMem);
+    VertexAttributeData* pVertexBuffMemPtr    = reinterpret_cast<VertexAttributeData*>(pMappedPositionStagingBufferMem);
+    uint32_t*            pIndexBuffMemUintPtr = reinterpret_cast< uint32_t* >(pMappedIndexStagingBufferMem);
 
-    // Need to iterate over the geometry data again, so resetting the counters to 0
+    // Reset and re-use counters
     sceneTriangleCount = 0;
     sceneVertexCount   = 0;
 
+    uint32_t currentCoordIdx = 0;
     // This loop accomplishes 4 things:
     // - Write vertex position data to the vertex staging buffer
     // - Initialize MeshInfo structs
@@ -397,9 +403,11 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physical
     for (uint32_t meshIdx = 0; meshIdx < numMeshes; meshIdx++)
     {
         const aiMesh*      pAiMesh            = pScene->mMeshes[meshIdx];
-        uint32_t           firstPrimInMesh    = sceneTriangleCount;         // save off index of the first triangle that is part of this mesh
+        uint32_t           firstPrimInMesh    = sceneTriangleCount;     // save off index of the first triangle that is part of this mesh
         uint32_t           firstVertexForMesh = sceneVertexCount;
 
+        assert (pAiMesh->HasPositions() == true);
+        assert (pAiMesh->HasNormals()   == true);
         // Initialize mesh's AABB with coordinates from first vertex.
         //    Cant initialzie fields with 0, because 0 isnt guarenteed to be inside meshs actual AABB.
         VkAabbPositionsKHR meshAABB =
@@ -412,19 +420,26 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physical
             /*...float....maxZ...*/  pAiMesh->mVertices[0].z
         };
 
+
         printf ("----------===== Vertex Data for mesh %u  =====------\n", meshIdx);
         // Write vertex position data to the vertex position staging buffer, and update the mesh AABB.
         for (uint32_t meshVertexIdx = 0; meshVertexIdx < pAiMesh->mNumVertices; meshVertexIdx++)
         {
             const aiVector3D* pVertex         = &(pAiMesh->mVertices[meshVertexIdx]);
-            const uint32_t    bufferVertexIdx = firstVertexForMesh + meshVertexIdx;
-            const uint32_t    xCoordIdx       = (firstVertexForMesh + meshVertexIdx) * COORDS_PER_POSITION;
+            const aiVector3D* pNormal         = &(pAiMesh->mNormals[meshVertexIdx]);
+            const uint32_t    vertexIdx       = sceneVertexCount + meshVertexIdx;
+
+            VertexAttributeData* pMeshVertex = &(pVertexBuffMemPtr[vertexIdx]);
 
             // Position attribute
-            pVertexBuffMemFloatPtr[xCoordIdx + 0] = pVertex->x;
-            pVertexBuffMemFloatPtr[xCoordIdx + 1] = pVertex->y;
-            pVertexBuffMemFloatPtr[xCoordIdx + 2] = pVertex->z;
+             pMeshVertex->position[0] = pVertex->x;
+             pMeshVertex->position[1] = pVertex->y;
+             pMeshVertex->position[2] = pVertex->z;
 
+            // Normal attribute
+             pMeshVertex->normal[0] = pNormal->x;
+             pMeshVertex->normal[1] = pNormal->y;
+             pMeshVertex->normal[2] = pNormal->z;
 
             // Update mesh aabb as needed
             if (pVertex->x > meshAABB.maxX) { meshAABB.maxX  = pVertex->x; } // update x max
