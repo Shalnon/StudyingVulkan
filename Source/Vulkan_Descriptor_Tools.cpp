@@ -12,14 +12,17 @@ VkDescriptorSetLayout CreateDescriptorSetLayout (VkDevice logicalDevice)
     /******  From Vertex Shader   *******
     * layout( binding = 0) uniform UniformBufferObject
     * {
+    *     // Scene Transform
     *     mat4 sceneTransform;
     *     vec4 sceneScale;
-    * } ubo;
     * 
-    * layout( binding = 1) readonly buffer MaterialsSSBO
-    * {
-    *     vec3 colors[];
-    * } ssbo;
+    *     // Scene ambient color
+    *     float ambient_Coefficient;
+    *     vec3  ambient_color;
+    * 
+    *     // Light location
+    *     vec3 lightLocation;
+    * } ubo;
     *******************************************/
     static const uint32_t numLayoutBindings = 2;
 
@@ -29,7 +32,7 @@ VkDescriptorSetLayout CreateDescriptorSetLayout (VkDevice logicalDevice)
             /*...uint32_t..............binding................*/ 0,
             /*...VkDescriptorType......descriptorType.........*/ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             /*...uint32_t..............descriptorCount........*/ 1, // This would be greater than 1 if ubo was declared in the shader like }ubo[n]; where n>1
-            /*...VkShaderStageFlags....stageFlags.............*/ VK_SHADER_STAGE_VERTEX_BIT,
+            /*...VkShaderStageFlags....stageFlags.............*/ VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
             /*...const.VkSampler*......pImmutableSamplers.....*/ nullptr
         },
         {

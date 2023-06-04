@@ -562,47 +562,11 @@ vulkanAllocatedBufferInfo CreateMeshColorsStorageBuffer (VkPhysicalDevice    phy
                                                          uint32_t            queueFamilyIndex,
                                                          const aiScene*      pScene)
 {
-    // Defining a vector struct here to be used locally just so i can guarentee packed data
-    //   without worrying about glm's or assimp's internal vector representation
-    struct float4
-    {
-        union
-        {
-            struct
-            {
-                float r;
-                float g;
-                float b;
-                float a;
-            };
-            struct
-            {
-                float x;
-                float y;
-                float z;
-                float w;
-            };
-            float data[4];
-        };
-    };
-
-#ifdef DEBUG
-    assert (sizeof   (float4) == (sizeof (float) * NUM_CHANNELS_PER_COLOR));
-    assert (offsetof (float4, r) ==                 0);
-    assert (offsetof (float4, g) == sizeof(float) * 1);
-    assert (offsetof (float4, b) == sizeof(float) * 2);
-    assert (offsetof (float4, a) == sizeof(float) * 3);
-    assert (offsetof (float4, x) ==                 0);
-    assert (offsetof (float4, y) == sizeof(float) * 1);
-    assert (offsetof (float4, z) == sizeof(float) * 2);
-    assert (offsetof (float4, w) == sizeof(float) * 3);
-#endif
 
     uint32_t numMaterialColors = pScene->HasMaterials () ? pScene->mNumMaterials : 0;
     assert (numMaterialColors > 0);
 
     // Initialize with size required for the storing the per material values. At this point thats just one color per material.
-    printf ("numBytesPerColorValue: %u\n", NUM_BYTES_PER_COLOR_VALUE);
     VkDeviceSize storageBufferDataSize = numMaterialColors * NUM_BYTES_PER_COLOR_VALUE;
 
     //Create a staging buffer which will that the cpu writes color data to
@@ -612,7 +576,15 @@ vulkanAllocatedBufferInfo CreateMeshColorsStorageBuffer (VkPhysicalDevice    phy
                                                                                        queueFamilyIndex);
 
     //Map the buffer memory and than cast it to a float4 for convenience.
-    float4* pStorageStagingMemFloat4Ptr = reinterpret_cast<float4*>(MapBufferMemory (storageStagingBufferInfo, logicalDevice));
+    glm::vec4* pStorageStagingMemFloat4Ptr = reinterpret_cast<glm::vec4*>(MapBufferMemory (storageStagingBufferInfo, logicalDevice));
+
+#ifdef DEBUG
+    // Make sure color channel data is packed
+    static_assert(offsetof (glm::vec4, r) == 0);
+    static_assert(offsetof (glm::vec4, g) == 4);
+    static_assert(offsetof (glm::vec4, b) == 8);
+    static_assert(offsetof (glm::vec4, a) == 12);
+#endif
 
     //@TODO: Account for different alignments: Subsequent colors must be at addresses that are >= the alignment reported from the memRequirements.
     printf ("\n============== Material Colors ==============\n");
@@ -674,42 +646,57 @@ vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             phys
                                                VkAabbPositionsKHR*          pDesiredSceneBounds,
                                                bool                         maintainAspectRatio)
 {
-    // Initialize with size required for the storing the scene transform
-    VkDeviceSize uniformBufferDataSize = NUM_BYTES_PER_MODEL_MATRIX;
+    // Defining a struct here that matches the UBO data layout described in the shader.
+    struct UniformBufferData
+    {
+        // Scene Transform
+        glm::mat4 sceneTransform;
+        glm::vec4 sceneScale;
 
-    // Add size reqiored to store the ubo.sceneScale vector. Length of vector expected to match width of model matrix
-    uniformBufferDataSize += NUM_MODEL_MATRIX_COLUMNS * sizeof(float);
+        // Scene ambient color
+        glm::vec4  ambient_color;
+
+        // Light location
+        glm::vec4 lightLocation;
+        glm::vec4 lightIntensities;
+    };
+
+#ifdef DEBUG
+    // Make sure the struct were using is packed
+    const uint32_t numvec4s = 8;
+    static_assert (sizeof (UniformBufferData) == numvec4s * 4 * sizeof (float));
+
+#endif
+
+    // Initialize with size required for the storing the scene transform
+    VkDeviceSize uniformBufferDataSize = sizeof (UniformBufferData);
 
     //Create a staging buffer which will be where the cpu writes matrix data to
     vulkanAllocatedBufferInfo uniformStagingBufferInfo = CreateAndAllocaStagingBuffer (physicalDevice,
                                                                                        logicalDevice,
                                                                                        uniformBufferDataSize,
                                                                                        queueFamilyIndex);
+
     // Initializing sceneTransformUBO to a transform that will translate and scale the scene such that if fits inside the AABB defined by *pDesiredSceneBounds
     glm::mat4x4 sceneTransform = GetTransform_FitAABBToAABB (/*...VkAabbPositionsKHR...originalAABB...............*/ pGeometryBufferSet->sceneAABB,
                                                              /*...VkAabbPositionsKHR...desiredBounds..............*/ *pDesiredSceneBounds,
                                                              /*...bool.................maintainSceneAspectRatio...*/ maintainAspectRatio);
-
     PrintNamedMatrix ("sceneTransform", &sceneTransform);
-    //  Expected UBO data layout:
-    //  layout(binding = 0) uniform UniformBufferObject
-    //  {
-    //      mat4 sceneTransformUBO;
-    //      vec4 sceneScale;
-    //  } ubo;
 
-    void*  pMappedUniformStagingBufferMem = MapBufferMemory (uniformStagingBufferInfo, logicalDevice);
-    float* pUniformStagingBuffMemFloatPtr = reinterpret_cast<float*>(pMappedUniformStagingBufferMem);
+    void*              pMappedUniformStagingBufferMem = MapBufferMemory (uniformStagingBufferInfo, logicalDevice);
+    UniformBufferData* pUniformStagingBuffer          = reinterpret_cast<UniformBufferData*>(pMappedUniformStagingBufferMem);
 
-    // Write the sceneTransformUBO matrix to the UBO staging buffer memory
-    memcpy (pUniformStagingBuffMemFloatPtr, &(sceneTransform[0][0]), NUM_BYTES_PER_MODEL_MATRIX);
+    float ambientCoeficient = 0.15f;
 
-    // Write a second vector to seprately control scene scale...This is mostly a temporary variable to demonstrate the struct-like nature of UBOs
-    float* pUboSceneScale = &pUniformStagingBuffMemFloatPtr[NUM_FLOATS_PER_TRASNFORM_MATRIX];
-    pUboSceneScale[0] = 0.75;
-    pUboSceneScale[1] = 1.0;
-    pUboSceneScale[2] = 1.0;
-    pUboSceneScale[3] = 1.0;
+    // Write UBO data
+    *pUniformStagingBuffer =
+    {
+        /*...mat4...sceneTransform.........*/ sceneTransform,
+        /*...vec4...sceneScale.............*/ glm::vec4 (1.0f,   1.0f,  1.0f, 1.0f),
+        /*...vec3...ambient_color..........*/ glm::vec4 (0.4f,   0.4f,  0.4f, 1.0f) * ambientCoeficient,
+        /*...vec3...lightLocation..........*/ glm::vec4 (-0.25f, -1.0f,  2.0f, 1.0f),
+        /*...vec3...lightIntensities.......*/ glm::vec4 (1.0f,   1.0f,  1.0f, 1.0f)
+    };
 
     // Unmap staging buffer
     vkUnmapMemory (logicalDevice, uniformStagingBufferInfo.memoryHandle);

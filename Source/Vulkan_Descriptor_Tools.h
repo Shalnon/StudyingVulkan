@@ -9,10 +9,6 @@ VkDescriptorSetLayout CreateDescriptorSetLayout (VkDevice logicalDevice);
 // Create descriptor pool
 VkDescriptorPool CreateDescriptorPool (VkDevice logicalDevice);
 
-void UpdateMeshTransformUbo (VkDevice                logicalDevice,
-                             VkDescriptorBufferInfo* pTransformBufferDescriptorInfo,
-                             VkDescriptorSet         descriptorSet);
-
 VkDescriptorSet AllocateDescriptorSet (VkDevice               logicalDevice,
                                        VkDescriptorPool       descriptorPool,
                                        VkDescriptorSetLayout  descriptorSetLayout);
