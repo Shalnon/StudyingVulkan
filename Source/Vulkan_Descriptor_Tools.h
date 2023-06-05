@@ -4,7 +4,9 @@
 #include <glm\glm.hpp>
 
 // Create descriptor set layout
-VkDescriptorSetLayout CreateDescriptorSetLayout (VkDevice logicalDevice);
+VkResult CreateDescriptorSetLayout (VkDevice logicalDevice,
+                                    VkDescriptorSetLayout* subpass0DescriptorSetLayout,
+                                    VkDescriptorSetLayout* subpass1DescriptorSetLayout);
 
 // Create descriptor pool
 VkDescriptorPool CreateDescriptorPool (VkDevice logicalDevice);

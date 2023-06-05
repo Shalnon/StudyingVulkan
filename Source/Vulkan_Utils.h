@@ -41,11 +41,24 @@ struct PerSwapchainImageResources
     VkSemaphore     acquireSwapchainImageSemaphore;
     VkSemaphore     releaseSwapchainImageSemaphore;
     int32_t         queue_index;
-    VkImageView     colorImageViewHandle;
-    VkImageView     depthImageViewHandle;
-    VkImage         depthImageHandle;
+    
+    // Corresponding VkImage is provided by swapchain and not manually created
+    VkImageView     presentImageViewHandle;
+
     VkDeviceMemory  depthImageMemoryHandle;
+    VkImage         depthImageHandle;
+    VkImageView     depthImageViewHandle;
+
+    VkDeviceMemory  normalsImageMemoryHandle;
+    VkImage         normalsImageHandle;
+    VkImageView     normalsImageViewHandle;
+
+    VkDeviceMemory  diffuseImageMemoryHandle;
+    VkImage         diffuseImageHandle;
+    VkImageView     diffuseImageViewHandle;
+
     VkFramebuffer   framebufferHandle;
+    VkDescriptorSet subpass1DesciptorSetHandle;
 };
 
 
@@ -94,13 +107,13 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
 
 VkRenderPass CreateRenderpass(VkFormat swapChainFormat, VkFormat depthFormat, VkDevice logicalDevice);
 
-VkPipeline CreatePipeline(VkDevice              logicalDevice, 
-                          VkRenderPass          renderpass, 
-                          VkExtent2D*           pExtent, 
-                          VkDescriptorSetLayout descriptorSetLayoutHandle,
-                          const char*           fragShaderPath, 
-                          const char*           vertShaderPath,
-                          VkPipelineLayout*     pPipelineLayoutHandleOut);
+VkPipeline CreatePipeline(VkDevice               logicalDevice, 
+                          VkRenderPass           renderpass, 
+                          VkExtent2D*            pExtent, 
+                          VkDescriptorSetLayout* pDescriptorSetLayoutHandle,
+                          const char*            fragShaderPath, 
+                          const char*            vertShaderPath,
+                          VkPipelineLayout*      pPipelineLayoutHandleOut);
 
 VkFormat ChooseDepthFormat (VkPhysicalDevice   physicalDeviceHandle,
                             uint32_t           numPrefferredDepthFormats,
@@ -115,6 +128,16 @@ void CreateAndAllocateDepthImage (VkDevice            logicalDeviceHandle,
                                   VkDeviceMemory*     pDepthImageMemOut,
                                   VkImage*            pImageHandleOut,
                                   VkImageView*        pDepthImageViewHandleOut);
+
+//Need to make one per swapchain image 
+void CreateAndAllocateColorImage (VkDevice            logicalDeviceHandle,
+                                   VkPhysicalDevice   physicalDeviceHandle,
+                                   uint32_t           queueFamilyIdx,
+                                   VkFormat           imageFormat,
+                                   VkExtent2D         imageDimensions,
+                                   VkDeviceMemory*    pColorImageMemOut,
+                                   VkImage*           pImageHandleOut,
+                                   VkImageView*       pColorImageViewHandleOut);
 
 void CreateFrameBuffers(VkDevice                    logicalDevice,
                         VkRenderPass                renderPass,
@@ -140,7 +163,7 @@ VkResult AcuireNextSwapchainImageIdx(VkQueue                     queue,
 uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                            VkPhysicalDevice             physicalDevice, 
                            VkSwapchainKHR               swapchain,
-                           VkDescriptorSet              descriptorSetHandle,
+                           VkDescriptorSet              subpass0DescriptorSet,
                            VkQueue                      queue,
                            uint32_t                     gfxQueueIdx,
                            uint32_t                     numPreferredSwapchainFormats,
@@ -232,6 +255,21 @@ VkDescriptorSet AllocateAndWriteDescriptorSet (VkDevice               logicalDev
                                                VkDescriptorSetLayout  descriptorSetLayoutHandle,
                                                VkBuffer               uniformBufferHandle,
                                                VkBuffer               storageBufferHandle);
+
+VkDescriptorSet AllocateAndWriteSubpass0DescriptorSet (VkDevice               logicalDevice,
+                                                       VkDescriptorPool       descriptorPoolHandle,
+                                                       VkDescriptorSetLayout  descriptorSetLayoutHandle,
+                                                       VkBuffer               uniformBufferHandle,
+                                                       VkBuffer               storageBufferHandle);
+
+// Allocates a descriptor set with 3 descriptors of type VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT
+VkDescriptorSet AllocateAndWriteSubpass1DescriptorSet (VkDevice               logicalDevice,
+                                                       VkDescriptorPool       descriptorPoolHandle,
+                                                       VkDescriptorSetLayout  descriptorSetLayoutHandle,
+                                                       VkImageView            diffuseColorImageViewHandle,
+                                                       VkImageView            normalVectorImageViewHandle,
+                                                       VkImageView            depthStencilImageViewHandle,
+                                                       VkBuffer               uniformBufferHandle);
 
 
 // Returns memory index of memory type that meets the requirements based on the  memRequirements and requiredPropertyFlags args

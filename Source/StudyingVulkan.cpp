@@ -81,6 +81,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     // - Chooses a supported depth format from the lists above.
     // - Allocates and binds image memory to the depth images.
     // - Creates image views for the depth images.
+    // - Creates the images and image views for the surface normals and diffuse color attachments
     InitializeSwapchain (/*...VkPhysicalDevice.............physicalDevice.................*/ physicalDevice,
                          /*...VkDevice.....................logicalDevice..................*/ logicalDevice,
                          /*...uint32_t.....................graphicsQueueIndex.............*/ queueFamilyIndex,
@@ -100,16 +101,20 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
 
     VkRenderPass          renderpass                = CreateRenderpass (chosenSurfaceFormat.format, chosenDepthFormat, logicalDevice);
 
-    VkDescriptorSetLayout descriptorSetLayoutHandle = CreateDescriptorSetLayout (logicalDevice);
+    VkDescriptorSetLayout pSubpassDescriptorSetLayouts[NUM_SUBPASSES] = { VK_NULL_HANDLE, VK_NULL_HANDLE };
 
-    VkPipelineLayout      pipelineLayoutHandle      = VK_NULL_HANDLE;
-    VkPipeline            pipelineHandle            = CreatePipeline(logicalDevice, 
-                                                                     renderpass,
-                                                                     &actualFrameDimensions,
-                                                                     descriptorSetLayoutHandle,
-                                                                     fragmentShaderPath.c_str(),
-                                                                     vertexShaderPath.c_str(),
-                                                                     &pipelineLayoutHandle);
+    CreateDescriptorSetLayout (logicalDevice,
+                               &pSubpassDescriptorSetLayouts[0],
+                               &pSubpassDescriptorSetLayouts[1]);
+
+    VkPipelineLayout      pPipelineLayoutHandles[NUM_SUBPASSES] = { VK_NULL_HANDLE, VK_NULL_HANDLE };
+    VkPipeline            pipelineHandle                        = CreatePipeline(logicalDevice,   //@todo: CReate separate function for seaprate pipelines
+                                                                                 renderpass,
+                                                                                 &actualFrameDimensions,
+                                                                                 pSubpassDescriptorSetLayouts,
+                                                                                 fragmentShaderPath.c_str(),
+                                                                                 vertexShaderPath.c_str(),
+                                                                                 pPipelineLayoutHandles);
 
     CreateFrameBuffers(logicalDevice,
                        renderpass,
@@ -157,22 +162,45 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                                                           &geometrysBuffers,
                                                                           &sceneBounds,
                                                                           true);
-                                                   
-    // Fills out a VkDescriptorSetAllocateInfo and calls vkAllocateDescriptorSets
-    VkDescriptorSet            descriptorSetHandle = AllocateAndWriteDescriptorSet (logicalDevice,
-                                                                                    descriptorSetLayoutHandle,
-                                                                                    uniformBufferInfo.bufferHandle,
-                                                                                    colorsStorageBufferInfo.bufferHandle);
+
+    VkDescriptorPool      descriptorPoolHandle  = CreateDescriptorPool (logicalDevice);
+
+    // Descriptor set containing a storage buffer and uniform buffer descriptor
+    // Only need one descriptor set for subpass 1, because the buffers used to back the ssbo and ubo are not per swapchain image, and are not written to either.
+    VkDescriptorSet       subpass0DescriptorSet = AllocateAndWriteSubpass0DescriptorSet (logicalDevice,
+                                                                                         descriptorPoolHandle,
+                                                                                         pSubpassDescriptorSetLayouts[0],
+                                                                                         uniformBufferInfo.bufferHandle,
+                                                                                         colorsStorageBufferInfo.bufferHandle);
+
+    for (uint32_t swapIdx = 0; swapIdx < numSwapChainImages; swapIdx++)
+    {
+        PerSwapchainImageResources* pSwapchainImageResourceSet = &pPerSwapchainImageResources[swapIdx];
+        // do i need one of these for each swap image?
+        VkDescriptorSet       subpass1DescriptorSet = AllocateAndWriteSubpass1DescriptorSet (logicalDevice,
+                                                                                             descriptorPoolHandle,
+                                                                                             pSubpassDescriptorSetLayouts[1],
+                                                                                             pSwapchainImageResourceSet->diffuseImageViewHandle,
+                                                                                             pSwapchainImageResourceSet->normalsImageViewHandle,
+                                                                                             pSwapchainImageResourceSet->depthImageViewHandle,
+                                                                                             uniformBufferInfo.bufferHandle);
+
+
+        pSwapchainImageResourceSet->subpass1DesciptorSetHandle = subpass1DescriptorSet;
+    }
+
+
     uint32_t numFramesToRender = 5;
 
     printf("about to start executing renderloop\n");
     for (uint32_t i = 0; i < numFramesToRender; i++)
     {
+
         printf ("\n--Frame %u begin--\n", i);
         ExecuteRenderLoop (/*...VkDevice  ........................logicalDevice..................*/ logicalDevice,
                            /*...VkPhysicalDevice..................physicalDevice.................*/ physicalDevice,
                            /*...VkSwapchainKHR....................swapchain......................*/ swapchain,
-                           /*...VkDescriptorSet...................descriptorSetHandle............*/ descriptorSetHandle,
+                           /*...VkDescriptorSet...................subpass0DescriptorSet..........*/ subpass0DescriptorSet,
                            /*...VkQueue...........................queue..........................*/ queue,
                            /*...uint32_t..........................gfxQueueIdx....................*/ queueFamilyIndex,
                            /*...uint32_t..........................numPreferredSwapchainFormats...*/ numPreferredSurfaceFormats,
@@ -216,9 +244,9 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                 vkFreeCommandBuffers (logicalDevice, pSwapImageResources->commandPool, 1, &pSwapImageResources->commandBuffer);
             }
 
-            if (pSwapImageResources->colorImageViewHandle != VK_NULL_HANDLE)
+            if (pSwapImageResources->presentImageViewHandle != VK_NULL_HANDLE)
             {
-                vkDestroyImageView (logicalDevice, pSwapImageResources->colorImageViewHandle, nullptr);
+                vkDestroyImageView (logicalDevice, pSwapImageResources->presentImageViewHandle, nullptr);
             }
 
             if (pSwapImageResources->framebufferHandle != VK_NULL_HANDLE)

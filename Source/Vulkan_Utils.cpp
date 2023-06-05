@@ -594,9 +594,8 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
                                            /*...VkCommandBuffer*...................pCommandBuffers..*/ &(pPerSwapchainImageResources[i].commandBuffer));
     }
 
-
-    // Create color image views for each of the swapchain images
-    for (uint32_t imageIdx = 0; imageIdx < imageCount; imageIdx++)
+    // Create image views for each of the present images we got from the swapchain
+    for (uint32_t swapIdx = 0; swapIdx < imageCount; swapIdx++)
     {
         //I think the code flows better with this struct inisde the loop.Im assuming the compiler will optimize out the initialization after first iteration. 
         VkImageSubresourceRange subResourceRange =
@@ -613,13 +612,13 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
             /*...VkStructureType............sType...............*/ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
             /*...const.void*................pNext...............*/ 0,
             /*...VkImageViewCreateFlags.....flags...............*/ 0,
-            /*...VkImage....................image...............*/ pSwapchainImages[imageIdx],
+            /*...VkImage....................image...............*/ pSwapchainImages[swapIdx],
             /*...VkImageViewType............viewType............*/ VK_IMAGE_VIEW_TYPE_2D,
             /*...VkFormat...................format..............*/ chosenSwapchainFormat.format,
             /*...VkComponentMapping.........components..........*/ { VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
             /*...VkImageSubresourceRange....subresourceRange....*/ subResourceRange
         };
-        result = vkCreateImageView(logicalDevice, &imageViewCreateInfo, 0, &(pPerSwapchainImageResources[imageIdx].colorImageViewHandle));
+        result = vkCreateImageView(logicalDevice, &imageViewCreateInfo, 0, &(pPerSwapchainImageResources[swapIdx].presentImageViewHandle));
         assert(result == VK_SUCCESS);
     }
 
@@ -628,135 +627,50 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
                                               numPreferredDepthFormats,
                                               pPreferredDepthFormats);
 
-    // This create info is initialized once, and than used multiple times to create a depth image for each of the swapchain framebuffers
-    VkImageCreateInfo depthImagesCreateInfo =
-    {
-        /*...VkStructureType..........sType...................*/ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-        /*...const.void*..............pNext...................*/ nullptr,
-        /*...VkImageCreateFlags.......flags...................*/ 0,
-        /*...VkImageType..............imageType...............*/ VK_IMAGE_TYPE_2D,
-        /*...VkFormat.................format..................*/ depthFormat,
-        /*...VkExtent3D...............extent..................*/ {swapchainExtent.width, swapchainExtent.height, 1},
-        /*...uint32_t.................mipLevels...............*/ 1,
-        /*...uint32_t.................arrayLayers.............*/ 1,
-        /*...VkSampleCountFlagBits....samples.................*/ VK_SAMPLE_COUNT_1_BIT, // if i want to use more than 1, i need to check the value the driver returns in VkPhysicalDeviceProperties::::limits::framebufferDepthSampleCounts
-        /*...VkImageTiling............tiling..................*/ VK_IMAGE_TILING_OPTIMAL,
-        /*...VkImageUsageFlags........usage...................*/ VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-        /*...VkSharingMode............sharingMode.............*/ VK_SHARING_MODE_EXCLUSIVE,
-        /*...uint32_t.................queueFamilyIndexCount...*/ 1,
-        /*...const.uint32_t*..........pQueueFamilyIndices.....*/ &graphicsQueueIndex,
-        /*...VkImageLayout............initialLayout...........*/ VK_IMAGE_LAYOUT_UNDEFINED
-    };
-
-    // Initialize depth image for first swapchain so we can than use that imageHandle to get the memory requirements for all of the depth images we will create.
-    VkImage* pDepthImage0 = &(pPerSwapchainImageResources[0].depthImageHandle);
-    result = vkCreateImage (/*...VkDevice.........................device........*/ logicalDevice,
-                            /*...const.VkImageCreateInfo*.........pCreateInfo...*/ &depthImagesCreateInfo,
-                            /*...const.VkAllocationCallbacks*.....pAllocator....*/ nullptr,
-                            /*...VkImage*.........................pImage........*/ pDepthImage0);
-
-    assert (result == VK_SUCCESS);
-
-    VkMemoryRequirements imageMemRequirements = {};
-    vkGetImageMemoryRequirements (/*...VkDevice....................device................*/ logicalDevice,
-                                  /*...VkImage.....................image.................*/ *pDepthImage0,
-                                  /*...VkMemoryRequirements*.......pMemoryRequirements...*/ &imageMemRequirements);
-
-    uint32_t imagesMemTypeIndex = ChooseMemoryTypeIdx (physicalDevice, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &imageMemRequirements);
-    assert (imagesMemTypeIndex != UINT32_MAX);
-
-    VkMemoryAllocateInfo imageMemAllocateInfo =
-    {
-        /*...VkStructureType....sType.............*/ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-        /*...const.void*........pNext.............*/ nullptr,
-        /*...VkDeviceSize.......allocationSize....*/ imageMemRequirements.size,
-        /*...uint32_t...........memoryTypeIndex...*/ imagesMemTypeIndex
-    };
-
     // Allocates memory for a depth image than creates the image
-    for (uint32_t depthImgIdx = 0; depthImgIdx < imageCount; depthImgIdx++)
+    for (uint32_t swapIdx = 0; swapIdx < imageCount; swapIdx++)
     {
-        VkImage*         pDepthImage             = &(pPerSwapchainImageResources[depthImgIdx].depthImageHandle);
-        VkDeviceMemory*  pDepthImageMemoryHandle = &(pPerSwapchainImageResources[depthImgIdx].depthImageMemoryHandle);
+        VkImage*         pDepthImage             = &(pPerSwapchainImageResources[swapIdx].depthImageHandle);
+        VkDeviceMemory*  pDepthImageMemoryHandle = &(pPerSwapchainImageResources[swapIdx].depthImageMemoryHandle);
+        VkImageView*     pDepthImageViewHandle   = &(pPerSwapchainImageResources[swapIdx].depthImageViewHandle);
 
-        // Since we created one image above already, we want to avoid re-creating it, but still need to allocate and bind memory to it.
-        if (*pDepthImage == VK_NULL_HANDLE)
-        {
-            result = vkCreateImage (/*...VkDevice.........................device........*/ logicalDevice,
-                                    /*...const.VkImageCreateInfo*.........pCreateInfo...*/ &depthImagesCreateInfo,
-                                    /*...const.VkAllocationCallbacks*.....pAllocator....*/ nullptr,
-                                    /*...VkImage*.........................pImage........*/ pDepthImage);
-            assert (result == VK_SUCCESS);
-        }
+        CreateAndAllocateDepthImage (logicalDevice,
+                                     physicalDevice,
+                                     graphicsQueueIndex,
+                                     depthFormat,
+                                     { swapchainExtent.width, swapchainExtent.height },
+                                     pDepthImageMemoryHandle,
+                                     pDepthImage,
+                                     pDepthImageViewHandle);
 
-        // Allocate the memory that will back the depth image
-        result = vkAllocateMemory (/*...VkDevice.......................device.............*/ logicalDevice,
-                                   /*...const.VkMemoryAllocateInfo*....pAllocateInfo......*/ &imageMemAllocateInfo,
-                                   /*...const.VkAllocationCallbacks*...pAllocator.........*/ nullptr,
-                                   /*...VkDeviceMemory*................pMemory............*/ pDepthImageMemoryHandle);
-   
-        assert (*pDepthImageMemoryHandle != VK_NULL_HANDLE);
-        assert (result == VK_SUCCESS);
+        // Create image that will contain the unshaded fragment diffuse color
+        VkImage*        pDiffuseImage     = &( pPerSwapchainImageResources[swapIdx].diffuseImageHandle       );
+        VkDeviceMemory* pDiffuseImageMem  = &( pPerSwapchainImageResources[swapIdx].diffuseImageMemoryHandle );
+        VkImageView*    pDiffuseImageView = &( pPerSwapchainImageResources[swapIdx].diffuseImageViewHandle   );
 
-        result = vkBindImageMemory (/*...VkDevice......................device..........*/ logicalDevice,
-                                    /*...VkImage.......................image...........*/ *pDepthImage,
-                                    /*...VkDeviceMemory................memory..........*/ *pDepthImageMemoryHandle,
-                                    /*...VkDeviceSize..................memoryOffset....*/ 0);
-               
-        assert (result == VK_SUCCESS);
-    }
+        CreateAndAllocateColorImage (logicalDevice,
+                                     physicalDevice,
+                                     graphicsQueueIndex,
+                                     chosenSwapchainFormat.format,
+                                     { swapchainExtent.width, swapchainExtent.height },
+                                     pDiffuseImageMem,
+                                     pDiffuseImage,
+                                     pDiffuseImageView);
 
+        // Create image that will contain surface normal vectors
+        VkImage*        pNormalImage     = &( pPerSwapchainImageResources[swapIdx].normalsImageHandle       );
+        VkDeviceMemory* pNormalImageMem  = &( pPerSwapchainImageResources[swapIdx].normalsImageMemoryHandle );
+        VkImageView*    pNormalImageView = &( pPerSwapchainImageResources[swapIdx].normalsImageViewHandle   );
 
-    // Here we start preparing to create the depth image view
-    bool formatAlsoHasStencil = ((depthFormat == VK_FORMAT_D16_UNORM_S8_UINT ) &&
-                                 (depthFormat == VK_FORMAT_D24_UNORM_S8_UINT ) &&
-                                 (depthFormat == VK_FORMAT_D32_SFLOAT_S8_UINT)  ) ? true : false;
+        CreateAndAllocateColorImage (logicalDevice,
+                                     physicalDevice,
+                                     graphicsQueueIndex,
+                                     chosenSwapchainFormat.format,
+                                     { swapchainExtent.width, swapchainExtent.height },
+                                     pDiffuseImageMem,
+                                     pDiffuseImage,
+                                     pDiffuseImageView);
 
-    bool formatIsDepthOnly    = ((depthFormat == VK_FORMAT_X8_D24_UNORM_PACK32) &&
-                                 (depthFormat == VK_FORMAT_D16_UNORM          ) &&
-                                 (depthFormat == VK_FORMAT_D32_SFLOAT         )  ) ? true : false;
-    
-    VkImageAspectFlags depthImageAspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
-
-    if (formatAlsoHasStencil == true)
-    {
-        depthImageAspectFlags |= VK_IMAGE_ASPECT_STENCIL_BIT;
-        assert (formatIsDepthOnly == false);
-    }
-
-    //Initialize structs required for depth image view creation
-    VkImageSubresourceRange depthImgsubResourceRange =
-    {
-        /*...VkImageAspectFlags....aspectMask.........*/ depthImageAspectFlags,
-        /*...uint32_t..............baseMipLevel.......*/ 0,
-        /*...uint32_t..............levelCount.........*/ 1,
-        /*...uint32_t..............baseArrayLayer.....*/ 0,
-        /*...uint32_t..............layerCount.........*/ 1
-    };
-    VkImageViewCreateInfo depthImageViewCreateInfo =
-    {
-        /*...VkStructureType............sType...............*/ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-        /*...const.void*................pNext...............*/ 0,
-        /*...VkImageViewCreateFlags.....flags...............*/ 0,
-        /*...VkImage....................image...............*/ VK_NULL_HANDLE, // Will be updated inside the loop as each views are created for each of the depth images
-        /*...VkImageViewType............viewType............*/ VK_IMAGE_VIEW_TYPE_2D,
-        /*...VkFormat...................format..............*/ depthFormat,
-        /*...VkComponentMapping.........components..........*/ { VK_COMPONENT_SWIZZLE_IDENTITY },// { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A },
-        /*...VkImageSubresourceRange....subresourceRange....*/ depthImgsubResourceRange
-    };
-
-    //Create depth image views
-    for (uint32_t depthViewIdx = 0; depthViewIdx < imageCount; depthViewIdx++)
-    {
-        VkImage*     pDepthImage           = &(pPerSwapchainImageResources[depthViewIdx].depthImageHandle);
-        VkImageView* pDepthImageViewHandle = &(pPerSwapchainImageResources[depthViewIdx].depthImageViewHandle);
-
-        // Update the contents of the VkImageViewCreateInfo struct declared above with a depth image handle that will be used with the framebuffer at this idx
-        depthImageViewCreateInfo.image = *pDepthImage;
-
-
-        result = vkCreateImageView (logicalDevice, &depthImageViewCreateInfo, 0, pDepthImageViewHandle);
-        assert (result == VK_SUCCESS);
     }
 
     *pChosenDepthFormatOut         = depthFormat;
@@ -790,7 +704,7 @@ VkSurfaceFormatKHR ChooseSwapchainFormat(VkSurfaceFormatKHR* pSupportedSwapchain
 
 VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  VkDevice logicalDevice)
 {
-    VkAttachmentDescription colorAttachmentDescription =
+    VkAttachmentDescription presentAttachmentDescription =
     {
         /*..VkAttachmentDescriptionFlags....flags............*/ 0,
         /*..VkFormat........................format...........*/ swapChainFormat,
@@ -801,6 +715,19 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
         /*..VkAttachmentStoreOp.............stencilStoreOp...*/ VK_ATTACHMENT_STORE_OP_DONT_CARE, // Not using stencil so dont care
         /*..VkImageLayout...................initialLayout....*/ VK_IMAGE_LAYOUT_UNDEFINED,
         /*..VkImageLayout...................finalLayout......*/ VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+    };
+
+    VkAttachmentDescription colorAttachmentDescription =
+    {
+        /*..VkAttachmentDescriptionFlags....flags............*/ 0,
+        /*..VkFormat........................format...........*/ swapChainFormat,
+        /*..VkSampleCountFlagBits...........samples..........*/ VK_SAMPLE_COUNT_1_BIT,
+        /*..VkAttachmentLoadOp..............loadOp...........*/ VK_ATTACHMENT_LOAD_OP_CLEAR,
+        /*..VkAttachmentStoreOp.............storeOp..........*/ VK_ATTACHMENT_STORE_OP_STORE,
+        /*..VkAttachmentLoadOp..............stencilLoadOp....*/ VK_ATTACHMENT_LOAD_OP_DONT_CARE,  // Not using stencil so dont care
+        /*..VkAttachmentStoreOp.............stencilStoreOp...*/ VK_ATTACHMENT_STORE_OP_DONT_CARE, // Not using stencil so dont care
+        /*..VkImageLayout...................initialLayout....*/ VK_IMAGE_LAYOUT_UNDEFINED,
+        /*..VkImageLayout...................finalLayout......*/ VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL
     };
 
     VkAttachmentDescription depthAttachmentDescription =
@@ -816,44 +743,75 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
         /*..VkImageLayout...................finalLayout......*/ VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
     };
 
-    VkAttachmentReference colorAttachmentRef =
+    VkAttachmentReference colorPresentAttachmentRef =
     {
-        /*...uint32_t.........attachment....*/ 0,
+        /*...uint32_t.........attachment....*/ PRESENT_COLOR_ATTACHMENT_IDX,
         /*...VkImageLayout....layout........*/ VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
     };
 
     VkAttachmentReference depthAttachmentRef =
     {
-        /*...uint32_t.........attachment....*/ 1,
+        /*...uint32_t.........attachment....*/ DEPTH_STENCIL_ATTACHMENT_IDX,
         /*...VkImageLayout....layout........*/ VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
     };
 
-    // From khronos sample:
-    // "|We will end up with two transitions.                                         |
-    //  |The first one happens right before we start subpass #0, where                |
-    //  |UNDEFINED is transitioned into COLOR_ATTACHMENT_OPTIMAL.                     |
-    //  |The final layout in the render pass attachment states PRESENT_SRC_KHR, so we |
-    //  |will get a final transition from COLOR_ATTACHMENT_OPTIMAL to PRESENT_SRC_KHR.|"
-    //VkSubpassDescription subpassDescription = {};
-    //subpassDescription.pipelineBindPoint    = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    //subpassDescription.colorAttachmentCount = 1;
-    //subpassDescription.pColorAttachments    = &colorAttachmentRef;
-
-    VkSubpassDescription subpassDescription =
+    VkAttachmentReference pSubpass0ColorAttachments[] =
     {
-        /*...VkSubpassDescriptionFlags.......flags.....................*/ 0,
-        /*...VkPipelineBindPoint.............pipelineBindPoint.........*/ VK_PIPELINE_BIND_POINT_GRAPHICS,
-        /*...uint32_t........................inputAttachmentCount......*/ 0,
-        /*...const.VkAttachmentReference*....pInputAttachments.........*/ nullptr,
-        /*...uint32_t........................colorAttachmentCount......*/ 1,
-        /*...const.VkAttachmentReference*....pColorAttachments.........*/ &colorAttachmentRef,
-        /*...const.VkAttachmentReference*....pResolveAttachments.......*/ nullptr,
-        /*...const.VkAttachmentReference*....pDepthStencilAttachment...*/ &depthAttachmentRef,
-        /*...uint32_t........................preserveAttachmentCount...*/ 0,
-        /*...const.uint32_t*.................pPreserveAttachments......*/ nullptr
+        {
+            /*...uint32_t.........attachment....*/ DIFFUSE_COLOR_ATTACHMENT_IDX,
+            /*...VkImageLayout....layout........*/ VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+        },
+        {
+            /*...uint32_t.........attachment....*/ SURFACE_NORMAL_ATTACHMENT_IDX,
+            /*...VkImageLayout....layout........*/ VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+        }
     };
 
-    static const uint32_t numDependencies                      = 2;
+    VkAttachmentReference pSubpass1InputAttachments[] =
+    { 
+        {
+            /*...uint32_t.........attachment....*/ DIFFUSE_COLOR_ATTACHMENT_IDX,
+            /*...VkImageLayout....layout........*/ VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+        },
+        {
+            /*...uint32_t.........attachment....*/ SURFACE_NORMAL_ATTACHMENT_IDX,
+            /*...VkImageLayout....layout........*/ VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+        },
+        {
+            /*...uint32_t.........attachment....*/ DEPTH_STENCIL_ATTACHMENT_IDX,
+            /*...VkImageLayout....layout........*/ VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+        }
+    };
+
+    VkSubpassDescription pSubpassDescriptions[NUM_SUBPASSES] =
+    {
+        {
+            /*...VkSubpassDescriptionFlags.......flags.....................*/ 0,
+            /*...VkPipelineBindPoint.............pipelineBindPoint.........*/ VK_PIPELINE_BIND_POINT_GRAPHICS,
+            /*...uint32_t........................inputAttachmentCount......*/ 0,
+            /*...const.VkAttachmentReference*....pInputAttachments.........*/ nullptr,
+            /*...uint32_t........................colorAttachmentCount......*/ 2,
+            /*...const.VkAttachmentReference*....pColorAttachments.........*/ pSubpass0ColorAttachments,
+            /*...const.VkAttachmentReference*....pResolveAttachments.......*/ nullptr,
+            /*...const.VkAttachmentReference*....pDepthStencilAttachment...*/ &depthAttachmentRef,
+            /*...uint32_t........................preserveAttachmentCount...*/ 0,
+            /*...const.uint32_t*.................pPreserveAttachments......*/ nullptr
+        },
+        {
+            /*...VkSubpassDescriptionFlags.......flags.....................*/ 0,
+            /*...VkPipelineBindPoint.............pipelineBindPoint.........*/ VK_PIPELINE_BIND_POINT_GRAPHICS,
+            /*...uint32_t........................inputAttachmentCount......*/ 3,
+            /*...const.VkAttachmentReference*....pInputAttachments.........*/ pSubpass1InputAttachments,
+            /*...uint32_t........................colorAttachmentCount......*/ 1,
+            /*...const.VkAttachmentReference*....pColorAttachments.........*/ &colorPresentAttachmentRef,
+            /*...const.VkAttachmentReference*....pResolveAttachments.......*/ nullptr,
+            /*...const.VkAttachmentReference*....pDepthStencilAttachment...*/ nullptr, // Not writing depth in second subpass
+            /*...uint32_t........................preserveAttachmentCount...*/ 0,
+            /*...const.uint32_t*.................pPreserveAttachments......*/ nullptr
+        }
+    };
+
+    static const uint32_t numDependencies                      = 4;
     VkSubpassDependency   subpassDependencies[numDependencies] =
     {
         {
@@ -873,24 +831,42 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
             /*....VkAccessFlags...........srcAccessMask.......*/ VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
             /*....VkAccessFlags...........dstAccessMask.......*/ VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
             /*....VkDependencyFlags.......dependencyFlags.....*/ VK_DEPENDENCY_BY_REGION_BIT
+        },
+        { // Subpass dependency allowing diffuse and normal color attachments to transition to an input attachments
+            /*....uint32_t................srcSubpass..........*/ 0,
+            /*....uint32_t................dstSubpass..........*/ 1,
+            /*....VkPipelineStageFlags....srcStageMask........*/ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            /*....VkPipelineStageFlags....dstStageMask........*/ VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            /*....VkAccessFlags...........srcAccessMask.......*/ VK_ACCESS_SHADER_WRITE_BIT,
+            /*....VkAccessFlags...........dstAccessMask.......*/ VK_ACCESS_INPUT_ATTACHMENT_READ_BIT,
+            /*....VkDependencyFlags.......dependencyFlags.....*/ VK_DEPENDENCY_BY_REGION_BIT
+        },
+        { // Subpass dependency allowing the depth attachment to transition to an input attachments
+            /*....uint32_t................srcSubpass..........*/ 0,
+            /*....uint32_t................dstSubpass..........*/ 1,
+            /*....VkPipelineStageFlags....srcStageMask........*/ VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,// VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT?
+            /*....VkPipelineStageFlags....dstStageMask........*/ VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            /*....VkAccessFlags...........srcAccessMask.......*/ VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+            /*....VkAccessFlags...........dstAccessMask.......*/ VK_ACCESS_INPUT_ATTACHMENT_READ_BIT,
+            /*....VkDependencyFlags.......dependencyFlags.....*/ VK_DEPENDENCY_BY_REGION_BIT
         }
     };
 
-    static const uint32_t   numAttachments                          = 2;
-    VkAttachmentDescription pAttachmentDescriptions[numAttachments] = {};
-
-    pAttachmentDescriptions[colorAttachmentRef.attachment] = colorAttachmentDescription;
-    pAttachmentDescriptions[depthAttachmentRef.attachment] = depthAttachmentDescription;
+    VkAttachmentDescription pAttachmentDescriptions[NUM_ATTACHMENTS] = {};
+    pAttachmentDescriptions[DIFFUSE_COLOR_ATTACHMENT_IDX]   = colorAttachmentDescription;
+    pAttachmentDescriptions[SURFACE_NORMAL_ATTACHMENT_IDX]  = colorAttachmentDescription;
+    pAttachmentDescriptions[PRESENT_COLOR_ATTACHMENT_IDX]   = presentAttachmentDescription;
+    pAttachmentDescriptions[DEPTH_STENCIL_ATTACHMENT_IDX]   = depthAttachmentDescription;
 
     VkRenderPassCreateInfo renderPassCreateInfo =
     {
         /*...VkStructureType...................sType.............*/ VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
         /*...const.void*.......................pNext.............*/ 0,
         /*...VkRenderPassCreateFlags...........flags.............*/ 0,
-        /*...uint32_t..........................attachmentCount...*/ numAttachments,
+        /*...uint32_t..........................attachmentCount...*/ NUM_ATTACHMENTS,
         /*...const.VkAttachmentDescription*....pAttachments......*/ pAttachmentDescriptions,
-        /*...uint32_t..........................subpassCount......*/ 1,
-        /*...const.VkSubpassDescription*.......pSubpasses........*/ &subpassDescription,
+        /*...uint32_t..........................subpassCount......*/ NUM_SUBPASSES,
+        /*...const.VkSubpassDescription*.......pSubpasses........*/ pSubpassDescriptions,
         /*...uint32_t..........................dependencyCount...*/ numDependencies,
         /*...const.VkSubpassDependency*........pDependencies.....*/ subpassDependencies
     };
@@ -975,13 +951,13 @@ VkShaderModule CreateShaderModule(VkDevice logicalDevice, const char* spvPath, b
 }
 
 
-VkPipeline CreatePipeline(VkDevice              logicalDevice,
-                          VkRenderPass          renderpass,
-                          VkExtent2D*           pExtent,
-                          VkDescriptorSetLayout descriptorSetLayoutHandle,
-                          const char*           fragShaderPath,
-                          const char*           vertShaderPath,
-                          VkPipelineLayout*     pPipelineLayoutHandleOut)
+VkPipeline CreatePipeline(VkDevice               logicalDevice,
+                          VkRenderPass           renderpass,
+                          VkExtent2D*            pExtent,
+                          VkDescriptorSetLayout* pDescriptorSetLayoutHandles,
+                          const char*            fragShaderPath,
+                          const char*            vertShaderPath,
+                          VkPipelineLayout*      pPipelineLayoutHandleOut)
 {
     uint32_t numVertexAttributes = sizeof (s_VertexShaderAttributes) / sizeof (AttributeInfo);
     assert (numVertexAttributes > 0);
@@ -1017,7 +993,7 @@ VkPipeline CreatePipeline(VkDevice              logicalDevice,
     assert ((sizeof (pVertexInputBindingDescriptions) / sizeof (VkVertexInputBindingDescription)) == numInputBindings);
 
     VkPipelineVertexInputStateCreateInfo   vertexInputStateCreateInfo =
-    {
+    { 
         /*...VkStructureType.............................sType.............................*/ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
         /*...const.void*.................................pNext.............................*/ nullptr,
         /*...VkPipelineVertexInputStateCreateFlags.......flags.............................*/ 0, // Reserved for future use as of vulkan 1.3
@@ -1037,23 +1013,25 @@ VkPipeline CreatePipeline(VkDevice              logicalDevice,
     };
 
     // The pipeline layout is used to register resources like UBOs, samplers, SSBOs and other resources requiring a descriptor set to be used
-    VkPipelineLayout           pipelineLayout   = VK_NULL_HANDLE;
-    VkPipelineLayoutCreateInfo layoutCreateInfo =
+    VkPipelineLayout           pipelineLayouts = VK_NULL_HANDLE;
+    VkPipelineLayoutCreateInfo layout0CreateInfo =
     {
         /*...VkStructureType.................sType......................*/ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
         /*...const.void*.....................pNext......................*/ nullptr,
         /*...VkPipelineLayoutCreateFlags.....flags......................*/ 0,
         /*...uint32_t........................setLayoutCount.............*/ 1,
-        /*...const.VkDescriptorSetLayout*....pSetLayouts................*/ &descriptorSetLayoutHandle,
+        /*...const.VkDescriptorSetLayout*....pSetLayouts................*/ &pDescriptorSetLayoutHandles[0],
         /*...uint32_t........................pushConstantRangeCount.....*/ 0,
         /*...const.VkPushConstantRange*......pPushConstantRanges........*/ nullptr
     };
 
     //@VKSPEC: "Access to descriptor sets from a pipeline is accomplished through a pipeline layout." : https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkPipelineLayout.html
-    VkResult result = vkCreatePipelineLayout(logicalDevice, &layoutCreateInfo, 0, &pipelineLayout);
+    VkResult result = vkCreatePipelineLayout(logicalDevice, &layout0CreateInfo, 0, &pipelineLayouts);
     assert(result == VK_SUCCESS);
 
-    *pPipelineLayoutHandleOut = pipelineLayout;
+
+    pPipelineLayoutHandleOut[0] = pipelineLayouts;// pPipelineLayouts[0];
+   // pPipelineLayoutHandleOut[1] = pPipelineLayouts[1]; //This doesnt really work.  Move all this into its own func for the second subpass/pipeline
 
     VkPipelineRasterizationStateCreateInfo rasterizationStateCreateInfo =
     {
@@ -1073,8 +1051,10 @@ VkPipeline CreatePipeline(VkDevice              logicalDevice,
     };
 
     // From Khronos sample: | Our attachment will write to all color channels, but no blending is enabled.  |
-    VkPipelineColorBlendAttachmentState colorBlendAttachmentState = {};
-    colorBlendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    VkPipelineColorBlendAttachmentState pColorBlendAttachmentState[NUM_COLOR_ATTACHMENTS] = {};
+    pColorBlendAttachmentState[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    pColorBlendAttachmentState[1].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    pColorBlendAttachmentState[2].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
     VkPipelineColorBlendStateCreateInfo blendState =
     {
@@ -1083,11 +1063,10 @@ VkPipeline CreatePipeline(VkDevice              logicalDevice,
         /*...VkPipelineColorBlendStateCreateFlags..........flags.................*/ 0,
         /*...VkBool32......................................logicOpEnable.........*/ VK_FALSE,
         /*...VkLogicOp.....................................logicOp...............*/ (VkLogicOp)0, // This value only used if logicOpEnable is VK_TRUE
-        /*...uint32_t......................................attachmentCount.......*/ 1,
-        /*...const.VkPipelineColorBlendAttachmentState*....pAttachments..........*/ &colorBlendAttachmentState,
+        /*...uint32_t......................................attachmentCount.......*/ NUM_COLOR_ATTACHMENTS,
+        /*...const.VkPipelineColorBlendAttachmentState*....pAttachments..........*/ pColorBlendAttachmentState,
         /*...float.........................................blendConstants[4].....*/ 0
     };
-
 
     VkRect2D scissor =
     {
@@ -1122,8 +1101,8 @@ VkPipeline CreatePipeline(VkDevice              logicalDevice,
         /*...VkStructureType...........................sType..................*/ VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
         /*...const.void*...............................pNext..................*/ 0,
         /*...VkPipelineDepthStencilStateCreateFlags....flags..................*/ 0,
-        /*...VkBool32..................................depthTestEnable........*/ VK_TRUE,
-        /*...VkBool32..................................depthWriteEnable.......*/ VK_TRUE,
+        /*...VkBool32..................................depthTestEnable........*/ VK_TRUE, //@TODO: check if i need to disable for second pipeline?
+        /*...VkBool32..................................depthWriteEnable.......*/ VK_TRUE, //
         /*...VkCompareOp...............................depthCompareOp.........*/ VK_COMPARE_OP_GREATER,
         /*...VkBool32..................................depthBoundsTestEnable..*/ VK_TRUE,
         /*...VkBool32..................................stencilTestEnable......*/ VK_FALSE,
@@ -1147,7 +1126,7 @@ VkPipeline CreatePipeline(VkDevice              logicalDevice,
         /*...VkBool32.................................alphaToOneEnable..........*/ VK_FALSE  // @VK_SPEC: "If the alphaToOne feature is not enabled, alphaToOneEnable must be VK_FALSE"
     };
 
-    // From the khronos sample: | Specify that these states will be dynamic, i.e. not part of pipeline state object. |
+    // From the khronos sample: | Specify that these states will be dynamic, i.e. not part of pipeline state object. | //@TODO: look into if i actually want to do this. less dynamic state is probably better...
     VkDynamicState dynamicStates[2] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 
     VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo =
@@ -1165,9 +1144,8 @@ VkPipeline CreatePipeline(VkDevice              logicalDevice,
 
     VkShaderModule pShaderModules[2];
 
-    pShaderModules[fragmentShaderIdx] = CreateShaderModule(logicalDevice, fragShaderPath,true, false);
+    pShaderModules[fragmentShaderIdx] = CreateShaderModule(logicalDevice, fragShaderPath, true, false);
     pShaderModules[ vertexShaderIdx ] = CreateShaderModule(logicalDevice, vertShaderPath, false, true);
-
 
     VkPipelineShaderStageCreateInfo pShaderStageCreateInfos[numStages] =
     {
@@ -1384,15 +1362,121 @@ void CreateAndAllocateDepthImage (VkDevice            logicalDeviceHandle,
     *pDepthImageViewHandleOut = depthImageView;
 }
 
+//Need to make one per swapchain image 
+void CreateAndAllocateColorImage (VkDevice            logicalDeviceHandle,
+                                  VkPhysicalDevice    physicalDeviceHandle,
+                                  uint32_t            queueFamilyIdx,
+                                  VkFormat            imageFormat,
+                                  VkExtent2D          imageDimensions,
+                                  VkDeviceMemory*     pColorImageMemOut,
+                                  VkImage*            pColorImageHandleOut,
+                                  VkImageView*        pColorImageViewHandleOut)
+{
+    VkResult       result           = VK_INCOMPLETE;
+    VkDeviceMemory colorImageMem    = VK_NULL_HANDLE;
+    VkImage        colorImageHandle = VK_NULL_HANDLE;
+    VkImageView    colorImageView   = VK_NULL_HANDLE;
+
+    VkImageCreateInfo imageCreateInfo =
+    {
+        /*...VkStructureType..........sType...................*/ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        /*...const.void*..............pNext...................*/ nullptr,
+        /*...VkImageCreateFlags.......flags...................*/ 0,
+        /*...VkImageType..............imageType...............*/ VK_IMAGE_TYPE_2D,
+        /*...VkFormat.................format..................*/ imageFormat,
+        /*...VkExtent3D...............extent..................*/ {imageDimensions.width, imageDimensions.height, 1}, //@spec: "If imageType is VK_IMAGE_TYPE_1D, both extent.height and extent.depth must be 1"
+        /*...uint32_t.................mipLevels...............*/ 1,
+        /*...uint32_t.................arrayLayers.............*/ 1,
+        /*...VkSampleCountFlagBits....samples.................*/ VK_SAMPLE_COUNT_1_BIT, // if i want to use more than 1, i need to check the value the driver returns in VkPhysicalDeviceProperties::limits::framebufferDepthSampleCounts
+        /*...VkImageTiling............tiling..................*/ VK_IMAGE_TILING_OPTIMAL,
+        /*...VkImageUsageFlags........usage...................*/ VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, //VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT
+        /*...VkSharingMode............sharingMode.............*/ VK_SHARING_MODE_EXCLUSIVE,
+        /*...uint32_t.................queueFamilyIndexCount...*/ 1,
+        /*...const.uint32_t*..........pQueueFamilyIndices.....*/ &queueFamilyIdx,
+        /*...VkImageLayout............initialLayout...........*/ VK_IMAGE_LAYOUT_UNDEFINED
+    };
+
+    result = vkCreateImage (/*...VkDevice.........................device........*/ logicalDeviceHandle,
+                            /*...const.VkImageCreateInfo*.........pCreateInfo...*/ &imageCreateInfo,
+                            /*...const.VkAllocationCallbacks*.....pAllocator....*/ nullptr,
+                            /*...VkImage*.........................pImage........*/ &colorImageHandle);
+    assert (result == VK_SUCCESS);
+
+    VkMemoryRequirements imageMemRequirements = {};
+    vkGetImageMemoryRequirements (/*...VkDevice....................device................*/ logicalDeviceHandle,
+                                  /*...VkImage.....................image.................*/ colorImageHandle,
+                                  /*...VkMemoryRequirements*.......pMemoryRequirements...*/ &imageMemRequirements);
+
+    uint32_t imagesMemTypeIndex = ChooseMemoryTypeIdx (physicalDeviceHandle,
+                                                       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                                       &imageMemRequirements);
+    assert (imagesMemTypeIndex != UINT32_MAX);
+
+    VkMemoryAllocateInfo imageMemAllocateInfo =
+    {
+        /*...VkStructureType....sType.............*/ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        /*...const.void*........pNext.............*/ nullptr,
+        /*...VkDeviceSize.......allocationSize....*/ imageMemRequirements.size,
+        /*...uint32_t...........memoryTypeIndex...*/ imagesMemTypeIndex
+    };
+
+    // Allocate the memory that will back the color image
+    result = vkAllocateMemory (/*...VkDevice.......................device..........*/ logicalDeviceHandle,
+                               /*...const.VkMemoryAllocateInfo*....pAllocateInfo...*/ &imageMemAllocateInfo,
+                               /*...const.VkAllocationCallbacks*...pAllocator......*/ nullptr,
+                               /*...VkDeviceMemory*................pMemory.........*/ &colorImageMem);
+    assert (colorImageMem != VK_NULL_HANDLE);
+
+    // Bind image memory to the color image
+    result = vkBindImageMemory (/*...VkDevice......................device..........*/ logicalDeviceHandle,
+                                /*...VkImage.......................image...........*/ colorImageHandle,
+                                /*...VkDeviceMemory................memory..........*/ colorImageMem,
+                                /*...VkDeviceSize..................memoryOffset....*/ 0);
+    assert (result == VK_SUCCESS);
+
+
+    VkImageSubresourceRange subResourceRange =
+    {
+        /*...VkImageAspectFlags....aspectMask.........*/ VK_IMAGE_ASPECT_COLOR_BIT,
+        /*...uint32_t..............baseMipLevel.......*/ 0,
+        /*...uint32_t..............levelCount.........*/ 1,
+        /*...uint32_t..............baseArrayLayer.....*/ 0,
+        /*...uint32_t..............layerCount.........*/ 1
+    };
+
+    VkImageViewCreateInfo imageViewCreateInfo =
+    {
+        /*...VkStructureType............sType...............*/ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        /*...const.void*................pNext...............*/ 0,
+        /*...VkImageViewCreateFlags.....flags...............*/ 0,
+        /*...VkImage....................image...............*/ colorImageHandle,
+        /*...VkImageViewType............viewType............*/ VK_IMAGE_VIEW_TYPE_2D,
+        /*...VkFormat...................format..............*/ imageFormat,
+        /*...VkComponentMapping.........components..........*/ {VK_COMPONENT_SWIZZLE_IDENTITY},
+        /*...VkImageSubresourceRange....subresourceRange....*/ subResourceRange
+    };
+
+    result = vkCreateImageView (logicalDeviceHandle, &imageViewCreateInfo, 0, &colorImageView);
+
+    *pColorImageMemOut        = colorImageMem;
+    *pColorImageHandleOut     = colorImageHandle;
+    *pColorImageViewHandleOut = colorImageView;
+}
+
+
 void CreateFrameBuffers(VkDevice                    logicalDevice,
                         VkRenderPass                renderPass,
                         VkExtent2D*                 pExtent,
                         uint32_t                    numSwapchainImages,
                         PerSwapchainImageResources* pPerSwapchainImageResources)
 {
+    const uint32_t numColorAttachments = 3; // diffuse color + surface normals + present
+    const uint32_t numDepthAttachments = 1;
+
 
     VkResult                result                  = VK_INCOMPLETE;
-    static const uint32_t   numAttachments          = 2;
+    static const uint32_t   numAttachments          = numColorAttachments +
+                                                      numDepthAttachments;
     VkFramebufferCreateInfo framebufferCreateInfo   =
     {
         /*...VkStructureType.............sType.............*/ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
@@ -1408,14 +1492,18 @@ void CreateFrameBuffers(VkDevice                    logicalDevice,
 
     assert(renderPass != VK_NULL_HANDLE);
      
-    for (uint32_t viewIdx = 0; viewIdx < numSwapchainImages; viewIdx++)
+    for (uint32_t swapIdx = 0; swapIdx < numSwapchainImages; swapIdx++)
     {
-        VkImageView pAttachmentImageViews[numAttachments] = { pPerSwapchainImageResources[viewIdx].colorImageViewHandle, 
-                                                              pPerSwapchainImageResources[viewIdx].depthImageViewHandle };
+        PerSwapchainImageResources* pSwapImgResourceSet                   = &pPerSwapchainImageResources[swapIdx];
+        VkImageView                 pAttachmentImageViews[numAttachments] = {};
+        pAttachmentImageViews[ DIFFUSE_COLOR_ATTACHMENT_IDX  ] = pSwapImgResourceSet->diffuseImageViewHandle;
+        pAttachmentImageViews[ SURFACE_NORMAL_ATTACHMENT_IDX ] = pSwapImgResourceSet->normalsImageViewHandle;
+        pAttachmentImageViews[ PRESENT_COLOR_ATTACHMENT_IDX  ] = pSwapImgResourceSet->presentImageViewHandle;
+        pAttachmentImageViews[ DEPTH_STENCIL_ATTACHMENT_IDX  ] = pSwapImgResourceSet->depthImageViewHandle;
 
         framebufferCreateInfo.pAttachments = pAttachmentImageViews;
 
-        VkFramebuffer* pFramebuffer = &pPerSwapchainImageResources[viewIdx].framebufferHandle;
+        VkFramebuffer* pFramebuffer = &(pSwapImgResourceSet->framebufferHandle);
         result = vkCreateFramebuffer(/*...VkDevice............................device........*/ logicalDevice,
                                      /*...const.VkFramebufferCreateInfo*......pCreateInfo...*/ &framebufferCreateInfo,
                                      /*...const.VkAllocationCallbacks*........pAllocator....*/ 0,
@@ -1424,7 +1512,6 @@ void CreateFrameBuffers(VkDevice                    logicalDevice,
         assert((result == VK_SUCCESS) && (*pFramebuffer != VK_NULL_HANDLE));
     }
 }
-
 //need to figure out why this is something that needs a swapchain image index...
 void WaitOnPendingSwapchainImageFence(PerSwapchainImageResources* pPerFrameResources,
                                       VkDevice                    logicalDevice,
@@ -1873,6 +1960,7 @@ VkDescriptorSet AllocateAndWriteDescriptorSet (VkDevice               logicalDev
                                                                  descriptorPoolHandle,
                                                                  descriptorSetLayoutHandle);
 
+
     VkDescriptorBufferInfo uniformBufferDescriptorInfo =
     {
         /*...VkBuffer........buffer...*/ uniformBufferHandle,
@@ -1924,4 +2012,199 @@ VkDescriptorSet AllocateAndWriteDescriptorSet (VkDevice               logicalDev
                             /*...const.VkCopyDescriptorSet*..................pDescriptorCopies......*/ nullptr);
 
     return descriptorSetHandle;
+}
+
+VkDescriptorSet AllocateAndWriteSubpass0DescriptorSet (VkDevice               logicalDevice,
+                                                       VkDescriptorPool       descriptorPoolHandle,
+                                                       VkDescriptorSetLayout  descriptorSetLayoutHandle,
+                                                       VkBuffer               uniformBufferHandle,
+                                                       VkBuffer               storageBufferHandle)
+{
+
+    VkDescriptorSetAllocateInfo descriptorSetAllocateInfo =
+    {
+        /*...VkStructureType.................sType................*/ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+        /*...const.void*.....................pNext................*/ nullptr,
+        /*...VkDescriptorPool................descriptorPool.......*/ descriptorPoolHandle,
+        /*...uint32_t........................descriptorSetCount...*/ NUM_DESCRIPTOR_SETS,
+        /*...const.VkDescriptorSetLayout*....pSetLayouts..........*/ &descriptorSetLayoutHandle
+    };
+
+    VkDescriptorSet descriptorSetHandle = VK_NULL_HANDLE;
+    VkResult        result = vkAllocateDescriptorSets (logicalDevice,
+                                                       &descriptorSetAllocateInfo,
+                                                       &descriptorSetHandle);
+    assert (result == VK_SUCCESS);
+
+
+    VkDescriptorBufferInfo uniformBufferDescriptorInfo =
+    {
+        /*...VkBuffer........buffer...*/ uniformBufferHandle,
+        /*...VkDeviceSize....offset...*/ 0,
+        /*...VkDeviceSize....range....*/ VK_WHOLE_SIZE
+    };
+
+    VkDescriptorBufferInfo storageBufferDescriptorInfo =
+    {
+        /*...VkBuffer........buffer...*/ storageBufferHandle,
+        /*...VkDeviceSize....offset...*/ 0,
+        /*...VkDeviceSize....range....*/ VK_WHOLE_SIZE
+    };
+
+    // Write the descriptor set with info about the resources backing the ubo
+    static const uint32_t numDescriptorsToUpdate = 2;
+    VkWriteDescriptorSet pDescriptorUpdateWrites[numDescriptorsToUpdate] =
+    {
+        { // struct describing the descriptor update for the uniform buffer at binding 0
+            /*...VkStructureType..................sType..............*/ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            /*...const.void*......................pNext..............*/ nullptr,
+            /*...VkDescriptorSet..................dstSet.............*/ descriptorSetHandle,
+            /*...uint32_t.........................dstBinding.........*/ 0, // ubo binding in descriptor layout
+            /*...uint32_t.........................dstArrayElement....*/ 0,
+            /*...uint32_t.........................descriptorCount....*/ 1,
+            /*...VkDescriptorType.................descriptorType.....*/ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            /*...const.VkDescriptorImageInfo*.....pImageInfo.........*/ nullptr,
+            /*...const.VkDescriptorBufferInfo*....pBufferInfo........*/ &uniformBufferDescriptorInfo,
+            /*...const.VkBufferView*..............pTexelBufferView...*/ nullptr
+        },
+        { // struct describing the descriptor update for the storage buffer at binding 1
+            /*...VkStructureType..................sType..............*/ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            /*...const.void*......................pNext..............*/ nullptr,
+            /*...VkDescriptorSet..................dstSet.............*/ descriptorSetHandle,
+            /*...uint32_t.........................dstBinding.........*/ 1, // ssbo binding in descriptor layout
+            /*...uint32_t.........................dstArrayElement....*/ 0,
+            /*...uint32_t.........................descriptorCount....*/ 1,
+            /*...VkDescriptorType.................descriptorType.....*/ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            /*...const.VkDescriptorImageInfo*.....pImageInfo.........*/ nullptr,
+            /*...const.VkDescriptorBufferInfo*....pBufferInfo........*/ &storageBufferDescriptorInfo,
+            /*...const.VkBufferView*..............pTexelBufferView...*/ nullptr
+        }
+    };
+
+    vkUpdateDescriptorSets (/*...VkDevice....................................device.................*/ logicalDevice,
+                            /*...uint32_t....................................descriptorWriteCount...*/ numDescriptorsToUpdate,
+                            /*...const.VkWriteDescriptorSet*.................pDescriptorWrites......*/ pDescriptorUpdateWrites,
+                            /*...uint32_t....................................descriptorCopyCount....*/ 0,
+                            /*...const.VkCopyDescriptorSet*..................pDescriptorCopies......*/ nullptr);
+
+    return descriptorSetHandle;
+
+
+}
+
+// Allocates a descriptor set with 3 descriptors of type VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT
+VkDescriptorSet AllocateAndWriteSubpass1DescriptorSet (VkDevice               logicalDevice,
+                                                       VkDescriptorPool       descriptorPoolHandle,
+                                                       VkDescriptorSetLayout  descriptorSetLayoutHandle,
+                                                       VkImageView            diffuseColorImageViewHandle,
+                                                       VkImageView            normalVectorImageViewHandle,
+                                                       VkImageView            depthStencilImageViewHandle,
+                                                       VkBuffer               uniformBufferHandle)
+{
+    VkDescriptorSetAllocateInfo descriptorSetAllocateInfo =
+    {
+        /*...VkStructureType.................sType................*/ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+        /*...const.void*.....................pNext................*/ nullptr,
+        /*...VkDescriptorPool................descriptorPool.......*/ descriptorPoolHandle,
+        /*...uint32_t........................descriptorSetCount...*/ NUM_DESCRIPTOR_SETS,
+        /*...const.VkDescriptorSetLayout*....pSetLayouts..........*/ &descriptorSetLayoutHandle
+    };
+
+    VkDescriptorSet descriptorSetHandle = VK_NULL_HANDLE;
+    VkResult        result = vkAllocateDescriptorSets (logicalDevice,
+                                                       &descriptorSetAllocateInfo,
+                                                       &descriptorSetHandle);
+    assert (result == VK_SUCCESS);
+
+
+    VkDescriptorImageInfo diffuseColorImageDescriptorInfo
+    {
+        /*...VkSampler........sampler.......*/ VK_NULL_HANDLE,
+        /*...VkImageView......imageView.....*/ diffuseColorImageViewHandle,
+        /*...VkImageLayout....imageLayout...*/ VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
+    };
+
+    VkDescriptorImageInfo normalsColorImageDescriptorInfo
+    {
+        /*...VkSampler........sampler.......*/ VK_NULL_HANDLE,
+        /*...VkImageView......imageView.....*/ diffuseColorImageViewHandle,
+        /*...VkImageLayout....imageLayout...*/ VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
+    };
+
+    VkDescriptorImageInfo depthImageDescriptorInfo
+    {
+        /*...VkSampler........sampler.......*/ VK_NULL_HANDLE,
+        /*...VkImageView......imageView.....*/ depthStencilImageViewHandle,
+        /*...VkImageLayout....imageLayout...*/ VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL,
+    };
+
+    VkDescriptorBufferInfo uniformBufferDescriptorInfo =
+    {
+        /*...VkBuffer........buffer...*/ uniformBufferHandle,
+        /*...VkDeviceSize....offset...*/ 0,
+        /*...VkDeviceSize....range....*/ VK_WHOLE_SIZE
+    };
+
+    // Write the descriptor set with info about the resources backing the ubo
+    static const uint32_t numDescriptorsToUpdate = 4;
+    VkWriteDescriptorSet pDescriptorUpdateWrites[numDescriptorsToUpdate] =
+    {
+        { // struct describing the descriptor update for the uniform buffer at binding 0
+            /*...VkStructureType..................sType..............*/ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            /*...const.void*......................pNext..............*/ nullptr,
+            /*...VkDescriptorSet..................dstSet.............*/ descriptorSetHandle,
+            /*...uint32_t.........................dstBinding.........*/ SUBPASS_1_DIFFUSE_COLOR_INPUT_ATTACHMENT_DESCRIPTOR_BINDING, // 0
+            /*...uint32_t.........................dstArrayElement....*/ 0,
+            /*...uint32_t.........................descriptorCount....*/ 1,
+            /*...VkDescriptorType.................descriptorType.....*/ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+            /*...const.VkDescriptorImageInfo*.....pImageInfo.........*/ &diffuseColorImageDescriptorInfo,
+            /*...const.VkDescriptorBufferInfo*....pBufferInfo........*/ nullptr,
+            /*...const.VkBufferView*..............pTexelBufferView...*/ nullptr
+        },
+        { // struct describing the descriptor update for the uniform buffer at binding 0
+            /*...VkStructureType..................sType..............*/ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            /*...const.void*......................pNext..............*/ nullptr,
+            /*...VkDescriptorSet..................dstSet.............*/ descriptorSetHandle,
+            /*...uint32_t.........................dstBinding.........*/ SUBPASS_1_SURFACE_NORMAL_INPUT_ATTACHMENT_DESCRIPTOR_BINDING, // 1
+            /*...uint32_t.........................dstArrayElement....*/ 0,
+            /*...uint32_t.........................descriptorCount....*/ 1,
+            /*...VkDescriptorType.................descriptorType.....*/ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+            /*...const.VkDescriptorImageInfo*.....pImageInfo.........*/ &normalsColorImageDescriptorInfo,
+            /*...const.VkDescriptorBufferInfo*....pBufferInfo........*/ nullptr,
+            /*...const.VkBufferView*..............pTexelBufferView...*/ nullptr
+        },
+        { // struct describing the descriptor update for the uniform buffer at binding 0
+            /*...VkStructureType..................sType..............*/ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            /*...const.void*......................pNext..............*/ nullptr,
+            /*...VkDescriptorSet..................dstSet.............*/ descriptorSetHandle,
+            /*...uint32_t.........................dstBinding.........*/ SUBPASS_1_DEPTH_STENCIL_INPUT_ATTACHMENT_DESCRIPTOR_BINDING, // 2
+            /*...uint32_t.........................dstArrayElement....*/ 0,
+            /*...uint32_t.........................descriptorCount....*/ 1,
+            /*...VkDescriptorType.................descriptorType.....*/ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+            /*...const.VkDescriptorImageInfo*.....pImageInfo.........*/ &depthImageDescriptorInfo,
+            /*...const.VkDescriptorBufferInfo*....pBufferInfo........*/ nullptr,
+            /*...const.VkBufferView*..............pTexelBufferView...*/ nullptr
+        },
+        { // struct describing the descriptor update for the uniform buffer at binding 0
+            /*...VkStructureType..................sType..............*/ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            /*...const.void*......................pNext..............*/ nullptr,
+            /*...VkDescriptorSet..................dstSet.............*/ descriptorSetHandle,
+            /*...uint32_t.........................dstBinding.........*/ SUBPASS_1_UNIFORM_BUFFER_DESCRIPTOR_BINDING, //3
+            /*...uint32_t.........................dstArrayElement....*/ 0,
+            /*...uint32_t.........................descriptorCount....*/ 1,
+            /*...VkDescriptorType.................descriptorType.....*/ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            /*...const.VkDescriptorImageInfo*.....pImageInfo.........*/ nullptr,
+            /*...const.VkDescriptorBufferInfo*....pBufferInfo........*/ &uniformBufferDescriptorInfo,
+            /*...const.VkBufferView*..............pTexelBufferView...*/ nullptr
+        }
+    };
+
+    vkUpdateDescriptorSets (/*...VkDevice....................................device.................*/ logicalDevice,
+                            /*...uint32_t....................................descriptorWriteCount...*/ numDescriptorsToUpdate,
+                            /*...const.VkWriteDescriptorSet*.................pDescriptorWrites......*/ pDescriptorUpdateWrites,
+                            /*...uint32_t....................................descriptorCopyCount....*/ 0,
+                            /*...const.VkCopyDescriptorSet*..................pDescriptorCopies......*/ nullptr);
+
+    return descriptorSetHandle;
+
 }
