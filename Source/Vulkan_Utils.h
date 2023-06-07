@@ -107,13 +107,21 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
 
 VkRenderPass CreateRenderpass(VkFormat swapChainFormat, VkFormat depthFormat, VkDevice logicalDevice);
 
-VkPipeline CreatePipeline(VkDevice               logicalDevice, 
-                          VkRenderPass           renderpass, 
-                          VkExtent2D*            pExtent, 
-                          VkDescriptorSetLayout* pDescriptorSetLayoutHandle,
-                          const char*            fragShaderPath, 
-                          const char*            vertShaderPath,
-                          VkPipelineLayout*      pPipelineLayoutHandleOut);
+VkPipeline CreateSubpass0Pipeline(VkDevice               logicalDevice, 
+                                  VkRenderPass           renderpass, 
+                                  VkExtent2D*            pExtent, 
+                                  VkDescriptorSetLayout  descriptorSetLayoutHandle,
+                                  const char*            fragShaderPath, 
+                                  const char*            vertShaderPath,
+                                  VkPipelineLayout*      pipelineLayoutHandleOut);
+
+VkPipeline CreateSubpass1Pipeline (VkDevice               logicalDevice,
+                                   VkRenderPass           renderpass,
+                                   VkExtent2D*            pExtent,
+                                   VkDescriptorSetLayout  descriptorSetLayoutHandle,
+                                   const char*            fragShaderPath,
+                                   const char*            vertShaderPath,
+                                   VkPipelineLayout*      pPipelineLayoutHandleOut);
 
 VkFormat ChooseDepthFormat (VkPhysicalDevice   physicalDeviceHandle,
                             uint32_t           numPrefferredDepthFormats,

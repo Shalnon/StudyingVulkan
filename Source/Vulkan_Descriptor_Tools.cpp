@@ -28,22 +28,22 @@ VkResult CreateDescriptorSetLayout (VkDevice logicalDevice,
     * } ubo;
     *******************************************/
 
-    const uint32_t numSubpass0LayoutBindings = 2; // Subpass 0: uses an SSBO and a UBO
-    const uint32_t numSubpass1LayoutBindings = 4; // Subpass 1: Uses 3 input attachments and the same ubo
+    const uint32_t numSubpass0LayoutBindings = SceneVulkanParameters::Subpass0::numDescriptorSetLayoutBindings; //2; // Subpass 0: uses an SSBO and a UBO
+    const uint32_t numSubpass1LayoutBindings = SceneVulkanParameters::Subpass1::numDescriptorSetLayoutBindings; // Subpass 1: Uses 3 input attachments and the same ubo
 
     VkDescriptorSetLayoutBinding pDescriptorSet0BindingsLayout[numSubpass0LayoutBindings] =
     {
         {
-            /*...uint32_t..............binding................*/ 0,
+            /*...uint32_t..............binding................*/ SceneVulkanParameters::Subpass0::uniformBufferBinding, // 0
             /*...VkDescriptorType......descriptorType.........*/ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             /*...uint32_t..............descriptorCount........*/ 1, // This would be greater than 1 if ubo was declared in the shader like }ubo[n]; where n>1
             /*...VkShaderStageFlags....stageFlags.............*/ VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
             /*...const.VkSampler*......pImmutableSamplers.....*/ nullptr
         },
         {
-            /*...uint32_t..............binding................*/ 1,
+            /*...uint32_t..............binding................*/ SceneVulkanParameters::Subpass0::storageBufferBinding, // 1
             /*...VkDescriptorType......descriptorType.........*/ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-            /*...uint32_t..............descriptorCount........*/ 1, // This would be greater than 1 if ubo was declared in the shader like }ubo[n]; where n>1
+            /*...uint32_t..............descriptorCount........*/ 1,
             /*...VkShaderStageFlags....stageFlags.............*/ VK_SHADER_STAGE_VERTEX_BIT,
             /*...const.VkSampler*......pImmutableSamplers.....*/ nullptr
         }
@@ -52,30 +52,30 @@ VkResult CreateDescriptorSetLayout (VkDevice logicalDevice,
     VkDescriptorSetLayoutBinding pDescriptorSet1BindingsLayout[numSubpass1LayoutBindings] =
     {
         {
-            /*...uint32_t..............binding................*/ SUBPASS_1_DIFFUSE_COLOR_INPUT_ATTACHMENT_DESCRIPTOR_BINDING, // 0
-            /*...VkDescriptorType......descriptorType.........*/ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-            /*...uint32_t..............descriptorCount........*/ 1, // This would be greater than 1 if ubo was declared in the shader like }ubo[n]; where n>1
-            /*...VkShaderStageFlags....stageFlags.............*/ VK_SHADER_STAGE_FRAGMENT_BIT,
-            /*...const.VkSampler*......pImmutableSamplers.....*/ nullptr
-        },
-        {
-            /*...uint32_t..............binding................*/ SUBPASS_1_SURFACE_NORMAL_INPUT_ATTACHMENT_DESCRIPTOR_BINDING, // 1
-            /*...VkDescriptorType......descriptorType.........*/ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-            /*...uint32_t..............descriptorCount........*/ 1, // This would be greater than 1 if ubo was declared in the shader like }ubo[n]; where n>1
-            /*...VkShaderStageFlags....stageFlags.............*/ VK_SHADER_STAGE_FRAGMENT_BIT,
-            /*...const.VkSampler*......pImmutableSamplers.....*/ nullptr
-        },
-        {
-            /*...uint32_t..............binding................*/ SUBPASS_1_DEPTH_STENCIL_INPUT_ATTACHMENT_DESCRIPTOR_BINDING, // 2
-            /*...VkDescriptorType......descriptorType.........*/ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-            /*...uint32_t..............descriptorCount........*/ 1, // This would be greater than 1 if ubo was declared in the shader like }ubo[n]; where n>1
-            /*...VkShaderStageFlags....stageFlags.............*/ VK_SHADER_STAGE_FRAGMENT_BIT,
-            /*...const.VkSampler*......pImmutableSamplers.....*/ nullptr
-        },
-        {
-            /*...uint32_t..............binding................*/ SUBPASS_1_UNIFORM_BUFFER_DESCRIPTOR_BINDING, // 3
+            /*...uint32_t..............binding................*/ SceneVulkanParameters::Subpass1::uniformBufferBinding, // 0
             /*...VkDescriptorType......descriptorType.........*/ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             /*...uint32_t..............descriptorCount........*/ 1, // This would be greater than 1 if ubo was declared in the shader like }ubo[n]; where n>1
+            /*...VkShaderStageFlags....stageFlags.............*/ VK_SHADER_STAGE_FRAGMENT_BIT,
+            /*...const.VkSampler*......pImmutableSamplers.....*/ nullptr
+        },
+        {
+            /*...uint32_t..............binding................*/ SceneVulkanParameters::Subpass1::diffuseColorInputAttachmentBinding, // 1
+            /*...VkDescriptorType......descriptorType.........*/ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+            /*...uint32_t..............descriptorCount........*/ 1,  //@todo: Look into whether there are any advantages to using an input attachment array with one descriptor.
+            /*...VkShaderStageFlags....stageFlags.............*/ VK_SHADER_STAGE_FRAGMENT_BIT,
+            /*...const.VkSampler*......pImmutableSamplers.....*/ nullptr
+        },
+        {
+            /*...uint32_t..............binding................*/ SceneVulkanParameters::Subpass1::normalVectorInputAttachmentBinding, // 2
+            /*...VkDescriptorType......descriptorType.........*/ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+            /*...uint32_t..............descriptorCount........*/ 1,
+            /*...VkShaderStageFlags....stageFlags.............*/ VK_SHADER_STAGE_FRAGMENT_BIT,
+            /*...const.VkSampler*......pImmutableSamplers.....*/ nullptr
+        },
+        {
+            /*...uint32_t..............binding................*/ SceneVulkanParameters::Subpass1::depthImageInputAttachmentBinding, // 3
+            /*...VkDescriptorType......descriptorType.........*/ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+            /*...uint32_t..............descriptorCount........*/ 1,
             /*...VkShaderStageFlags....stageFlags.............*/ VK_SHADER_STAGE_FRAGMENT_BIT,
             /*...const.VkSampler*......pImmutableSamplers.....*/ nullptr
         }
@@ -115,27 +115,28 @@ VkResult CreateDescriptorSetLayout (VkDevice logicalDevice,
 
 VkDescriptorPool CreateDescriptorPool (VkDevice logicalDevice)
 {
-    const uint32_t numDescriptorTypes                   = 3;
-    const uint32_t numUboDescriptorsInScene             = 1;
-    const uint32_t numSsboDescriptorsInScene            = 1;
-    const uint32_t numInputAttachmentDescriptorsInScene = 3;
-
     VkResult         result               = VK_INCOMPLETE;
     VkDescriptorPool descriptorPoolHandle = VK_NULL_HANDLE;
+
+    const uint32_t numDescriptorTypes            = SceneVulkanParameters::numDescriptorTypesUsedInScene;
+    const uint32_t numUboDescriptors             = SceneVulkanParameters::numUboDescriptorsInScene;
+    const uint32_t numSsboDescriptors            = SceneVulkanParameters::numSsboDescriptorsInScene;
+    const uint32_t numInputAttachmentDescriptors = SceneVulkanParameters::numInputAttachmentDescriptorsInScene;
+
 
     VkDescriptorPoolSize pDescriptorPoolSizes[numDescriptorTypes] =
     {
         {
             /*...VkDescriptorType....type................*/ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            /*...uint32_t............descriptorCount.....*/ numUboDescriptorsInScene
+            /*...uint32_t............descriptorCount.....*/ numUboDescriptors
         },
         {
             /*...VkDescriptorType....type................*/ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-            /*...uint32_t............descriptorCount.....*/ numSsboDescriptorsInScene
+            /*...uint32_t............descriptorCount.....*/ numSsboDescriptors
         },
         {
             /*...VkDescriptorType....type................*/ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-            /*...uint32_t............descriptorCount.....*/ numInputAttachmentDescriptorsInScene
+            /*...uint32_t............descriptorCount.....*/ numInputAttachmentDescriptors
         }
     };
 
@@ -144,7 +145,7 @@ VkDescriptorPool CreateDescriptorPool (VkDevice logicalDevice)
         /*...VkStructureType................sType...........*/ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
         /*...const.void*....................pNext...........*/ nullptr,
         /*...VkDescriptorPoolCreateFlags....flags...........*/ 0,
-        /*...uint32_t.......................maxSets.........*/ 2,
+        /*...uint32_t.......................maxSets.........*/ SceneVulkanParameters::numDescriporSets,
         /*...uint32_t.......................poolSizeCount...*/ numDescriptorTypes, // Using one VkDescriptorPoolSize struct per descriptor type
         /*...const.VkDescriptorPoolSize*....pPoolSizes......*/ pDescriptorPoolSizes
     };

@@ -108,13 +108,25 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                &pSubpassDescriptorSetLayouts[1]);
 
     VkPipelineLayout      pPipelineLayoutHandles[NUM_SUBPASSES] = { VK_NULL_HANDLE, VK_NULL_HANDLE };
-    VkPipeline            pipelineHandle                        = CreatePipeline(logicalDevice,   //@todo: CReate separate function for seaprate pipelines
-                                                                                 renderpass,
-                                                                                 &actualFrameDimensions,
-                                                                                 pSubpassDescriptorSetLayouts,
-                                                                                 fragmentShaderPath.c_str(),
-                                                                                 vertexShaderPath.c_str(),
-                                                                                 pPipelineLayoutHandles);
+    VkPipeline            pipelineHandle                        = CreateSubpass0Pipeline(logicalDevice,   //@todo: CReate separate function for seaprate pipelines
+                                                                                          renderpass,
+                                                                                          &actualFrameDimensions,
+                                                                                          pSubpassDescriptorSetLayouts[0],
+                                                                                          fragmentShaderPath.c_str(),
+                                                                                          vertexShaderPath.c_str(),
+                                                                                          &pPipelineLayoutHandles[0]);
+
+    static const char* subpass1FragShaderPath   = nullptr;
+    static const char* subpass1VertexShaderPath = nullptr;
+    assert(subpass1FragShaderPath   != nullptr);
+    assert(subpass1VertexShaderPath != nullptr);
+    VkPipeline      subpass1Pipeline = CreateSubpass1Pipeline (logicalDevice,   //@todo: CReate separate function for seaprate pipelines
+                                                               renderpass,
+                                                               &actualFrameDimensions,
+                                                               pSubpassDescriptorSetLayouts[1],
+                                                               subpass1FragShaderPath,
+                                                               subpass1VertexShaderPath,
+                                                               &pPipelineLayoutHandles[1]);
 
     CreateFrameBuffers(logicalDevice,
                        renderpass,
@@ -129,7 +141,6 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     printf ("model path = %s\n", modelPath.c_str ());
 
     const aiScene* pScene = aiImportFile (modelPath.c_str (), MY_ASSIMP_PREPROCESSING_FLAGS);//aiProcessPreset_TargetRealtime_MaxQuality);
-
 
     vulkanAllocatedBufferInfo colorsStorageBufferInfo = CreateMeshColorsStorageBuffer (physicalDevice,
                                                                                        logicalDevice,

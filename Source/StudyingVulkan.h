@@ -72,6 +72,85 @@
 #endif
 
 
+namespace SceneVulkanParameters
+{
+    static const uint32_t numSubpasses                       = 2;
+    static const uint32_t numDescriptorTypesUsedInScene      = 3;
+    static const uint32_t numUboDescriptorsInScene             = 1;
+    static const uint32_t numSsboDescriptorsInScene            = 1;
+    static const uint32_t numInputAttachmentDescriptorsInScene = 3;
+
+    static const uint32_t numDescriporSets = 2;
+
+    namespace RenderPassParameters
+    {
+        static const uint32_t numColorAttachments = 3; // diffuse, normal, present
+        static const uint32_t numDepthAttachments = 1; // used as depth attachment in subpass 0, than as an input attachment in subpass 1
+        static const uint32_t totalNumAttachments = numColorAttachments + numDepthAttachments;
+
+        // Color attachments indeces
+        static const uint32_t swapchainColorAttachmentIndex = 0;
+        static const uint32_t diffuseColorAttachmentIndex   = 1;
+        static const uint32_t surfaceNormalAttachmentIndex  = 2;
+        static const uint32_t depthStencilAttachmentIndex   = 3;
+    }
+    namespace Subpass0
+    {
+        //@note: Subpass 0 doesnt write to the swapchain color attachment.
+        static const uint32_t numColorAttachments = 2; //diffuse color + normal
+        static const uint32_t numDepthAttachments = 1;
+        static const uint32_t numInputAttachments = 0;
+
+        static const uint32_t depthAttachmentIndex                         = RenderPassParameters::depthStencilAttachmentIndex;
+        static const uint32_t pColorAttachmentIndeces[numColorAttachments] =
+        {
+            RenderPassParameters::diffuseColorAttachmentIndex ,
+            RenderPassParameters::surfaceNormalAttachmentIndex
+        };
+
+        static const bool enableDepthAttachment = true;
+
+        static const uint32_t numDescriptorSetsUsed = 1;
+
+        // Descriptor set layout binding information
+        static const uint32_t numDescriptorSetLayoutBindings = 2;
+        static const uint32_t uniformBufferBinding      = 0; // VK_DESCRIPTOR_TYPE_STORAGE_BUFFER
+        static const uint32_t storageBufferBinding      = 1; // VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+
+        //Vertex attrib information for pipeline
+        static const uint32_t numInputBindings    = 1; // Number of vertex attribute buffers we need a binding for
+        static const uint32_t numVertexAttributes = 2; // Number of vertex input attributes the shader will recieve
+
+        static const uint32_t vertexLocationAttributePosition = 0;
+        static const uint32_t vertexNormalAttributePosition   = 1;
+
+    }
+    namespace Subpass1
+    {
+        //@note: Subpass 1 DOES write to the swapchain color attachment.
+        static const uint32_t numColorAttachments = 1; // Present image
+        static const uint32_t numDepthAttachments = 0; // depth is disabled for subpass 1
+        static const uint32_t numInputAttachments = 3; // diffuse color + normal + subpass0 depth
+
+        static const uint32_t pColorAttachmentIndeces[numColorAttachments] =
+        {
+            RenderPassParameters::swapchainColorAttachmentIndex
+        };
+
+
+        static const uint32_t numDescriptorSetLayoutBindings     = 4; // 3 input attachments and a ubo
+        // Descriptor set layout bindings
+        static const uint32_t uniformBufferBinding               = 0;
+        static const uint32_t diffuseColorInputAttachmentBinding = 1;
+        static const uint32_t normalVectorInputAttachmentBinding = 2;
+        static const uint32_t depthImageInputAttachmentBinding   = 3; // depth output from subpass 0
+
+        //Vertex attrib information
+        static const uint32_t numInputBindings              = 0; // Number of vertex attribute buffers we need a binding for
+        static const uint32_t numVertexAttributes           = 0; // Number of vertex input attributes the shader will recieve
+
+    };
+}
 
 
 // Ceiling aligns a number
