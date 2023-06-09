@@ -33,7 +33,8 @@ VkSync::SemaphoreList::SemaphoreList(VkDevice logicalDeviceIn, uint32_t maxSemap
     uint32_t    initialListAllocSize = BITS_PER_QWORD;
     logicalDevice                    = logicalDeviceIn;
     numAllocatedHandles              = (initialListAllocSize > 0) ? initialListAllocSize : 1;
-    maxNumAllocatedHandles           = (maxSemaphores > MIN_SEMAPHORE_LIST_SIZE) ? maxSemaphores : MIN_SEMAPHORE_LIST_SIZE;
+    maxNumAllocatedHandles           = (maxSemaphores > SceneVulkanParameters::minSemaphoreListSize) ?
+                                                                                       maxSemaphores : SceneVulkanParameters::minSemaphoreListSize;
 
     // Should be 1 bit availabler per handle
     uint32_t numQwords = NumQwordsNeededForBitmask(initialListAllocSize);
@@ -145,12 +146,12 @@ void VkSync::SemaphoreList::DepositUnusedSemaphore(VkSemaphore& semaphore)
     else if ((numAvailableSemaphores == numAllocatedHandles) &&// Grow list
         (numAllocatedHandles < maxNumAllocatedHandles))
     {
-        uint32_t     expandedListNumElements = numAllocatedHandles + SEMAPHORE_LIST_GROWTH_RATE;
-        VkSemaphore* expandedListAllocation = static_cast<VkSemaphore*>(calloc(expandedListNumElements, sizeof(VkSemaphore)));
+        uint32_t     expandedListNumElements = numAllocatedHandles + SceneVulkanParameters::semaphoreListGrowthRate;
+        VkSemaphore* expandedListAllocation  = static_cast<VkSemaphore*>(calloc(expandedListNumElements, sizeof(VkSemaphore)));
         assert(expandedListAllocation);
         memcpy(expandedListAllocation, pSemaphoreHandles, numAvailableSemaphores); //Copy existing data
         free(pSemaphoreHandles);
-        pSemaphoreHandles = expandedListAllocation;
+        pSemaphoreHandles   = expandedListAllocation;
         numAllocatedHandles = expandedListNumElements;
 
         pSemaphoreHandles[numAvailableSemaphores++] = semaphore;

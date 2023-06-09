@@ -106,7 +106,7 @@ VkResult CreateDescriptorSetLayout (VkDevice logicalDevice,
     assert (result == VK_SUCCESS);
 
     *subpass0DescriptorSetLayout = dSet0Layout;
-    *subpass0DescriptorSetLayout = dSet1Layout;
+    *subpass1DescriptorSetLayout = dSet1Layout;
 
     return result;
 }
@@ -119,9 +119,9 @@ VkDescriptorPool CreateDescriptorPool (VkDevice logicalDevice)
     VkDescriptorPool descriptorPoolHandle = VK_NULL_HANDLE;
 
     const uint32_t numDescriptorTypes            = SceneVulkanParameters::numDescriptorTypesUsedInScene;
-    const uint32_t numUboDescriptors             = SceneVulkanParameters::numUboDescriptorsInScene;
-    const uint32_t numSsboDescriptors            = SceneVulkanParameters::numSsboDescriptorsInScene;
-    const uint32_t numInputAttachmentDescriptors = SceneVulkanParameters::numInputAttachmentDescriptorsInScene;
+    const uint32_t numUboDescriptors             = 3 * SceneVulkanParameters::numUboDescriptorsInScene;
+    const uint32_t numSsboDescriptors            = 3 * SceneVulkanParameters::numSsboDescriptorsInScene;
+    const uint32_t numInputAttachmentDescriptors = 3 * SceneVulkanParameters::numInputAttachmentDescriptorsInScene;
 
 
     VkDescriptorPoolSize pDescriptorPoolSizes[numDescriptorTypes] =
@@ -145,7 +145,7 @@ VkDescriptorPool CreateDescriptorPool (VkDevice logicalDevice)
         /*...VkStructureType................sType...........*/ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
         /*...const.void*....................pNext...........*/ nullptr,
         /*...VkDescriptorPoolCreateFlags....flags...........*/ 0,
-        /*...uint32_t.......................maxSets.........*/ SceneVulkanParameters::numDescriporSets,
+        /*...uint32_t.......................maxSets.........*/ SceneVulkanParameters::totalNumDescriporSets * 3,
         /*...uint32_t.......................poolSizeCount...*/ numDescriptorTypes, // Using one VkDescriptorPoolSize struct per descriptor type
         /*...const.VkDescriptorPoolSize*....pPoolSizes......*/ pDescriptorPoolSizes
     };
@@ -159,34 +159,5 @@ VkDescriptorPool CreateDescriptorPool (VkDevice logicalDevice)
     assert (descriptorPoolHandle != VK_NULL_HANDLE);
 
     return  descriptorPoolHandle;
-}
-
-//@TODO: factor this out. not really needed. move contents to the place its called
-VkDescriptorSet AllocateDescriptorSet (VkDevice               logicalDevice,
-                                       VkDescriptorPool       descriptorPool,
-                                       VkDescriptorSetLayout  descriptorSetLayout)
-{
-    assert (logicalDevice       != VK_NULL_HANDLE);
-    assert (descriptorPool      != VK_NULL_HANDLE);
-    assert (descriptorSetLayout != VK_NULL_HANDLE);
-
-    VkDescriptorSetAllocateInfo descriptorSetAllocateInfo =
-    {
-        /*...VkStructureType.................sType................*/ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-        /*...const.void*.....................pNext................*/ nullptr,
-        /*...VkDescriptorPool................descriptorPool.......*/ descriptorPool,
-        /*...uint32_t........................descriptorSetCount...*/ NUM_DESCRIPTOR_SETS,
-        /*...const.VkDescriptorSetLayout*....pSetLayouts..........*/ &descriptorSetLayout
-    };
-
-    VkDescriptorSet descriptorSetHandle = VK_NULL_HANDLE;
-    VkResult        result              = vkAllocateDescriptorSets(logicalDevice,
-                                                                   &descriptorSetAllocateInfo,
-                                                                   &descriptorSetHandle);
-
-    assert (descriptorSetHandle != VK_NULL_HANDLE);
-    assert (result              == VK_SUCCESS    );
-
-    return descriptorSetHandle;
 }
 #endif // !VULKAN_DESCRIPTOR_TOOLS_CPP

@@ -138,14 +138,14 @@ void CreateAndAllocateDepthImage (VkDevice            logicalDeviceHandle,
                                   VkImageView*        pDepthImageViewHandleOut);
 
 //Need to make one per swapchain image 
-void CreateAndAllocateColorImage (VkDevice            logicalDeviceHandle,
-                                   VkPhysicalDevice   physicalDeviceHandle,
-                                   uint32_t           queueFamilyIdx,
-                                   VkFormat           imageFormat,
-                                   VkExtent2D         imageDimensions,
-                                   VkDeviceMemory*    pColorImageMemOut,
-                                   VkImage*           pImageHandleOut,
-                                   VkImageView*       pColorImageViewHandleOut);
+void CreateAndAllocateColorImage (VkDevice           logicalDeviceHandle,
+                                  VkPhysicalDevice   physicalDeviceHandle,
+                                  uint32_t           queueFamilyIdx,
+                                  VkFormat           imageFormat,
+                                  VkExtent2D         imageDimensions,
+                                  VkDeviceMemory*    pColorImageMemOut,
+                                  VkImage*           pImageHandleOut,
+                                  VkImageView*       pColorImageViewHandleOut);
 
 void CreateFrameBuffers(VkDevice                    logicalDevice,
                         VkRenderPass                renderPass,
@@ -168,11 +168,21 @@ VkResult AcuireNextSwapchainImageIdx(VkQueue                     queue,
                                      uint32_t*                   pSwapchainImageIdxOut,
                                      PerSwapchainImageResources* pPerFrameResources);
 
+
+struct PerSubpassRenderParameters
+{
+    VkDescriptorSet   descriptorSet;
+    VkPipeline        pipeline;
+    VkPipelineLayout  pipelineLayout;
+};
+
+
 uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                            VkPhysicalDevice             physicalDevice, 
                            VkSwapchainKHR               swapchain,
-                           VkDescriptorSet              subpass0DescriptorSet,
                            VkQueue                      queue,
+                           PerSubpassRenderParameters*  pSubpass0Parameters,
+                           PerSubpassRenderParameters*  pSubpass1Parameters,
                            uint32_t                     gfxQueueIdx,
                            uint32_t                     numPreferredSwapchainFormats,
                            uint32_t                     numPreferredDepthFormats,
@@ -180,9 +190,7 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                            VkFormat*                    pPreferredDepthFormats,
                            VkSurfaceKHR                 surface,
                            VkRenderPass                 renderpass,
-                           VkPipeline                   pipeline,
-                           VkPipelineLayout             pipelineLayout,
-                           PerSwapchainImageResources** pPerFrameResources,
+                           PerSwapchainImageResources** ppSwapchainImageResources,
                            uint32_t*                    pNumSwapchainImages,
                            VkExtent2D*                  pExtent,
                            GeometryBufferSet*           pGeometryBufferSet,
@@ -205,10 +213,9 @@ VkSwapchainKHR ReinitializeRenderungSurface(VkDevice                     logical
 
 VkCommandBuffer RecordRenderGeometryBufferCmds(GeometryBufferSet*          pGeometryBufferSet,
                                                PerSwapchainImageResources* pPerSwapchainImageResources,
+                                               PerSubpassRenderParameters* pSubpass0Parameters,
+                                               PerSubpassRenderParameters* pSubpass1Parameters,
                                                VkRenderPass                renderPass,
-                                               VkDescriptorSet             descriptorSet,
-                                               VkPipeline                  pipeline,
-                                               VkPipelineLayout            pipelineLayout,
                                                VkExtent2D*                 pExtent,
                                                VkClearColorValue*          pColorClearValue,
                                                VkClearDepthStencilValue*   pDepthStencilClearValue);
@@ -258,11 +265,6 @@ inline void ResestPerSwapchainImageResources (VkDevice                      logi
         }
     }
 }
-
-VkDescriptorSet AllocateAndWriteDescriptorSet (VkDevice               logicalDevice,
-                                               VkDescriptorSetLayout  descriptorSetLayoutHandle,
-                                               VkBuffer               uniformBufferHandle,
-                                               VkBuffer               storageBufferHandle);
 
 VkDescriptorSet AllocateAndWriteSubpass0DescriptorSet (VkDevice               logicalDevice,
                                                        VkDescriptorPool       descriptorPoolHandle,

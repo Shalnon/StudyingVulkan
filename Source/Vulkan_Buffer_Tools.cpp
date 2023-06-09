@@ -132,7 +132,15 @@ inline vulkanAllocatedBufferInfo CreateAndAllocateSsbo (VkPhysicalDevice physica
     VkMemoryRequirements storageBufferMemRequirements = {};
     vkGetBufferMemoryRequirements (logicalDevice, storageBufferHandle, &storageBufferMemRequirements);
 
-    assert (storageBufferMemRequirements.alignment >= REQUIRED_SSBO_MEMORY_ALIGNMENT);
+#ifdef DEBUG
+    assert (storageBufferMemRequirements.alignment <= SceneVulkanParameters::numBytesPerColor);
+    if (storageBufferMemRequirements.alignment < SceneVulkanParameters::numBytesPerColor)
+    {
+        //if this assert is hit than that ill need to write a bit more code to account for that situation
+        assert (SceneVulkanParameters::numBytesPerColor % storageBufferMemRequirements.alignment == 0);
+    }
+#endif
+
 
     // Allocate device local memory that will hold the storage buffer data to be accessed from the gpu
     VkDeviceMemory storageBufMem = AllocateVkBufferMemory (physicalDevice, logicalDevice, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &storageBufferMemRequirements);
@@ -363,13 +371,13 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physical
         sceneTriangleCount += pAiMesh->mNumFaces;
     }
     
-    singleVertexSize = NUM_BYTES_PER_VERTEX_POSITION + NUM_BYTES_PER_NORMAL_VECTOR;
+    singleVertexSize = SceneVulkanParameters::numBytesPerVertexPosition + SceneVulkanParameters::numBytesPerVertexNormal;
 
     // Calculate amount of memory needed to hold the vertex data
     vertexBufferDataSize  = sceneVertexCount * singleVertexSize;
 
     // Calculated amount of memory needed to hold the index buffer data
-    indexBufferDataSize   = sceneTriangleCount * NUM_INDEX_BYTES_PER_TRIANGLE;
+    indexBufferDataSize   = sceneTriangleCount * SceneVulkanParameters::numIndexBytesPerPrimitive;
 
     // Create a staging buffer which will be where the cpu writes vertex data to
     vertexStagingBufferInfo = CreateAndAllocaStagingBuffer (physicalDevice,
@@ -458,10 +466,10 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physical
         {
             const aiFace* pFace = &(pAiMesh->mFaces[meshPrimIndex]);
 
-            if (pFace->mNumIndices == NUM_VERTICES_PER_TRIANGLE)
+            if (pFace->mNumIndices == SceneVulkanParameters::verticiesPerPrimitive)
             {
                 // offset of the buffer element that holds the vertex index which willserve  as the provoking vertex of this triangle
-                const uint32_t index0WriteLoc = (firstPrimInMesh + meshPrimIndex) * NUM_VERTICES_PER_TRIANGLE;
+                const uint32_t index0WriteLoc = (firstPrimInMesh + meshPrimIndex) * SceneVulkanParameters::verticiesPerPrimitive;
                 const aiFace*  pFace          = &(pAiMesh->mFaces[meshPrimIndex]);
 
                 // Im assuming these indices are stored with a consistent winding order. May need to verify later
@@ -567,7 +575,7 @@ vulkanAllocatedBufferInfo CreateMeshColorsStorageBuffer (VkPhysicalDevice    phy
     assert (numMaterialColors > 0);
 
     // Initialize with size required for the storing the per material values. At this point thats just one color per material.
-    VkDeviceSize storageBufferDataSize = numMaterialColors * NUM_BYTES_PER_COLOR_VALUE;
+    VkDeviceSize storageBufferDataSize = numMaterialColors * SceneVulkanParameters::numBytesPerColor;
 
     //Create a staging buffer which will that the cpu writes color data to
     vulkanAllocatedBufferInfo storageStagingBufferInfo = CreateAndAllocaStagingBuffer (physicalDevice,

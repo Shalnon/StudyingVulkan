@@ -11,8 +11,4 @@ VkResult CreateDescriptorSetLayout (VkDevice logicalDevice,
 // Create descriptor pool
 VkDescriptorPool CreateDescriptorPool (VkDevice logicalDevice);
 
-VkDescriptorSet AllocateDescriptorSet (VkDevice               logicalDevice,
-                                       VkDescriptorPool       descriptorPool,
-                                       VkDescriptorSetLayout  descriptorSetLayout);
-
 #endif // !VULKAN_DESCRIPTOR_TOOLS_H

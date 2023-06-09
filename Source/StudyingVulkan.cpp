@@ -99,33 +99,30 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                          /*...uint32_t*....................pNumSwapchainImages............*/ &numSwapChainImages,
                          /*...PerSwapchainImageResources**.ppPerSwapchainImageResources...*/ &pPerSwapchainImageResources);
 
-    VkRenderPass          renderpass                = CreateRenderpass (chosenSurfaceFormat.format, chosenDepthFormat, logicalDevice);
+    VkRenderPass          renderpass   = CreateRenderpass (chosenSurfaceFormat.format, chosenDepthFormat, logicalDevice);
+    const uint32_t        numSubpasses = SceneVulkanParameters::RenderPassParameters::numSubpasses;
 
-    VkDescriptorSetLayout pSubpassDescriptorSetLayouts[NUM_SUBPASSES] = { VK_NULL_HANDLE, VK_NULL_HANDLE };
+    VkDescriptorSetLayout pSubpassDescriptorSetLayouts[numSubpasses] = { VK_NULL_HANDLE, VK_NULL_HANDLE };
 
     CreateDescriptorSetLayout (logicalDevice,
                                &pSubpassDescriptorSetLayouts[0],
                                &pSubpassDescriptorSetLayouts[1]);
 
-    VkPipelineLayout      pPipelineLayoutHandles[NUM_SUBPASSES] = { VK_NULL_HANDLE, VK_NULL_HANDLE };
-    VkPipeline            pipelineHandle                        = CreateSubpass0Pipeline(logicalDevice,   //@todo: CReate separate function for seaprate pipelines
+    VkPipelineLayout      pPipelineLayoutHandles[numSubpasses] = { VK_NULL_HANDLE, VK_NULL_HANDLE };
+    VkPipeline            subpass0Pipeline = CreateSubpass0Pipeline(logicalDevice,   //@todo: CReate separate function for seaprate pipelines
                                                                                           renderpass,
                                                                                           &actualFrameDimensions,
                                                                                           pSubpassDescriptorSetLayouts[0],
-                                                                                          fragmentShaderPath.c_str(),
-                                                                                          vertexShaderPath.c_str(),
+                                                                                          SceneVulkanParameters::Subpass0::pFragShaderPath,
+                                                                                          SceneVulkanParameters::Subpass0::pVertShaderPath,
                                                                                           &pPipelineLayoutHandles[0]);
 
-    static const char* subpass1FragShaderPath   = nullptr;
-    static const char* subpass1VertexShaderPath = nullptr;
-    assert(subpass1FragShaderPath   != nullptr);
-    assert(subpass1VertexShaderPath != nullptr);
     VkPipeline      subpass1Pipeline = CreateSubpass1Pipeline (logicalDevice,   //@todo: CReate separate function for seaprate pipelines
                                                                renderpass,
                                                                &actualFrameDimensions,
                                                                pSubpassDescriptorSetLayouts[1],
-                                                               subpass1FragShaderPath,
-                                                               subpass1VertexShaderPath,
+                                                               SceneVulkanParameters::Subpass1::pFragShaderPath,
+                                                               SceneVulkanParameters::Subpass1::pVertShaderPath,
                                                                &pPipelineLayoutHandles[1]);
 
     CreateFrameBuffers(logicalDevice,
@@ -186,19 +183,34 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
 
     for (uint32_t swapIdx = 0; swapIdx < numSwapChainImages; swapIdx++)
     {
+        printf ("Creating descriptor set for swapchainImageResourceSet[%u].\n", swapIdx);
         PerSwapchainImageResources* pSwapchainImageResourceSet = &pPerSwapchainImageResources[swapIdx];
         // do i need one of these for each swap image?
-        VkDescriptorSet       subpass1DescriptorSet = AllocateAndWriteSubpass1DescriptorSet (logicalDevice,
-                                                                                             descriptorPoolHandle,
-                                                                                             pSubpassDescriptorSetLayouts[1],
-                                                                                             pSwapchainImageResourceSet->diffuseImageViewHandle,
-                                                                                             pSwapchainImageResourceSet->normalsImageViewHandle,
-                                                                                             pSwapchainImageResourceSet->depthImageViewHandle,
-                                                                                             uniformBufferInfo.bufferHandle);
+        VkDescriptorSet             subpass1DescriptorSet = AllocateAndWriteSubpass1DescriptorSet (logicalDevice,
+                                                                                                   descriptorPoolHandle,
+                                                                                                   pSubpassDescriptorSetLayouts[1],
+                                                                                                   pSwapchainImageResourceSet->diffuseImageViewHandle,
+                                                                                                   pSwapchainImageResourceSet->normalsImageViewHandle,
+                                                                                                   pSwapchainImageResourceSet->depthImageViewHandle,
+                                                                                                   uniformBufferInfo.bufferHandle);
 
 
         pSwapchainImageResourceSet->subpass1DesciptorSetHandle = subpass1DescriptorSet;
     }
+
+    PerSubpassRenderParameters   subpass0Parameters =
+    {
+        /*...VkDescriptorSet...descriptorSet....*/ subpass0DescriptorSet,
+        /*...VkPipeline........pipeline.........*/ subpass0Pipeline,
+        /*...VkPipelineLayout..pipelineLayout...*/ pPipelineLayoutHandles[0]
+    };
+
+    PerSubpassRenderParameters   subpass1Parameters =
+    {
+        /*...VkDescriptorSet...descriptorSet....*/ VK_NULL_HANDLE, // Set inside render loop. Need a swapchain index first to figure out which descriptor set to bind
+        /*...VkPipeline........pipeline.........*/ subpass1Pipeline,
+        /*...VkPipelineLayout..pipelineLayout...*/ pPipelineLayoutHandles[1]
+    };
 
 
     uint32_t numFramesToRender = 5;
@@ -206,27 +218,25 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     printf("about to start executing renderloop\n");
     for (uint32_t i = 0; i < numFramesToRender; i++)
     {
-
         printf ("\n--Frame %u begin--\n", i);
-        ExecuteRenderLoop (/*...VkDevice  ........................logicalDevice..................*/ logicalDevice,
-                           /*...VkPhysicalDevice..................physicalDevice.................*/ physicalDevice,
-                           /*...VkSwapchainKHR....................swapchain......................*/ swapchain,
-                           /*...VkDescriptorSet...................subpass0DescriptorSet..........*/ subpass0DescriptorSet,
-                           /*...VkQueue...........................queue..........................*/ queue,
-                           /*...uint32_t..........................gfxQueueIdx....................*/ queueFamilyIndex,
-                           /*...uint32_t..........................numPreferredSwapchainFormats...*/ numPreferredSurfaceFormats,
-                           /*...uint32_t..........................numPreferredDepthFormats.......*/ numPreferredDepthFormats,
-                           /*...VkFormat*.........................pPreferredSwapchainFormats.....*/ pPreferredSurfaceFormats,
-                           /*...VkFormat*.........................pPreferredDepthFormats.........*/ pPreferredDepthFormats,
-                           /*...VkSurfaceKHR......................surface........................*/ surface,
-                           /*...VkRenderPass......................renderpass.....................*/ renderpass,
-                           /*...VkPipeline........................pipeline.......................*/ pipelineHandle,
-                           /*...VkPipelineLayout  ................pipelineLayout.................*/ pipelineLayoutHandle,
-                           /*...PerSwapchainImageResources**......ppPerSwapchainImageResources...*/ &pPerSwapchainImageResources,
-                           /*...uint32_t*.........................pNumSwapchainImages............*/ &numSwapChainImages,
-                           /*...VkExtent2D*.......................pExtent........................*/ &actualFrameDimensions,
-                           /*...GeometryBufferSet*................pGeometryBufferSet.............*/ &geometrysBuffers,
-                           /*...uint32_t..........................frameIdx.......................*/ i);
+        ExecuteRenderLoop (/*...VkDevice.....................logicalDevice..................*/ logicalDevice,
+                           /*...VkPhysicalDevice.............physicalDevice,................*/ physicalDevice,
+                           /*...VkSwapchainKHR...............swapchain......................*/ swapchain,
+                           /*...VkQueue......................queue..........................*/ queue,
+                           /*...PerSubpassRenderParameters*..pSubpass0Parameters............*/ &subpass0Parameters,
+                           /*...PerSubpassRenderParameters*..pSubpass1Parameters............*/ &subpass1Parameters,
+                           /*...uint32_t.....................gfxQueueIdx....................*/ queueFamilyIndex,
+                           /*...uint32_t.....................numPreferredSwapchainFormats...*/ numPreferredSurfaceFormats,
+                           /*...uint32_t.....................numPreferredDepthFormats.......*/ numPreferredDepthFormats,
+                           /*...VkFormat*....................pPreferredSwapchainFormats.....*/ pPreferredSurfaceFormats,
+                           /*...VkFormat*....................pPreferredDepthFormats.........*/ pPreferredDepthFormats,
+                           /*...VkSurfaceKHR.................surface........................*/ surface,
+                           /*...VkRenderPass.................renderpass.....................*/ renderpass,
+                           /*...PerSwapchainImageResources**.ppSwapchainImageResources......*/ &pPerSwapchainImageResources, //@TODO: dont think this actually needs to be a double ptr
+                           /*...uint32_t*....................pNumSwapchainImages............*/ &numSwapChainImages,
+                           /*...VkExtent2D*..................pExtent........................*/ &actualFrameDimensions,
+                           /*...GeometryBufferSet*...........pGeometryBufferSet.............*/ &geometrysBuffers,
+                           /*...uint32_t.....................frameIdx)......................*/ i);
 
         printf ("\n--Frame %u end--\n",i);
     }
@@ -273,9 +283,14 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
         {
         */
 
-        if (pipelineHandle != VK_NULL_HANDLE)
+        if (subpass0Pipeline != VK_NULL_HANDLE)
         {
-            vkDestroyPipeline (logicalDevice, pipelineHandle, nullptr);
+            vkDestroyPipeline (logicalDevice, subpass0Pipeline, nullptr);
+        }
+
+        if (subpass1Pipeline != VK_NULL_HANDLE)
+        {
+            vkDestroyPipeline (logicalDevice, subpass1Pipeline, nullptr);
         }
 
         if (swapchain != VK_NULL_HANDLE)
