@@ -50,7 +50,7 @@ inline uint32_t GetSwapChainImageCount(VkDevice logicalDevice, VkSwapchainKHR sw
 
 
 VkInstance InitializeVulkanAndCreateInstance();
-VkShaderModule CreateShaderModule(VkDevice logicalDevice, const char* spvPath);
+VkShaderModule CreateShaderModule (VkDevice logicalDevice, const char* spvPath, bool isFrag, bool isVert);
 
 VkSurfaceKHR CreateVkSurface(VkInstance instance, HINSTANCE  window_instance, HWND window_handle);
 
@@ -87,22 +87,6 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
                          PerSwapchainImageResources** ppPerSwapchainImageResources);
 
 VkRenderPass CreateRenderpass(VkFormat swapChainFormat, VkFormat depthFormat, VkDevice logicalDevice);
-
-VkPipeline CreateSubpass0Pipeline(VkDevice               logicalDevice, 
-                                  VkRenderPass           renderpass, 
-                                  VkExtent2D*            pExtent, 
-                                  VkDescriptorSetLayout  descriptorSetLayoutHandle,
-                                  const char*            fragShaderPath, 
-                                  const char*            vertShaderPath,
-                                  VkPipelineLayout*      pipelineLayoutHandleOut);
-
-VkPipeline CreateSubpass1Pipeline (VkDevice               logicalDevice,
-                                   VkRenderPass           renderpass,
-                                   VkExtent2D*            pExtent,
-                                   VkDescriptorSetLayout  descriptorSetLayoutHandle,
-                                   const char*            fragShaderPath,
-                                   const char*            vertShaderPath,
-                                   VkPipelineLayout*      pPipelineLayoutHandleOut);
 
 VkFormat ChooseDepthFormat (VkPhysicalDevice   physicalDeviceHandle,
                             uint32_t           numPrefferredDepthFormats,

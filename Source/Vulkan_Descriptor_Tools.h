@@ -11,4 +11,22 @@ VkResult CreateDescriptorSetLayout (VkDevice logicalDevice,
 // Create descriptor pool
 VkDescriptorPool CreateDescriptorPool (VkDevice logicalDevice);
 
+
+
+VkPipeline CreateSubpass0Pipeline(VkDevice               logicalDevice, 
+                                  VkRenderPass           renderpass, 
+                                  VkExtent2D*            pExtent, 
+                                  VkDescriptorSetLayout  descriptorSetLayoutHandle,
+                                  const char*            fragShaderPath, 
+                                  const char*            vertShaderPath,
+                                  VkPipelineLayout*      pipelineLayoutHandleOut);
+
+VkPipeline CreateSubpass1Pipeline (VkDevice               logicalDevice,
+                                   VkRenderPass           renderpass,
+                                   VkExtent2D*            pExtent,
+                                   VkDescriptorSetLayout  descriptorSetLayoutHandle,
+                                   const char*            fragShaderPath,
+                                   const char*            vertShaderPath,
+                                   VkPipelineLayout*      pPipelineLayoutHandleOut);
+
 #endif // !VULKAN_DESCRIPTOR_TOOLS_H

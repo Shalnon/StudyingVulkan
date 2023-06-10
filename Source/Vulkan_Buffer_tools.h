@@ -3,43 +3,6 @@
 #include "Vulkan_Utils.h"
 #include <glm\glm.hpp>
 
-// used to map data to the vertex attributes
-struct VertexAttributeData
-{
-    float position[3];
-    float normal[3];
-};
-
-struct AttributeInfo
-{
-    uint32_t bufferBindingIdx; // VkVertexInputAttributeDescription::binding
-    uint32_t attributeIdx;     // VkVertexInputAttributeDescription::location
-    uint32_t stride;           // Stride of the attribute. (not the entire vertex)
-    uint32_t offset;           // Attribute offset - this will be non-0 when using interleaved attributes. (as in position and normal for a vertex being next to each other in the buffer)
-    VkFormat format;           // The format of the data : determines which data goes to which xyzw component
-};
-
-#define VERTEX_ATTRIB_POSITION_IDX SceneVulkanParameters::Subpass0::vertexLocationAttributePosition
-#define VERTEX_ATTRIB_NORMAL_IDX SceneVulkanParameters::Subpass0::vertexNormalAttributePosition
-
-// All attributes will come from the same buffer for now
-static AttributeInfo s_VertexShaderAttributes[] =
-{
-    { // POSITION ATTRIBUTE
-        /*...uint32_t...bufferBindingIdx..*/ 0,
-        /*...uint32_t...attributeIdx......*/ SceneVulkanParameters::Subpass0::vertexLocationAttributePosition, //0
-        /*...uint32_t...stride............*/ sizeof (VertexAttributeData::position),
-        /*...uint32_t...offset............*/ offsetof (VertexAttributeData, position),
-        /*...VkFormat...format............*/ VK_FORMAT_R32G32B32_SFLOAT
-    },
-    { // VERTEX NORMAL ATTRIBUTE
-        /*...uint32_t...bufferBindingIdx..*/ 0,
-        /*...uint32_t...attributeIdx......*/ SceneVulkanParameters::Subpass0::vertexNormalAttributePosition, //1
-        /*...uint32_t...stride............*/ sizeof (VertexAttributeData::normal),
-        /*...uint32_t...offset............*/ offsetof (VertexAttributeData, normal),
-        /*...VkFormat...format............*/ VK_FORMAT_R32G32B32_SFLOAT
-    }
-};
 
 // Struct for tracking per-mesh data
 struct MeshInfo

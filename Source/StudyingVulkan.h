@@ -13,64 +13,21 @@
 #include <cstdlib>
 
 #define DEBUG
-
 #define VK_USE_PLATFORM_WIN32_KHR
-//#define  VK_NO_PROTOTYPES
-
-//@TODO: Clean up all these defines 
-
 #define USE_VOLK
-////Max must be a multiple of 64
-//#define MAX_SEMAPHORE_LIST_SIZE 512
-//#define MIN_SEMAPHORE_LIST_SIZE 64
-//#define SEMAPHORE_LIST_GROWTH_RATE 64
-//#define COORDS_PER_POSITION 3
-//#define COORDS_PER_NORMAL 3
-//#define NUM_VERTICES_PER_TRIANGLE 3
-//#define NUM_BYTES_PER_VERTEX_POSITION sizeof (float) * COORDS_PER_POSITION
-//#define NUM_BYTES_PER_NORMAL_VECTOR sizeof (float) * COORDS_PER_POSITION
-//#define NUM_INDEX_BYTES_PER_TRIANGLE sizeof (uint32_t) * NUM_VERTICES_PER_TRIANGLE
-
-//RGBA because there needs to be a 16 byte stride between elements
-//#define NUM_CHANNELS_PER_COLOR 4
-//#define NUM_BYTES_PER_COLOR_CHANNEL sizeof(float)
-//#define NUM_BYTES_PER_COLOR_VALUE    NUM_CHANNELS_PER_COLOR * NUM_BYTES_PER_COLOR_CHANNEL
-
-//#define DIFFUSE_COLOR_ATTACHMENT_IDX  0
-//#define SURFACE_NORMAL_ATTACHMENT_IDX 1
-//#define PRESENT_COLOR_ATTACHMENT_IDX  2
-//#define DEPTH_STENCIL_ATTACHMENT_IDX  3
-
-///#define SUBPASS_0_UNIFORM_BUFFER_DESCRIPTOR_BINDING 0
-///#define SUBPASS_0_STORAGE_BUFFER_DESCRIPTOR_BINDING 1
-
-// Subpass 0 input attachment binding numbers
-//#define SUBPASS_1_DIFFUSE_COLOR_INPUT_ATTACHMENT_DESCRIPTOR_BINDING 0
-//#define SUBPASS_1_SURFACE_NORMAL_INPUT_ATTACHMENT_DESCRIPTOR_BINDING 1
-//#define SUBPASS_1_DEPTH_STENCIL_INPUT_ATTACHMENT_DESCRIPTOR_BINDING 2
-//#define SUBPASS_1_UNIFORM_BUFFER_DESCRIPTOR_BINDING 3
-
-
-//#define NUM_COLOR_ATTACHMENTS 3
-//#define NUM_DEPTH_STENCIL_ATTACHMENTS 1
-//#define NUM_ATTACHMENTS NUM_COLOR_ATTACHMENTS + NUM_DEPTH_STENCIL_ATTACHMENTS
-//
-//#define NUM_INPUT_ATTACHMENTS 3
-//
-//#define REQUIRED_SSBO_MEMORY_ALIGNMENT NUM_BYTES_PER_COLOR_VALUE
-//#define REQUIRED_UBO_MEMORY_ALIGNMENT  sizeof(float) * 16
-//
-//#define NUM_SUBPASSES 2
-//#define NUM_DESCRIPTOR_SETS NUM_SUBPASSES
 
 #if defined(USE_VOLK)
-    //#define   VOLK_IMPLEMENTATION
+    //#define   VOLK_IMPLEMENTATION //@note: Defined in vulkan_utils.cpp
     #include "volk.h"
 #else
     #include "vulkan/vulkan.h"
 	#define VK_EXPORTED_FUNCTION(func) extern PFN_##func func;
 #endif
 
+// used to map data to the vertex attributes
+
+#define WINDOW_WIDTH  1280
+#define WINDOW_HEIGHT 720
 
 namespace SceneVulkanParameters
 {
@@ -88,12 +45,16 @@ namespace SceneVulkanParameters
     static const uint32_t numBytesPerVertexNormal    = numCoordsPerVertexPosition * sizeof (float);
     static const uint32_t numIndexBytesPerPrimitive  = verticiesPerPrimitive * sizeof (uint32_t);
 
-    //RGBA because there needs to be a 16 byte stride between elements
+    //RGBA because there needs to be atleast a 16 byte stride between elements
     static const uint32_t numChannelsPerColor     = 4;
     static const uint32_t numBytesPerColorChannel = sizeof (float);
     static const uint32_t numBytesPerColor        = numChannelsPerColor * numBytesPerColorChannel;
 
-
+    namespace window
+    {
+        static const uint32_t width = WINDOW_WIDTH;
+        static const uint32_t height = WINDOW_HEIGHT;
+    };
     namespace RenderPassParameters
     {
         static const uint32_t numColorAttachments = 3; // diffuse, normal, present
@@ -177,14 +138,40 @@ namespace SceneVulkanParameters
     static const VkFormat preferredDeptAttachmentFormats[]                               = { VK_FORMAT_D32_SFLOAT };
 }
 
+struct VertexAttributeData
+{
+    float position[3];
+    float normal[3];
+};
+
+struct AttributeInfo
+{
+    uint32_t bufferBindingIdx; // VkVertexInputAttributeDescription::binding
+    uint32_t attributeIdx;     // VkVertexInputAttributeDescription::location
+    uint32_t stride;           // Stride of the attribute. (not the entire vertex)
+    uint32_t offset;           // Attribute offset - this will be non-0 when using interleaved attributes. (as in position and normal for a vertex being next to each other in the buffer)
+    VkFormat format;           // The format of the data : determines which data goes to which xyzw component
+};
+
+// All attributes will come from the same buffer for now
+static AttributeInfo s_VertexShaderAttributes[] =
+{
+    { // POSITION ATTRIBUTE
+        /*...uint32_t...bufferBindingIdx..*/ 0,
+        /*...uint32_t...attributeIdx......*/ SceneVulkanParameters::Subpass0::vertexLocationAttributePosition, //0
+        /*...uint32_t...stride............*/ sizeof (VertexAttributeData::position),
+        /*...uint32_t...offset............*/ offsetof (VertexAttributeData, position),
+        /*...VkFormat...format............*/ VK_FORMAT_R32G32B32_SFLOAT
+    },
+    { // VERTEX NORMAL ATTRIBUTE
+        /*...uint32_t...bufferBindingIdx..*/ 0,
+        /*...uint32_t...attributeIdx......*/ SceneVulkanParameters::Subpass0::vertexNormalAttributePosition, //1
+        /*...uint32_t...stride............*/ sizeof (VertexAttributeData::normal),
+        /*...uint32_t...offset............*/ offsetof (VertexAttributeData, normal),
+        /*...VkFormat...format............*/ VK_FORMAT_R32G32B32_SFLOAT
+    }
+};
 
 // Ceiling aligns a number
 #define ALIGN(num, alignment) (num + (alignment - (num % alignment)))
-
-#define WINDOW_WIDTH  1280
-#define WINDOW_HEIGHT 720
-
-extern uint32_t g_FragShader[];
-extern uint32_t g_VertShader[];
-
 #endif

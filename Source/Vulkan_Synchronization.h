@@ -53,4 +53,5 @@ namespace VkSync
 
 //static VkSync::SemaphoreList VkSync::SemaphoreDepot = {};
 
+
 #endif
