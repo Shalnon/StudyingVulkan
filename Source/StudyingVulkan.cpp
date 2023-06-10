@@ -63,25 +63,25 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     PerSwapchainImageResources*  pPerSwapchainImageResources = 0;
 
     // Defines a list of formats that meet our needs. One color, and one depth fromat will be chosen inside InitializeSwapchain.
-    static const uint32_t    numPreferredSurfaceFormats                           = NUM_PREFERRED_SURFACE_FORMATS;
-    VkFormat                 pPreferredSurfaceFormats[numPreferredSurfaceFormats] = PREFERRED_SURRFACE_FORMATS;
-    static const uint32_t    numPreferredDepthFormats                             = NUM_PREFFERRED_DEPTH_FORMATS;
-    VkFormat                 pPreferredDepthFormats[numPreferredDepthFormats]     = PREFERRED_DEPTH_FORMATS;
+    const uint32_t    numPreferredSurfaceFormats   = SceneVulkanParameters::numPreferredDepthFormats;
+    const VkFormat*   pPreferredSurfaceFormats     = SceneVulkanParameters::preferredSwapchainImagesFormats;
+    const uint32_t    numPreferredDepthFormats     = SceneVulkanParameters::numPreferredDepthFormats;
+    const VkFormat*   pPreferredDepthFormats       = SceneVulkanParameters::preferredDeptAttachmentFormats;
 
     VkFormat chosenDepthFormat = VK_FORMAT_UNDEFINED;
 
-    // InitializeSwapchain() does the following:
-    // - Chooses a supported surface format from the lists above.
-    // - Establishes how many swapchain images we will be using
-    // - Sets up swapchain images as color attachments and creates the swapchain
-    // - Creates a fence for each swapchain image that can be used to find when that image is no longer being used by GPU
-    // - Creates Command Pool
-    // - Allocates a command buffer for each of the swapchain images  -- @todo: pull this out? not sure if it fits this otherwise image focused function
-    // - Creates image views for swapchain images
-    // - Chooses a supported depth format from the lists above.
-    // - Allocates and binds image memory to the depth images.
-    // - Creates image views for the depth images.
-    // - Creates the images and image views for the surface normals and diffuse color attachments
+    /* InitializeSwapchain () does the following :
+    |* Chooses a supported surface format from the lists above.
+    |* Establishes how many swapchain images we will be using
+    |* Sets up swapchain images as color attachments and creates the swapchain
+    |* Creates a fence for each swapchain image that can be used to find when that image is no longer being used by GPU
+    |* Creates Command Pool
+    |* Allocates a command buffer for each of the swapchain images  -- @todo: pull this out? not sure if it fits this otherwise image focused function
+    |* Creates image views for swapchain images
+    |* Chooses a supported depth format from the lists above.
+    |* Allocates and binds image memory to the depth images.
+    |* Creates image views for the depth images.
+    |* Creates the images and image views for the surface normals and diffuse color attachments */
     InitializeSwapchain (/*...VkPhysicalDevice.............physicalDevice.................*/ physicalDevice,
                          /*...VkDevice.....................logicalDevice..................*/ logicalDevice,
                          /*...uint32_t.....................graphicsQueueIndex.............*/ queueFamilyIndex,

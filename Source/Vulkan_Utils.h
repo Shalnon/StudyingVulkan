@@ -12,26 +12,7 @@ extern uint32_t  numRequiredExtensions;
 struct GeometryBufferSet;
 
 // Static array of formats that specifies which formats we want to use when interacting with the swapchain images
-static const VkFormat preferredSwapchainFormats[NUM_PREFERRED_SURFACE_FORMATS] = PREFERRED_SURRFACE_FORMATS;
-
-// Struct for tracking info needed to create and/or modify a swapchain
-struct SwapchainInfo
-{
-    // Swapchain handle
-    VkSwapchainKHR     swapchain;
-
-    // Dimensions of the swapchain and its surface
-    VkExtent2D         chosenSwapchainExtent;
-
-    // Surface format the swapchain surface is set up to use
-    VkSurfaceFormatKHR chosenSurfaceFormat;
-
-    // Swapchain image views
-    VkImageView*        pSwapchainImageViews;
-
-    // Preferred swapchain formats that are checked against formats gpu reports as supported
-    static const VkFormat const pPreferredSwapchainFormats[NUM_PREFERRED_SURFACE_FORMATS];
-};
+//static const VkFormat preferredSwapchainFormats[NUM_PREFERRED_SURFACE_FORMATS] = PREFERRED_SURRFACE_FORMATS;
 
 struct PerSwapchainImageResources
 {
@@ -85,7 +66,7 @@ bool CreatePhysicalDeviceAndQueue(VkInstance                 instance,
 
 VkSurfaceFormatKHR ChooseSwapchainFormat(VkSurfaceFormatKHR* pSupportedSwapchainSurfaceFormats,
                                          uint32_t            numSupportedFormats,
-                                         VkFormat*           pPreferredFormats,
+                                         const VkFormat*     pPreferredFormats,
                                          uint32_t            numPreferredFormats);
 
 void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
@@ -94,8 +75,8 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
                          VkSurfaceKHR                 surface,
                          uint32_t                     numPreferredSurfaceFormats,
                          uint32_t                     numPreferredDepthFormats,
-                         VkFormat*                    pPreferredSurfaceFormats,
-                         VkFormat*                    pPreferredDepthFormats, 
+                         const VkFormat*              pPreferredSurfaceFormats,
+                         const VkFormat*              pPreferredDepthFormats, 
                          VkExtent2D                   prefferredExtent,           // Dimensions of the window
                          VkSwapchainKHR               oldSwapchain,
                          VkSwapchainKHR*              pSwapchainOut,
@@ -186,8 +167,8 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                            uint32_t                     gfxQueueIdx,
                            uint32_t                     numPreferredSwapchainFormats,
                            uint32_t                     numPreferredDepthFormats,
-                           VkFormat*                    pPreferredSwapchainFormats,
-                           VkFormat*                    pPreferredDepthFormats,
+                           const VkFormat*              pPreferredSwapchainFormats,
+                           const VkFormat*              pPreferredDepthFormats,
                            VkSurfaceKHR                 surface,
                            VkRenderPass                 renderpass,
                            PerSwapchainImageResources** ppSwapchainImageResources,
@@ -203,8 +184,8 @@ VkSwapchainKHR ReinitializeRenderungSurface(VkDevice                     logical
                                             VkExtent2D                   swapchainExtent,
                                             uint32_t                     numPreferredDepthFormats,
                                             uint32_t                     numPreferredSwapchainFormats,
-                                            VkFormat*                    pPreferredSwapchainFormats,
-                                            VkFormat*                    pPreferredDepthFormats,
+                                            const VkFormat*              pPreferredSwapchainFormats,
+                                            const VkFormat*              pPreferredDepthFormats,
                                             VkSurfaceKHR                 surface,
                                             VkRenderPass                 renderpass,
                                             VkQueue                      queue,

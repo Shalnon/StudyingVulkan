@@ -166,6 +166,15 @@ namespace SceneVulkanParameters
 
     static const uint32_t minSemaphoreListSize    = 64;
     static const uint32_t semaphoreListGrowthRate = 64;
+
+
+    static const VkFormat normalVectorGbufferImageFormat = VK_FORMAT_R16G16B16A16_SNORM;
+    static const VkFormat diffuseColorGbufferImageFormat = VK_FORMAT_B8G8R8A8_UNORM;
+
+    static const uint32_t numPreferredSwapchainFormats                                   = 2;
+    static const uint32_t numPreferredDepthFormats                                       = 2;
+    static const VkFormat preferredSwapchainImagesFormats[numPreferredSwapchainFormats]  = { VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_B8G8R8A8_SRGB };
+    static const VkFormat preferredDeptAttachmentFormats[]                               = { VK_FORMAT_D32_SFLOAT };
 }
 
 
@@ -179,10 +188,10 @@ namespace SceneVulkanParameters
 #define FRAG_PATH  "C:\\git\\CmakeExperiments\\StudyingVulkan\\StudyingVulkan\\Source\\Shaders\\Khronos\\withVertexBuffer\\frag.spv"
 #define VERT_PATH  "C:\\git\\CmakeExperiments\\StudyingVulkan\\StudyingVulkan\\Source\\Shaders\\Khronos\\withVertexBuffer\\vert.spv"
 
-#define NUM_PREFERRED_SURFACE_FORMATS 2
-#define PREFERRED_SURRFACE_FORMATS  { VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_B8G8R8A8_SRGB }
-#define NUM_PREFFERRED_DEPTH_FORMATS 1
-#define PREFERRED_DEPTH_FORMATS { VK_FORMAT_D32_SFLOAT }
+//#define NUM_PREFERRED_SURFACE_FORMATS 2
+//#define PREFERRED_SURRFACE_FORMATS  { VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_B8G8R8A8_SRGB }
+//#define NUM_PREFFERRED_DEPTH_FORMATS 1
+//#define PREFERRED_DEPTH_FORMATS { VK_FORMAT_D32_SFLOAT }
 
 
 extern uint32_t g_FragShader[];
