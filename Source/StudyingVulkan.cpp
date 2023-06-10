@@ -21,12 +21,6 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
 
     HWND window_handle = InitWindowInstance(hInstance, nCmdShow, szWindowClass, szTitle, WINDOW_WIDTH, WINDOW_HEIGHT);
 
-    std::string vertexShaderPath   = std::string(VERT_PATH); //@TODO: change these to use a relative path from the working directory
-    std::string fragmentShaderPath = std::string(FRAG_PATH);
-
-    printf("Vertex shader path: %s\n",   vertexShaderPath.c_str());
-    printf("Fragment shader path: %s\n", fragmentShaderPath.c_str());
-
     VkInstance    instance = InitializeVulkanAndCreateInstance();
     VkSurfaceKHR  surface  = CreateVkSurface(instance, hInstance, window_handle);
 

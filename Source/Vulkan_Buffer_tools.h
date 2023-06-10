@@ -3,9 +3,6 @@
 #include "Vulkan_Utils.h"
 #include <glm\glm.hpp>
 
-// vertex attribute index/slot that will correspond to vertex position
-#define VERTEX_ATTRIB_POSITION_IDX 0
-
 // used to map data to the vertex attributes
 struct VertexAttributeData
 {

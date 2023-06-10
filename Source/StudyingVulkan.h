@@ -184,16 +184,6 @@ namespace SceneVulkanParameters
 #define WINDOW_WIDTH  1280
 #define WINDOW_HEIGHT 720
 
-//C:\Users\shaln\source\repos\StudyingVulkan\StudyingVulkan\Shaders\Khronos
-#define FRAG_PATH  "C:\\git\\CmakeExperiments\\StudyingVulkan\\StudyingVulkan\\Source\\Shaders\\Khronos\\withVertexBuffer\\frag.spv"
-#define VERT_PATH  "C:\\git\\CmakeExperiments\\StudyingVulkan\\StudyingVulkan\\Source\\Shaders\\Khronos\\withVertexBuffer\\vert.spv"
-
-//#define NUM_PREFERRED_SURFACE_FORMATS 2
-//#define PREFERRED_SURRFACE_FORMATS  { VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_B8G8R8A8_SRGB }
-//#define NUM_PREFFERRED_DEPTH_FORMATS 1
-//#define PREFERRED_DEPTH_FORMATS { VK_FORMAT_D32_SFLOAT }
-
-
 extern uint32_t g_FragShader[];
 extern uint32_t g_VertShader[];
 
