@@ -357,7 +357,7 @@ VkPipeline CreateSubpass0Pipeline (VkDevice               logicalDevice,
     static const uint32_t fragmentShaderIdx = 1;
     static const uint32_t numStages = 2;
 
-    VkShaderModule pShaderModules[2];
+    VkShaderModule pShaderModules[2] = { VK_NULL_HANDLE, VK_NULL_HANDLE };
 
     pShaderModules[fragmentShaderIdx] = CreateShaderModule (logicalDevice, fragShaderPath, true, false);
     pShaderModules[vertexShaderIdx] = CreateShaderModule (logicalDevice, vertShaderPath, false, true);

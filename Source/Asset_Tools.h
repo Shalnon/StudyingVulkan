@@ -1,5 +1,5 @@
-#ifndef ASSET_TOOLS_H
-#define ASSET_TOOLS_H
+#ifndef MY_ASSET_TOOLS_H
+#define MY_ASSET_TOOLS_H
 
 
 #include "volk.h"
@@ -59,4 +59,4 @@ inline VkAabbPositionsKHR TranslateAabb (VkAabbPositionsKHR* pAABB, glm::vec3 tr
     return aabbOut;
 }
 
-#endif // ASSET_TOOLS_H
+#endif // MY_ASSET_TOOLS_H

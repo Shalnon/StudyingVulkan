@@ -52,7 +52,7 @@ VkSurfaceKHR CreateVkSurface(VkInstance instance, HINSTANCE  window_instance, HW
 bool CreatePhysicalDeviceAndQueue(VkInstance                 instance,
                                  VkSurfaceKHR                surface,
                                  uint32_t                    numnRequiredExtensions,
-                                 char**                      ppRequiredDeviceExtensionNames,
+                                 const char*                 ppRequiredDeviceExtensionNames[],
                                  VkPhysicalDeviceFeatures*   pDeviceFeatures,
                                  VkPhysicalDevice*           pPhysicalDeviceOut,
                                  VkQueue*                    pQueueOut,
@@ -79,7 +79,7 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
                          VkSurfaceFormatKHR*          pSurfaceFormatOut,          // pass back the format used
                          VkFormat*                    pChosenDepthFormatOut,
                          uint32_t*                    pNumSwapchainImages,
-                         PerSwapchainImageResources** ppPerSwapchainImageResources);
+                         PerSwapchainImageResources** ppPerSwapchainImageResourcesInOut);
 
 VkRenderPass CreateRenderpass(VkFormat swapChainFormat, VkFormat depthFormat, VkDevice logicalDevice);
 
@@ -169,7 +169,7 @@ VkSwapchainKHR ReinitializeRenderungSurface(VkDevice                     logical
                                             VkRenderPass                 renderpass,
                                             VkQueue                      queue,
                                             uint32_t*                    pNumSwapchainImages,
-                                            PerSwapchainImageResources** ppPerSwapchainImageResources);
+                                            PerSwapchainImageResources**  ppPerSwapchainImageResources);
 
 VkCommandBuffer RecordRenderGeometryBufferCmds(GeometryBufferSet*          pGeometryBufferSet,
                                                PerSwapchainImageResources* pPerSwapchainImageResources,

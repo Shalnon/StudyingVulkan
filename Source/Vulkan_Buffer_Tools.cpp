@@ -112,7 +112,7 @@ inline vulkanAllocatedBufferInfo CreateAndAllocateIndexBuffer (VkPhysicalDevice 
 
 inline vulkanAllocatedBufferInfo CreateAndAllocateSsbo (VkPhysicalDevice physicalDevice,
                                                         VkDevice         logicalDevice,
-                                                        uint32_t         bufferSizeInBytes,
+                                                        uint64_t         bufferSizeInBytes,
                                                         uint32_t         queueIndex)
 {
     VkBuffer           storageBufferHandle = VK_NULL_HANDLE;

@@ -1,5 +1,5 @@
-#ifndef ASSET_TOOLS_H
-#define ASSET_TOOLS_H
+#ifndef MY_ASSET_TOOLS_CPP
+#define MY_ASSET_TOOLS_CPP
 
 #include "Asset_Tools.h"
 #include "StudyingVulkan.h"
@@ -214,4 +214,4 @@ glm::mat4 GetTransform_FitAABBToAABB (VkAabbPositionsKHR originalAABB,
 
 }
 
-#endif // ASSET_TOOLS_H
+#endif // MY_ASSET_TOOLS_CPP

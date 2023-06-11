@@ -83,7 +83,7 @@ inline vulkanAllocatedBufferInfo CreateAndAllocateUniformBuffer (VkPhysicalDevic
 
 inline vulkanAllocatedBufferInfo CreateAndAllocateSsbo (VkPhysicalDevice physicalDevice,
                                                         VkDevice         logicalDevice,
-                                                        uint32_t         bufferSizeInBytes,
+                                                        uint64_t         bufferSizeInBytes,
                                                         uint32_t         queueIndex);
  
 void ExecuteBuffer2BufferCopy (VkPhysicalDevice          physicalDevice,

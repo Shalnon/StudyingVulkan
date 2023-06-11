@@ -31,7 +31,7 @@
 
 namespace SceneVulkanParameters
 {
-    static const uint32_t numDescriptorTypesUsedInScene       = 3;
+    static const uint32_t numDescriptorTypesUsedInScene        = 3;
     static const uint32_t numUboDescriptorsInScene             = 1;
     static const uint32_t numSsboDescriptorsInScene            = 1;
     static const uint32_t numInputAttachmentDescriptorsInScene = 3;
@@ -50,9 +50,12 @@ namespace SceneVulkanParameters
     static const uint32_t numBytesPerColorChannel = sizeof (float);
     static const uint32_t numBytesPerColor        = numChannelsPerColor * numBytesPerColorChannel;
 
+    static const uint32_t numRequiredExtensions   = 1;
+    static const char*    requiredDeviceExtensionss[numRequiredExtensions] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+
     namespace window
     {
-        static const uint32_t width = WINDOW_WIDTH;
+        static const uint32_t width  = WINDOW_WIDTH;
         static const uint32_t height = WINDOW_HEIGHT;
     };
     namespace RenderPassParameters
