@@ -1,3 +1,5 @@
+#ifndef VULKAN_BUFFER_TOOLS_CPP
+#define VULKAN_BUFFER_TOOLS_CPP
 
 #include "Vulkan_Buffer_Tools.h"
 #include "assimp/scene.h"
@@ -730,3 +732,5 @@ vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             phys
 
     return uniformBufferInfo;
 }
+
+#endif // VULKAN_BUFFER_TOOLS_CPP

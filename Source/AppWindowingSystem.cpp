@@ -1,3 +1,5 @@
+#ifndef APP_WINDOWING_SYSTEM_CPP
+#define APP_WINDOWING_SYSTEM_CPP
 
 #include "AppWindowingSystem.h"
 #include <strsafe.h>
@@ -213,3 +215,5 @@ void PrintLastWin32Error(const wchar_t * lpszFunction)
         std::cout << "No error hit yet" << std::endl;
     }
 }
+
+#endif // APP_WINDOWING_SYSTEM_CPP

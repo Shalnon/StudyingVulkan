@@ -1,8 +1,8 @@
+#ifndef VULKAN_SYNCHRONIZATION_CPP
+#define VULKAN_SYNCHRONIZATION_CPP
+
 #include "Vulkan_Synchronization.h"
 #include "Vulkan_Utils.h"
-
-//const uint32_t VkSync::maxSemaphoreHandlesAllocated        = 512;
-//const uint32_t VkSync::initialNumSemaphoreHandlesAllocated = 16;
 
 #if !defined(SEMAPHORE_DEPOT_DEFINITION)
 VkSync::SemaphoreList VkSync::SemaphoreDepot = {};
@@ -183,3 +183,5 @@ void VkSync::InitSemaphoreList(VkDevice logicalDeviceIn)
 
     printf("VkSync::SemaphoreDepot.numAllocatedHandles = % u\n", VkSync::SemaphoreDepot.numAllocatedHandles);
 }
+
+#endif // VULKAN_SYNCHRONIZATION_CPP

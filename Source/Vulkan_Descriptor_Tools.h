@@ -1,5 +1,6 @@
 #ifndef VULKAN_DESCRIPTOR_TOOLS_H
 #define VULKAN_DESCRIPTOR_TOOLS_H
+
 #include "Vulkan_Utils.h"
 #include <glm\glm.hpp>
 
@@ -29,4 +30,4 @@ VkPipeline CreateSubpass1Pipeline (VkDevice               logicalDevice,
                                    const char*            vertShaderPath,
                                    VkPipelineLayout*      pPipelineLayoutHandleOut);
 
-#endif // !VULKAN_DESCRIPTOR_TOOLS_H
+#endif // VULKAN_DESCRIPTOR_TOOLS_H

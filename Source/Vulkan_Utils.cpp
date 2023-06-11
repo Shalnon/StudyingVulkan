@@ -1,11 +1,13 @@
+#ifndef VULKAN_UTILS_CPP
+#define VULKAN_UTILS_CPP
+
+// This needs to be defined for volk to work
 #define VOLK_IMPLEMENTATION
 
 #include "Vulkan_Utils.h"
 #include "Vulkan_enum_strings.h"
 #include "Vulkan_Buffer_Tools.h"
 #include "Vulkan_Descriptor_Tools.h"
-
-uint32_t numRequiredExtensions = 1;
 
 inline uint32_t GetPhysicalDeviceCount(VkInstance instance)
 {
@@ -76,7 +78,7 @@ VkInstance InitializeVulkanAndCreateInstance()
 
         const char* const* ppEnabledLayerNames = 0;
         const char*        ppExtensionNames[]  = { vkKhrSurfaceExtensionName , win32SurfaceExtensionName };
-        VkApplicationInfo  applicationInfo =
+        VkApplicationInfo  applicationInfo     =
         {
             /*VkStructureType....sType......................*/ VK_STRUCTURE_TYPE_APPLICATION_INFO,
             /*const.void*........pNext......................*/ 0,
@@ -1719,7 +1721,7 @@ VkDescriptorSet AllocateAndWriteSubpass1DescriptorSet (VkDevice               lo
 
     // Write the descriptor set with info about the resources backing the ubo
     static const uint32_t numDescriptorsToUpdate = 4;
-    VkWriteDescriptorSet pDescriptorUpdateWrites[numDescriptorsToUpdate] =
+    VkWriteDescriptorSet  pDescriptorUpdateWrites[numDescriptorsToUpdate] =
     {
         { // struct describing the descriptor update for the uniform buffer at binding 0
             /*...VkStructureType..................sType..............*/ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -1780,3 +1782,4 @@ VkDescriptorSet AllocateAndWriteSubpass1DescriptorSet (VkDevice               lo
     return descriptorSetHandle;
 
 }
+#endif // VULKAN_UTILS_CPP

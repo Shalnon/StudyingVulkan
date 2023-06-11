@@ -1,5 +1,5 @@
-// StudyingVulkan.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
+#ifndef STUDYING_VULKAN_CPP
+#define STUDYING_VULKAN_CPP
 
 #include "StudyingVulkan.h"
 #include "Vulkan_Utils.h"
@@ -322,3 +322,5 @@ int main ()
 
     return wWinMain (GetModuleHandle (NULL), NULL, GetCommandLineW (), SW_SHOWNORMAL);
  }
+
+#endif // STUDYING_VULKAN_CPP

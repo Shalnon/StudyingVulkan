@@ -1,5 +1,5 @@
 #pragma once
-#if !defined(VULKAN_SYCHRONIZATION_H)
+#ifndef VULKAN_SYCHRONIZATION_H
 #define VULKAN_SYCHRONIZATION_H
 
 #include "StudyingVulkan.h"
@@ -51,7 +51,6 @@ namespace VkSync
 	void InitSemaphoreList(VkDevice logicalDeviceIn);
 };
 
-//static VkSync::SemaphoreList VkSync::SemaphoreDepot = {};
 
 
-#endif
+#endif // VULKAN_SYCHRONIZATION_H

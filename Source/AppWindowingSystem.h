@@ -53,4 +53,5 @@ inline void ShowConsole()
 	freopen_s(&fp, "CONOUT$", "w", stdout);
 	freopen_s(&fp, "CONOUT$", "w", stderr);
 }
-#endif
+
+#endif // APP_WINDOWING_SYSTEM_H

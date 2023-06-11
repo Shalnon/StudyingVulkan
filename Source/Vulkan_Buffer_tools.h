@@ -118,4 +118,4 @@ vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             phys
                                                const GeometryBufferSet*     pGeometryBufferSet,
                                                VkAabbPositionsKHR*          pDesiredSceneBounds,
                                                bool                         maintainAspectRatio);
-#endif
+#endif // VULKAN_BUFFER_TOOLS_H

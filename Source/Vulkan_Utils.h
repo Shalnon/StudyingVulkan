@@ -1,4 +1,3 @@
-#pragma once
 #ifndef VULKAN_UTILS_H
 #define VULKAN_UTILS_H
 #include "StudyingVulkan.h"
@@ -7,12 +6,8 @@
 
 extern uint32_t  numRequiredExtensions;
 
-
 // struct prototypes:
 struct GeometryBufferSet;
-
-// Static array of formats that specifies which formats we want to use when interacting with the swapchain images
-//static const VkFormat preferredSwapchainFormats[NUM_PREFERRED_SURFACE_FORMATS] = PREFERRED_SURRFACE_FORMATS;
 
 struct PerSwapchainImageResources
 {
@@ -276,4 +271,4 @@ inline uint32_t ChooseMemoryTypeIdx (VkPhysicalDevice      physicalDevice,
     return chosenMemTypeIdxOut;
 }
 
-#endif
+#endif // VULKAN_UTILS_H

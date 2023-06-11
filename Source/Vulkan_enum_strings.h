@@ -152,4 +152,4 @@ inline const char* VkResultToString(VkResult result)
 
 }
 
-#endif
+#endif // VULKAN_ENUM_STRINGS_H

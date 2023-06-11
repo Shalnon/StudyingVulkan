@@ -657,4 +657,4 @@ VkPipeline CreateSubpass1Pipeline (VkDevice               logicalDevice,
 
     return gfxPipeline;
 }
-#endif // !VULKAN_DESCRIPTOR_TOOLS_CPP
+#endif // VULKAN_DESCRIPTOR_TOOLS_CPP

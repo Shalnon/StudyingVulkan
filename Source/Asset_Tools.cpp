@@ -213,4 +213,5 @@ glm::mat4 GetTransform_FitAABBToAABB (VkAabbPositionsKHR originalAABB,
 
 
 }
-#endif
+
+#endif // ASSET_TOOLS_H

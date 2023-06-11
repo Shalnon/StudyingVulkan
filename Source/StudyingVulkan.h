@@ -1,5 +1,5 @@
-#ifndef STUDYINGVULKAN_H
-#define STUDYINGVULKAN_H
+#ifndef STUDYING_VULKAN_H
+#define STUDYING_VULKAN_H
 
 #include <iostream>
 #include <assert.h> 
@@ -174,4 +174,5 @@ static AttributeInfo s_VertexShaderAttributes[] =
 
 // Ceiling aligns a number
 #define ALIGN(num, alignment) (num + (alignment - (num % alignment)))
-#endif
+
+#endif // STUDYING_VULKAN_H
