@@ -8,6 +8,7 @@ layout(location = 1) in  vec3 inNormal;
 
 layout(location = 0) out vec3 out_color;
 layout(location = 1) out vec4 out_normal;
+layout(location = 2) out vec4 out_worldPosition;
 
 
 layout( binding = 0) uniform UniformBufferObject
@@ -34,12 +35,13 @@ layout( binding = 1) readonly buffer MaterialsSSBO
 
 void main()
 {
-    mat4 meshTransform =  ubo.sceneTransform * ubo.projectionMatrix;
+    vec4 worldPosition = vec4(inPosition.xyz, 1.0) * ubo.sceneTransform;
+    worldPosition *=  ubo.sceneScale;
 
-    vec4 vpos = vec4(inPosition.xyz, 1.0) * meshTransform;
-    vpos *=  ubo.sceneScale;
+    vec4 projectedVertexPosition = worldPosition * ubo.projectionMatrix;
 
-    gl_Position           = vpos/vpos.w;
+    gl_Position           = projectedVertexPosition/projectedVertexPosition.w;
     out_color             = ssbo.colors[gl_InstanceIndex].rgb;
     out_normal            = vec4(inNormal,1.0);
+    out_worldPosition     = worldPosition;
 }

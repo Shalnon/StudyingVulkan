@@ -708,7 +708,7 @@ vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             phys
         /*...vec4...sceneScale.............*/ glm::vec4 (1.0f,   1.0f,  1.0f, 1.0f),
         /*...mat4...projectionMatrix.......*/ *pProjectionMatrix,
         /*...vec3...ambient_color..........*/ glm::vec4 (0.4f,   0.4f,  0.4f, 1.0f) * ambientCoeficient,
-        /*...vec3...lightLocation..........*/ glm::vec4 (-0.25f, -1.0f,  2.0f, 1.0f),
+        /*...vec3...lightLocation..........*/ glm::vec4 (-2.0f, -2.0f,  -2.0f, 1.0f),
         /*...vec3...lightIntensities.......*/ glm::vec4 (1.0f,   1.0f,  1.0f, 1.0f)
     };
 

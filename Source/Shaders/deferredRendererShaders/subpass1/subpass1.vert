@@ -1,4 +1,4 @@
-//glslc --target-env=vulkan1.3 -fshader-stage=vert -o vert.spv triangle.vert 
+//glslc --target-env=vulkan1.3 -fshader-stage=vert -o vert.spv subpass1.vert 
 
 #version 420
 

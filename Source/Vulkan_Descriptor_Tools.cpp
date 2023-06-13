@@ -19,6 +19,9 @@ VkResult CreateDescriptorSetLayout (VkDevice logicalDevice,
     *     mat4 sceneTransform;
     *     vec4 sceneScale;
     * 
+    *     // Projection matrix
+    *     mat4 projectionMatrix;
+    *
     *     // Scene ambient color
     *     float ambient_Coefficient;
     *     vec3  ambient_color;
@@ -28,8 +31,8 @@ VkResult CreateDescriptorSetLayout (VkDevice logicalDevice,
     * } ubo;
     *******************************************/
 
-    const uint32_t numSubpass0LayoutBindings = SceneVulkanParameters::Subpass0::numDescriptorSetLayoutBindings; //2; // Subpass 0: uses an SSBO and a UBO
-    const uint32_t numSubpass1LayoutBindings = SceneVulkanParameters::Subpass1::numDescriptorSetLayoutBindings; // Subpass 1: Uses 3 input attachments and the same ubo
+    const uint32_t numSubpass0LayoutBindings = SceneVulkanParameters::Subpass0::numDescriptorSetLayoutBindings; // Subpass 0: uses an SSBO and a UBO
+    const uint32_t numSubpass1LayoutBindings = SceneVulkanParameters::Subpass1::numDescriptorSetLayoutBindings; // Subpass 1: Uses 4 input attachments and the same ubo
 
     VkDescriptorSetLayoutBinding pDescriptorSet0BindingsLayout[numSubpass0LayoutBindings] =
     {
@@ -61,7 +64,7 @@ VkResult CreateDescriptorSetLayout (VkDevice logicalDevice,
         {
             /*...uint32_t..............binding................*/ SceneVulkanParameters::Subpass1::diffuseColorInputAttachmentBinding, // 1
             /*...VkDescriptorType......descriptorType.........*/ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-            /*...uint32_t..............descriptorCount........*/ 1,  //@todo: Look into whether there are any advantages to using an input attachment array with one descriptor.
+            /*...uint32_t..............descriptorCount........*/ 1,  //@TODO: Look into whether there are any advantages to using an input attachment array with one descriptor binding.
             /*...VkShaderStageFlags....stageFlags.............*/ VK_SHADER_STAGE_FRAGMENT_BIT,
             /*...const.VkSampler*......pImmutableSamplers.....*/ nullptr
         },
@@ -73,7 +76,14 @@ VkResult CreateDescriptorSetLayout (VkDevice logicalDevice,
             /*...const.VkSampler*......pImmutableSamplers.....*/ nullptr
         },
         {
-            /*...uint32_t..............binding................*/ SceneVulkanParameters::Subpass1::depthImageInputAttachmentBinding, // 3
+            /*...uint32_t..............binding................*/ SceneVulkanParameters::Subpass1::positionInputAttachmentBinding, // 3
+            /*...VkDescriptorType......descriptorType.........*/ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+            /*...uint32_t..............descriptorCount........*/ 1,
+            /*...VkShaderStageFlags....stageFlags.............*/ VK_SHADER_STAGE_FRAGMENT_BIT,
+            /*...const.VkSampler*......pImmutableSamplers.....*/ nullptr
+        },
+        {
+            /*...uint32_t..............binding................*/ SceneVulkanParameters::Subpass1::depthImageInputAttachmentBinding, // 4
             /*...VkDescriptorType......descriptorType.........*/ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
             /*...uint32_t..............descriptorCount........*/ 1,
             /*...VkShaderStageFlags....stageFlags.............*/ VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -118,7 +128,8 @@ VkDescriptorPool CreateDescriptorPool (VkDevice logicalDevice)
     VkResult         result               = VK_INCOMPLETE;
     VkDescriptorPool descriptorPoolHandle = VK_NULL_HANDLE;
 
-    const uint32_t numDescriptorTypes            = SceneVulkanParameters::numDescriptorTypesUsedInScene;
+    //@TODO: Replace the random " * 3 " with an argument regarding the number of swapchain images used
+    const uint32_t numDescriptorTypes            =     SceneVulkanParameters::numDescriptorTypesUsedInScene;
     const uint32_t numUboDescriptors             = 3 * SceneVulkanParameters::numUboDescriptorsInScene;
     const uint32_t numSsboDescriptors            = 3 * SceneVulkanParameters::numSsboDescriptorsInScene;
     const uint32_t numInputAttachmentDescriptors = 3 * SceneVulkanParameters::numInputAttachmentDescriptorsInScene;
@@ -588,7 +599,7 @@ VkPipeline CreateSubpass1Pipeline (VkDevice               logicalDevice,
     VkShaderModule pShaderModules[2];
 
     pShaderModules[fragmentShaderIdx] = CreateShaderModule (logicalDevice, fragShaderPath, true, false);
-    pShaderModules[vertexShaderIdx] = CreateShaderModule (logicalDevice, vertShaderPath, false, true);
+    pShaderModules[vertexShaderIdx]   = CreateShaderModule (logicalDevice, vertShaderPath, false, true);
 
 
     VkPipelineShaderStageCreateInfo pShaderStageCreateInfos[numStages] =
@@ -613,10 +624,10 @@ VkPipeline CreateSubpass1Pipeline (VkDevice               logicalDevice,
         }
     };
 
-    assert (pShaderModules[vertexShaderIdx] != VK_NULL_HANDLE);
+    assert (pShaderModules[vertexShaderIdx]   != VK_NULL_HANDLE);
     assert (pShaderModules[fragmentShaderIdx] != VK_NULL_HANDLE);
-    assert (renderpass != VK_NULL_HANDLE);
-    assert (pipelineLayout != VK_NULL_HANDLE);
+    assert (                   pipelineLayout != VK_NULL_HANDLE);
+    assert (                       renderpass != VK_NULL_HANDLE);
 
     VkGraphicsPipelineCreateInfo gfxPipelineCreateInfo =
     {

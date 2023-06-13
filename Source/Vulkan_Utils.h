@@ -34,6 +34,10 @@ struct PerSwapchainImageResources
     VkImage         diffuseImageHandle;
     VkImageView     diffuseImageViewHandle;
 
+    VkDeviceMemory  positionImageMemoryHandle;
+    VkImage         positionImageHandle;
+    VkImageView     positionImageViewHandle;
+
     VkFramebuffer   framebufferHandle;
     VkDescriptorSet subpass1DesciptorSetHandle;
 };
@@ -239,6 +243,7 @@ VkDescriptorSet AllocateAndWriteSubpass1DescriptorSet (VkDevice               lo
                                                        VkDescriptorSetLayout  descriptorSetLayoutHandle,
                                                        VkImageView            diffuseColorImageViewHandle,
                                                        VkImageView            normalVectorImageViewHandle,
+                                                       VkImageView            positionVectorImageViewHandle,
                                                        VkImageView            depthStencilImageViewHandle,
                                                        VkBuffer               uniformBufferHandle);
 

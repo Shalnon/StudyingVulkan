@@ -36,7 +36,7 @@ namespace SceneVulkanParameters
     static const uint32_t numDescriptorTypesUsedInScene        = 3;
     static const uint32_t numUboDescriptorsInScene             = 1;
     static const uint32_t numSsboDescriptorsInScene            = 1;
-    static const uint32_t numInputAttachmentDescriptorsInScene = 3;
+    static const uint32_t numInputAttachmentDescriptorsInScene = 4;
     static const uint32_t verticiesPerPrimitive                = 3; // Triangles
 
     static const uint32_t totalNumDescriporSets = 2;
@@ -67,21 +67,22 @@ namespace SceneVulkanParameters
     };
     namespace RenderPassParameters
     {
-        static const uint32_t numColorAttachments = 3; // diffuse, normal, present
+        static const uint32_t numColorAttachments = 4; // diffuse, normal, position, present
         static const uint32_t numDepthAttachments = 1; // used as depth attachment in subpass 0, than as an input attachment in subpass 1
         static const uint32_t numSubpasses        = 2;
         static const uint32_t totalNumAttachments = numColorAttachments + numDepthAttachments;
 
-        // Color attachments indeces
+        // Renderpass Color attachments indeces
         static const uint32_t swapchainColorAttachmentIndex = 0;
         static const uint32_t diffuseColorAttachmentIndex   = 1;
         static const uint32_t surfaceNormalAttachmentIndex  = 2;
-        static const uint32_t depthStencilAttachmentIndex   = 3;
+        static const uint32_t positionAttachmentIndex       = 3;
+        static const uint32_t depthStencilAttachmentIndex   = 4;
     }
     namespace Subpass0
     {
         //@note: Subpass 0 doesnt write to the swapchain color attachment.
-        static const uint32_t numColorAttachments = 2; //diffuse color + normal
+        static const uint32_t numColorAttachments = 3; //diffuse color + normal + position gbuffer images
         static const uint32_t numDepthAttachments = 1;
         static const uint32_t numInputAttachments = 0;
 
@@ -109,20 +110,21 @@ namespace SceneVulkanParameters
         //@note: Subpass 1 DOES write to the swapchain color attachment.
         static const uint32_t numColorAttachments = 1; // Present image
         static const uint32_t numDepthAttachments = 0; // depth is disabled for subpass 1
-        static const uint32_t numInputAttachments = 3; // diffuse color + normal + subpass0 depth
+        static const uint32_t numInputAttachments = 4; // diffuse color + normal + subpass0 depth
 
         static const uint32_t pColorAttachmentIndeces[numColorAttachments] =
         {
             RenderPassParameters::swapchainColorAttachmentIndex
         };
 
+        static const uint32_t numDescriptorSetLayoutBindings     = 5; // 4 input attachments and a ubo
 
-        static const uint32_t numDescriptorSetLayoutBindings     = 4; // 3 input attachments and a ubo
         // Descriptor set layout bindings
         static const uint32_t uniformBufferBinding               = 0;
         static const uint32_t diffuseColorInputAttachmentBinding = 1;
         static const uint32_t normalVectorInputAttachmentBinding = 2;
-        static const uint32_t depthImageInputAttachmentBinding   = 3; // depth output from subpass 0
+        static const uint32_t positionInputAttachmentBinding     = 3;
+        static const uint32_t depthImageInputAttachmentBinding   = 4; // depth output from subpass 0
 
         //Vertex attrib information
         static const uint32_t numInputBindings              = 0; // Number of vertex attribute buffers we need a binding for
@@ -138,8 +140,9 @@ namespace SceneVulkanParameters
     static const uint32_t semaphoreListGrowthRate = 64;
 
 
-    static const VkFormat normalVectorGbufferImageFormat = VK_FORMAT_R16G16B16A16_SNORM;
-    static const VkFormat diffuseColorGbufferImageFormat = VK_FORMAT_B8G8R8A8_UNORM;
+    static const VkFormat normalVectorGbufferImageFormat   = VK_FORMAT_R16G16B16A16_SNORM;
+    static const VkFormat positionVectorGbufferImageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
+    static const VkFormat diffuseColorGbufferImageFormat   = VK_FORMAT_B8G8R8A8_UNORM;
 
     static const uint32_t numPreferredSwapchainFormats                                   = 2;
     static const uint32_t numPreferredDepthFormats                                       = 2;

@@ -132,8 +132,8 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
      
     std::string currentPath   = std::filesystem::current_path ().string ();
     std::string assetsDirPath = currentPath   + std::string ("\\..\\..\\..\\Assets");
-    //std::string modelPath     = assetsDirPath + std::string ("\\Models\\monkey_with_color.obj");
-    std::string modelPath      = assetsDirPath + std::string ("\\Models\\3_cubes_rgb\\3_cubes_rgb.obj");
+    std::string modelPath     = assetsDirPath + std::string ("\\Models\\monkey_with_color.obj");
+    //std::string modelPath      = assetsDirPath + std::string ("\\Models\\3_cubes_rgb\\3_cubes_rgb.obj");
     
 
     printf ("model path = %s\n", modelPath.c_str ());
@@ -165,10 +165,10 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     {
         /*...float....minX...*/ -1.0f,
         /*...float....minY...*/ -1.0f,
-        /*...float....minZ...*/  0.1f,
+        /*...float....minZ...*/  2.0f,
         /*...float....maxX...*/  1.0f,
         /*...float....maxY...*/  1.0f,
-        /*...float....maxZ...*/  1.0f
+        /*...float....maxZ...*/  3.0f
     };
 
     // Creates UBO and fills it with data. Contains scene transform
@@ -205,6 +205,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                                                                                    pSwapchainImageResourceSet->diffuseImageViewHandle,
                                                                                                    pSwapchainImageResourceSet->normalsImageViewHandle,
                                                                                                    pSwapchainImageResourceSet->depthImageViewHandle,
+                                                                                                   pSwapchainImageResourceSet->positionImageViewHandle,
                                                                                                    uniformBufferInfo.bufferHandle);
 
         pSwapchainImageResourceSet->subpass1DesciptorSetHandle = subpass1DescriptorSet;

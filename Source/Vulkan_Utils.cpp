@@ -542,11 +542,26 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
         CreateAndAllocateColorImage (logicalDevice,
                                      physicalDevice,
                                      graphicsQueueIndex,
-                                     surfaceNormalGbufferFormat, // @TODO: Give the normal buffer a format with more bits per channel
+                                     surfaceNormalGbufferFormat,
                                      { swapchainExtent.width, swapchainExtent.height },
                                      pNormalImageMem,
                                      pNormalImage,
                                      pNormalImageView);
+
+        // Create image that will contain surface normal vectors
+        VkImage*        pPositionImage               = &( pPerSwapchainImageResources[swapIdx].positionImageHandle       );
+        VkDeviceMemory* pPositionImageMem            = &( pPerSwapchainImageResources[swapIdx].positionImageMemoryHandle );
+        VkImageView*    pPositionImageView           = &( pPerSwapchainImageResources[swapIdx].positionImageViewHandle   );
+        VkFormat        surfacePositionGbufferFormat = SceneVulkanParameters::positionVectorGbufferImageFormat;
+
+        CreateAndAllocateColorImage (logicalDevice,
+                                     physicalDevice,
+                                     graphicsQueueIndex,
+                                     surfacePositionGbufferFormat,
+                                     { swapchainExtent.width, swapchainExtent.height },
+                                     pPositionImageMem,
+                                     pPositionImage,
+                                     pPositionImageView);
 
     }
 
@@ -623,6 +638,19 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
         /*..VkImageLayout...................finalLayout......*/ VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL
     };
 
+    VkAttachmentDescription positionAttachmentDescription =
+    {
+        /*..VkAttachmentDescriptionFlags....flags............*/ 0,
+        /*..VkFormat........................format...........*/ SceneVulkanParameters::positionVectorGbufferImageFormat,
+        /*..VkSampleCountFlagBits...........samples..........*/ VK_SAMPLE_COUNT_1_BIT,
+        /*..VkAttachmentLoadOp..............loadOp...........*/ VK_ATTACHMENT_LOAD_OP_CLEAR,
+        /*..VkAttachmentStoreOp.............storeOp..........*/ VK_ATTACHMENT_STORE_OP_STORE,
+        /*..VkAttachmentLoadOp..............stencilLoadOp....*/ VK_ATTACHMENT_LOAD_OP_DONT_CARE,  // Not using stencil so dont care
+        /*..VkAttachmentStoreOp.............stencilStoreOp...*/ VK_ATTACHMENT_STORE_OP_DONT_CARE, // Not using stencil so dont care
+        /*..VkImageLayout...................initialLayout....*/ VK_IMAGE_LAYOUT_UNDEFINED,
+        /*..VkImageLayout...................finalLayout......*/ VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL
+    };
+
     VkAttachmentDescription depthAttachmentDescription =
     {
         /*..VkAttachmentDescriptionFlags....flags............*/ 0,
@@ -639,10 +667,11 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
     const uint32_t swapchainColorAttachmentIndex = SceneVulkanParameters::RenderPassParameters::swapchainColorAttachmentIndex;
     const uint32_t diffuseColorAttachmentIndex   = SceneVulkanParameters::RenderPassParameters::diffuseColorAttachmentIndex;
     const uint32_t surfaceNormalAttachmentIndex  = SceneVulkanParameters::RenderPassParameters::surfaceNormalAttachmentIndex;
+    const uint32_t positionVectorAttachmentIndex = SceneVulkanParameters::RenderPassParameters::positionAttachmentIndex;
     const uint32_t depthStencilAttachmentIndex   = SceneVulkanParameters::RenderPassParameters::depthStencilAttachmentIndex;
 
 
-    VkAttachmentReference pSubpass0ColorAttachments[] =
+    VkAttachmentReference pSubpass0ColorAttachments[SceneVulkanParameters::Subpass0::numColorAttachments] =
     {
         {
             /*...uint32_t.........attachment....*/ diffuseColorAttachmentIndex, // 1
@@ -651,16 +680,20 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
         {
             /*...uint32_t.........attachment....*/ surfaceNormalAttachmentIndex, // 2
             /*...VkImageLayout....layout........*/ VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+        },
+        {
+            /*...uint32_t.........attachment....*/ positionVectorAttachmentIndex, // 3
+            /*...VkImageLayout....layout........*/ VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
         }
     };
 
     VkAttachmentReference depthAttachmentRef =
     {
-        /*...uint32_t.........attachment....*/ depthStencilAttachmentIndex, // 3
+        /*...uint32_t.........attachment....*/ depthStencilAttachmentIndex, // 4
         /*...VkImageLayout....layout........*/ VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
     };
 
-    VkAttachmentReference pSubpass1InputAttachments[] =
+    VkAttachmentReference pSubpass1InputAttachments[SceneVulkanParameters::Subpass1::numInputAttachments] =
     { 
         {
             /*...uint32_t.........attachment....*/ diffuseColorAttachmentIndex, // 1
@@ -671,7 +704,11 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
             /*...VkImageLayout....layout........*/ VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
         },
         {
-            /*...uint32_t.........attachment....*/ depthStencilAttachmentIndex, // 3
+            /*...uint32_t.........attachment....*/ positionVectorAttachmentIndex, // 3
+            /*...VkImageLayout....layout........*/ VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+        },
+        {
+            /*...uint32_t.........attachment....*/ depthStencilAttachmentIndex, // 4
             /*...VkImageLayout....layout........*/ VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
         }
     };
@@ -690,7 +727,7 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
             /*...VkPipelineBindPoint.............pipelineBindPoint.........*/ VK_PIPELINE_BIND_POINT_GRAPHICS,
             /*...uint32_t........................inputAttachmentCount......*/ 0,
             /*...const.VkAttachmentReference*....pInputAttachments.........*/ nullptr,
-            /*...uint32_t........................colorAttachmentCount......*/ 2,
+            /*...uint32_t........................colorAttachmentCount......*/ SceneVulkanParameters::Subpass0::numColorAttachments, // 3
             /*...const.VkAttachmentReference*....pColorAttachments.........*/ pSubpass0ColorAttachments,
             /*...const.VkAttachmentReference*....pResolveAttachments.......*/ nullptr,
             /*...const.VkAttachmentReference*....pDepthStencilAttachment...*/ &depthAttachmentRef,
@@ -700,7 +737,7 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
         {
             /*...VkSubpassDescriptionFlags.......flags.....................*/ 0,
             /*...VkPipelineBindPoint.............pipelineBindPoint.........*/ VK_PIPELINE_BIND_POINT_GRAPHICS,
-            /*...uint32_t........................inputAttachmentCount......*/ 3,
+            /*...uint32_t........................inputAttachmentCount......*/ SceneVulkanParameters::Subpass1::numInputAttachments, // 4
             /*...const.VkAttachmentReference*....pInputAttachments.........*/ pSubpass1InputAttachments,
             /*...uint32_t........................colorAttachmentCount......*/ 1,
             /*...const.VkAttachmentReference*....pColorAttachments.........*/ &colorPresentAttachmentRef,
@@ -750,15 +787,32 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
             /*....VkAccessFlags...........dstAccessMask.......*/ VK_ACCESS_INPUT_ATTACHMENT_READ_BIT,
             /*....VkDependencyFlags.......dependencyFlags.....*/ VK_DEPENDENCY_BY_REGION_BIT
         }
-        //VK_IMAGE_LAYOUT_PRESENT_SRC_KHR?
     };
 
-    // Spec pages for renderp
-    VkAttachmentDescription pAttachmentDescriptions[SceneVulkanParameters::RenderPassParameters::totalNumAttachments] = {};
-    pAttachmentDescriptions[swapchainColorAttachmentIndex] = presentAttachmentDescription;
-    pAttachmentDescriptions[diffuseColorAttachmentIndex  ] = colorAttachmentDescription;
-    pAttachmentDescriptions[surfaceNormalAttachmentIndex ] = normalAttachmentDescription;
-    pAttachmentDescriptions[depthStencilAttachmentIndex  ] = depthAttachmentDescription;
+    /*VkAttachmentDescription pAttachmentDescriptions[SceneVulkanParameters::RenderPassParameters::totalNumAttachments] = {};
+    //pAttachmentDescriptions[swapchainColorAttachmentIndex] = presentAttachmentDescription;
+    //pAttachmentDescriptions[diffuseColorAttachmentIndex  ] = colorAttachmentDescription;
+    //pAttachmentDescriptions[surfaceNormalAttachmentIndex ] = normalAttachmentDescription;
+    //pAttachmentDescriptions[positionVectorAttachmentIndex] = positionAttachmentDescription;
+    //pAttachmentDescriptions[depthStencilAttachmentIndex  ] = depthAttachmentDescription;*/
+
+    // Using initializer list initialization here so that if totalNumAttachments changes, the poroject wont build unless this is edited
+    VkAttachmentDescription pAttachmentDescriptions[SceneVulkanParameters::RenderPassParameters::totalNumAttachments] =
+    {
+        presentAttachmentDescription,
+        colorAttachmentDescription,
+        normalAttachmentDescription,
+        positionAttachmentDescription,
+        depthAttachmentDescription
+    };
+
+#ifdef DEBUG  //This makes sure the order of the elements in pAttachmentDescriptions is correct
+    assert (memcmp (&pAttachmentDescriptions[ swapchainColorAttachmentIndex ], &presentAttachmentDescription,  sizeof (VkAttachmentDescription)) == 0);
+    assert (memcmp (&pAttachmentDescriptions[ diffuseColorAttachmentIndex   ], &colorAttachmentDescription,    sizeof (VkAttachmentDescription)) == 0);
+    assert (memcmp (&pAttachmentDescriptions[ surfaceNormalAttachmentIndex  ], &normalAttachmentDescription,   sizeof (VkAttachmentDescription)) == 0);
+    assert (memcmp (&pAttachmentDescriptions[ positionVectorAttachmentIndex ], &positionAttachmentDescription, sizeof (VkAttachmentDescription)) == 0);
+    assert (memcmp (&pAttachmentDescriptions[ depthStencilAttachmentIndex   ], &depthAttachmentDescription,    sizeof (VkAttachmentDescription)) == 0);
+#endif
 
     VkRenderPassCreateInfo renderPassCreateInfo =
     {
@@ -843,8 +897,12 @@ VkShaderModule CreateShaderModule(VkDevice logicalDevice, const char* spvPath, b
         /*...size_t.......................codeSize....*/ codeSize, // The validation layer seems to be using this as like how many ptrs ?
         /*...const.uint32_t*..............pCode.......*/ pCode// reinterpret_cast<uint32_t*>(spvCode.alignedBaseAddress)
     };
+
+#ifdef DEBUG
     printf("codeSize = %llu, codesize / 4 = %llu\n", codeSize, codeSize / 4);
     printf("fromStruct: codeSize = %llu, codesize / 4 = %llu\n", shaderModuleCreateInfo.codeSize, shaderModuleCreateInfo.codeSize / 4);
+#endif
+
     VkResult result = vkCreateShaderModule(logicalDevice, &shaderModuleCreateInfo, nullptr, &shaderModule);
     assert(result == VK_SUCCESS);
     assert(shaderModule != VK_NULL_HANDLE);
@@ -1107,8 +1165,8 @@ void CreateFrameBuffers(VkDevice                    logicalDevice,
                         uint32_t                    numSwapchainImages,
                         PerSwapchainImageResources* pPerSwapchainImageResources)
 {
-    const uint32_t numColorAttachments = 3; // diffuse color + surface normals + present
-    const uint32_t numDepthAttachments = 1;
+    const uint32_t numColorAttachments = SceneVulkanParameters::RenderPassParameters::numColorAttachments; // 4 - diffuse color + surface normals + position + present
+    const uint32_t numDepthAttachments = SceneVulkanParameters::RenderPassParameters::numDepthAttachments; // 1
 
 
     VkResult                result                  = VK_INCOMPLETE;
@@ -1136,6 +1194,7 @@ void CreateFrameBuffers(VkDevice                    logicalDevice,
         pAttachmentImageViews[SceneVulkanParameters::RenderPassParameters::swapchainColorAttachmentIndex] = pSwapImgResourceSet->presentImageViewHandle;
         pAttachmentImageViews[SceneVulkanParameters::RenderPassParameters::diffuseColorAttachmentIndex  ] = pSwapImgResourceSet->diffuseImageViewHandle;
         pAttachmentImageViews[SceneVulkanParameters::RenderPassParameters::surfaceNormalAttachmentIndex ] = pSwapImgResourceSet->normalsImageViewHandle;
+        pAttachmentImageViews[SceneVulkanParameters::RenderPassParameters::positionAttachmentIndex      ] = pSwapImgResourceSet->positionImageViewHandle;
         pAttachmentImageViews[SceneVulkanParameters::RenderPassParameters::depthStencilAttachmentIndex  ] = pSwapImgResourceSet->depthImageViewHandle;
 
         framebufferCreateInfo.pAttachments = pAttachmentImageViews;
@@ -1685,6 +1744,7 @@ VkDescriptorSet AllocateAndWriteSubpass1DescriptorSet (VkDevice               lo
                                                        VkDescriptorSetLayout  descriptorSetLayoutHandle,
                                                        VkImageView            diffuseColorImageViewHandle,
                                                        VkImageView            normalVectorImageViewHandle,
+                                                       VkImageView            positionVectorImageViewHandle,
                                                        VkImageView            depthStencilImageViewHandle,
                                                        VkBuffer               uniformBufferHandle)
 {
@@ -1725,6 +1785,13 @@ VkDescriptorSet AllocateAndWriteSubpass1DescriptorSet (VkDevice               lo
         /*...VkImageLayout....imageLayout...*/ VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
     };
 
+    VkDescriptorImageInfo positionImageDescriptorInfo
+    {
+        /*...VkSampler........sampler.......*/ VK_NULL_HANDLE,
+        /*...VkImageView......imageView.....*/ positionVectorImageViewHandle,
+        /*...VkImageLayout....imageLayout...*/ VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+    };
+
     VkDescriptorBufferInfo uniformBufferDescriptorInfo =
     {
         /*...VkBuffer........buffer...*/ uniformBufferHandle,
@@ -1732,8 +1799,8 @@ VkDescriptorSet AllocateAndWriteSubpass1DescriptorSet (VkDevice               lo
         /*...VkDeviceSize....range....*/ VK_WHOLE_SIZE
     };
 
-    // Write the descriptor set with info about the resources backing the ubo
-    static const uint32_t numDescriptorsToUpdate = 4;
+    // Write the descriptor set with info about the resources backing the ubo and 4 input attachments
+    static const uint32_t numDescriptorsToUpdate = SceneVulkanParameters::Subpass1::numDescriptorSetLayoutBindings; //5
     VkWriteDescriptorSet  pDescriptorUpdateWrites[numDescriptorsToUpdate] =
     {
         { // struct describing the descriptor update for the uniform buffer at binding 0
@@ -1776,7 +1843,19 @@ VkDescriptorSet AllocateAndWriteSubpass1DescriptorSet (VkDevice               lo
             /*...VkStructureType..................sType..............*/ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
             /*...const.void*......................pNext..............*/ nullptr,
             /*...VkDescriptorSet..................dstSet.............*/ descriptorSetHandle,
-            /*...uint32_t.........................dstBinding.........*/ SceneVulkanParameters::Subpass1::depthImageInputAttachmentBinding, // 3
+            /*...uint32_t.........................dstBinding.........*/ SceneVulkanParameters::Subpass1::positionInputAttachmentBinding, // 3
+            /*...uint32_t.........................dstArrayElement....*/ 0,
+            /*...uint32_t.........................descriptorCount....*/ 1,
+            /*...VkDescriptorType.................descriptorType.....*/ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+            /*...const.VkDescriptorImageInfo*.....pImageInfo.........*/ & positionImageDescriptorInfo,
+            /*...const.VkDescriptorBufferInfo*....pBufferInfo........*/ nullptr,
+            /*...const.VkBufferView*..............pTexelBufferView...*/ nullptr
+        },
+        { // struct describing the descriptor update for the uniform buffer at binding 0
+            /*...VkStructureType..................sType..............*/ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            /*...const.void*......................pNext..............*/ nullptr,
+            /*...VkDescriptorSet..................dstSet.............*/ descriptorSetHandle,
+            /*...uint32_t.........................dstBinding.........*/ SceneVulkanParameters::Subpass1::depthImageInputAttachmentBinding, // 4
             /*...uint32_t.........................dstArrayElement....*/ 0,
             /*...uint32_t.........................descriptorCount....*/ 1,
             /*...VkDescriptorType.................descriptorType.....*/ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,

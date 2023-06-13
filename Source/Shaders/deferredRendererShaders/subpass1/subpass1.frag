@@ -24,7 +24,8 @@ layout( binding = 0 ) uniform UniformBufferObject
 
 layout (input_attachment_index=0, set=0, binding=1 ) uniform subpassInput diffuseColorInputAttachment;
 layout (input_attachment_index=1, set=0, binding=2 ) uniform subpassInput normalVectorInputAttachment;
-layout (input_attachment_index=2, set=0, binding=3 ) uniform subpassInput depthStencilInputAttachment;
+layout (input_attachment_index=2, set=0, binding=3 ) uniform subpassInput worldPositionInputAttachment;
+layout (input_attachment_index=3, set=0, binding=4 ) uniform subpassInput depthStencilInputAttachment;
 
 
 // Assume this is a full screen quad?
@@ -35,16 +36,17 @@ layout(location = 0) out vec3 fragColor;
 
 void main()
 {
-    vec4 diffuseColor     = subpassLoad(diffuseColorInputAttachment);
-    vec4 surfaceNormal    = subpassLoad(normalVectorInputAttachment);
-    vec4 fragDepthStencil = subpassLoad(depthStencilInputAttachment);
+    vec4 diffuseColor         = subpassLoad(diffuseColorInputAttachment);
+    vec4 surfaceNormal        = subpassLoad(normalVectorInputAttachment);
+    vec4 fragDepthStencil     = subpassLoad(depthStencilInputAttachment);
+    vec4 surfaceWorldPosition = subpassLoad(worldPositionInputAttachment);
 
     // Assuming fragdepthStencil.r is depth
-    vec3 locationOnMeshSurface = vec3(in_positionOnFullScreenQuad.xy, fragDepthStencil.r);
+    //vec3 locationOnMeshSurface = vec3(in_positionOnFullScreenQuad.xy, fragDepthStencil.r);  // might still want to use this because it makes the lighting consistent potentially
 
-
-    float distanceFromLight = distance(ubo.lightLocation.xyz,  locationOnMeshSurface);
-	vec3  surfaceToLight    = normalize(ubo.lightLocation.xyz- locationOnMeshSurface);
+    //vec4 lightLocation = ubo.lightLocation * ubo.sceneTransform;
+    float distanceFromLight = distance(ubo.lightLocation.xyz,  surfaceWorldPosition.xyz);
+	vec3  surfaceToLight    = normalize(ubo.lightLocation.xyz - surfaceWorldPosition.xyz);
 	float cosaoi            = dot(surfaceNormal.xyz, surfaceToLight);
 
 	float Diffuse_Coefficient = max(0.0,cosaoi);
