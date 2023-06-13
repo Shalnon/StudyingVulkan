@@ -9,6 +9,8 @@
 #include "Vulkan_Buffer_Tools.h"
 #include "Vulkan_Descriptor_Tools.h"
 #include "Asset_Tools.h"
+#include <glm/gtc/matrix_transform.hpp>
+#include "Logging.h"
 
 int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -130,7 +132,9 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
      
     std::string currentPath   = std::filesystem::current_path ().string ();
     std::string assetsDirPath = currentPath   + std::string ("\\..\\..\\..\\Assets");
-    std::string modelPath     = assetsDirPath + std::string ("\\Models\\monkey_with_color.obj");
+    //std::string modelPath     = assetsDirPath + std::string ("\\Models\\monkey_with_color.obj");
+    std::string modelPath      = assetsDirPath + std::string ("\\Models\\3_cubes_rgb\\3_cubes_rgb.obj");
+    
 
     printf ("model path = %s\n", modelPath.c_str ());
 
@@ -142,33 +146,42 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                                                                        queueFamilyIndex,
                                                                                        pScene);
 
+    const float renderingSurfaceAspectRatio = float (WINDOW_WIDTH) / float (WINDOW_HEIGHT);
+    const float fov                         = SceneVulkanParameters::horizontal_fov;
+    glm::mat4   projectionMatrix            = glm::perspective (fov,
+                                                                renderingSurfaceAspectRatio,
+                                                                SceneVulkanParameters::zNear,
+                                                                SceneVulkanParameters::zFar);
+
     // Create a vertex and index buffer
-    GeometryBufferSet         geometrysBuffers     = CreateGeometryBuffersAndAABBs (physicalDevice,
-                                                                                    logicalDevice,
-                                                                                    queue,
-                                                                                    queueFamilyIndex,
-                                                                                    pScene);
+    GeometryBufferSet geometrysBuffers = CreateGeometryBuffersAndAABBs (physicalDevice,
+                                                                        logicalDevice,
+                                                                        queue,
+                                                                        queueFamilyIndex,
+                                                                        pScene);
 
     //@NOTE: Ndc bounds on the z axis are [0,1] for vulkan, whereas for opengl it is [-1,1]
     VkAabbPositionsKHR sceneBounds =
     {
         /*...float....minX...*/ -1.0f,
         /*...float....minY...*/ -1.0f,
-        /*...float....minZ...*/  0.0f,
+        /*...float....minZ...*/  0.1f,
         /*...float....maxX...*/  1.0f,
         /*...float....maxY...*/  1.0f,
         /*...float....maxZ...*/  1.0f
     };
-    // Creates UBO and fills it with data. Contains scene transform
-    vulkanAllocatedBufferInfo uniformBufferInfo    = CreateUniformBuffer (physicalDevice,
-                                                                          logicalDevice,
-                                                                          queue,
-                                                                          queueFamilyIndex,
-                                                                          &geometrysBuffers,
-                                                                          &sceneBounds,
-                                                                          true);
 
-    VkDescriptorPool      descriptorPoolHandle  = CreateDescriptorPool (logicalDevice);
+    // Creates UBO and fills it with data. Contains scene transform
+    vulkanAllocatedBufferInfo uniformBufferInfo = CreateUniformBuffer (physicalDevice,
+                                                                       logicalDevice,
+                                                                       queue,
+                                                                       queueFamilyIndex,
+                                                                       &geometrysBuffers,
+                                                                       &sceneBounds,
+                                                                       &projectionMatrix,
+                                                                       true);
+
+    VkDescriptorPool descriptorPoolHandle  = CreateDescriptorPool (logicalDevice);
 
     // Descriptor set containing a storage buffer and uniform buffer descriptor
     // Only need one descriptor set for subpass 1, because the buffers used to back the ssbo and ubo are not per swapchain image, and are not written to either.
@@ -180,7 +193,10 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
 
     for (uint32_t swapIdx = 0; swapIdx < numSwapChainImages; swapIdx++)
     {
+#ifdef DEBUG
         printf ("Creating descriptor set for swapchainImageResourceSet[%u].\n", swapIdx);
+#endif
+
         PerSwapchainImageResources* pSwapchainImageResourceSet = &pPerSwapchainImageResources[swapIdx];
         // do i need one of these for each swap image?
         VkDescriptorSet             subpass1DescriptorSet = AllocateAndWriteSubpass1DescriptorSet (logicalDevice,
@@ -190,7 +206,6 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                                                                                    pSwapchainImageResourceSet->normalsImageViewHandle,
                                                                                                    pSwapchainImageResourceSet->depthImageViewHandle,
                                                                                                    uniformBufferInfo.bufferHandle);
-
 
         pSwapchainImageResourceSet->subpass1DesciptorSetHandle = subpass1DescriptorSet;
     }

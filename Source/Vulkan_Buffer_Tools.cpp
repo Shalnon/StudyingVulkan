@@ -502,6 +502,7 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physical
 
     } // END: for (uint32_t meshIdx = 0; meshIdx < pScene->mNumMeshes; meshIdx++)
 
+    // Unmap staging buffer mem since were done writing to it
     vkUnmapMemory (logicalDevice, vertexStagingBufferInfo.memoryHandle);
     vkUnmapMemory (logicalDevice, indexStagingBufferInfo.memoryHandle);
 
@@ -654,6 +655,7 @@ vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             phys
                                                uint32_t                     queueFamilyIndex,
                                                const GeometryBufferSet*     pGeometryBufferSet,
                                                VkAabbPositionsKHR*          pDesiredSceneBounds,
+                                               glm::mat4*                   pProjectionMatrix,
                                                bool                         maintainAspectRatio)
 {
     // Defining a struct here that matches the UBO data layout described in the shader.
@@ -662,6 +664,8 @@ vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             phys
         // Scene Transform
         glm::mat4 sceneTransform;
         glm::vec4 sceneScale;
+
+        glm::mat4 projecrtionMatrix;
 
         // Scene ambient color
         glm::vec4  ambient_color;
@@ -672,10 +676,9 @@ vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             phys
     };
 
 #ifdef DEBUG
-    // Make sure the struct were using is packed
-    const uint32_t numvec4s = 8;
+    // Make sure the data in the struct is packed
+    const uint32_t numvec4s = 12;
     static_assert (sizeof (UniformBufferData) == numvec4s * 4 * sizeof (float));
-
 #endif
 
     // Initialize with size required for the storing the scene transform
@@ -703,6 +706,7 @@ vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             phys
     {
         /*...mat4...sceneTransform.........*/ sceneTransform,
         /*...vec4...sceneScale.............*/ glm::vec4 (1.0f,   1.0f,  1.0f, 1.0f),
+        /*...mat4...projectionMatrix.......*/ *pProjectionMatrix,
         /*...vec3...ambient_color..........*/ glm::vec4 (0.4f,   0.4f,  0.4f, 1.0f) * ambientCoeficient,
         /*...vec3...lightLocation..........*/ glm::vec4 (-0.25f, -1.0f,  2.0f, 1.0f),
         /*...vec3...lightIntensities.......*/ glm::vec4 (1.0f,   1.0f,  1.0f, 1.0f)

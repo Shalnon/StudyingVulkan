@@ -2,7 +2,8 @@
 #define VULKAN_UTILS_H
 #include "StudyingVulkan.h"
 #include "Vulkan_Synchronization.h"
-
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 extern uint32_t  numRequiredExtensions;
 
@@ -269,6 +270,25 @@ inline uint32_t ChooseMemoryTypeIdx (VkPhysicalDevice      physicalDevice,
     }
 
     return chosenMemTypeIdxOut;
+}
+
+
+inline glm::mat4 GetProjection (uint32_t frameWidth,
+                                uint32_t frameHeight,
+                                float    desiredFov)
+{
+    float zFar                  = SceneVulkanParameters::zFar;
+    float zNear                 = SceneVulkanParameters::zNear;
+    float aspectRatio           = float (frameWidth) / float (frameHeight);
+    float halfFov               = desiredFov / 2;
+    glm::mat4 projectionFromWeb = glm::mat4 ();
+    projectionFromWeb[0][0] = aspectRatio / tanf (halfFov);
+    projectionFromWeb[1][1] = 1 / tanf (halfFov);
+    projectionFromWeb[2][2] = zFar  / (zFar - zNear);
+    projectionFromWeb[2][3] = ((zFar * zNear) / (zFar - zNear));
+    projectionFromWeb[3][2] = -1.0f;
+
+    return projectionFromWeb;
 }
 
 #endif // VULKAN_UTILS_H

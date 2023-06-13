@@ -29,6 +29,8 @@
 #define WINDOW_WIDTH  1280
 #define WINDOW_HEIGHT 720
 
+#define RADIANS_PER_DEGREE 0.0174532925
+
 namespace SceneVulkanParameters
 {
     static const uint32_t numDescriptorTypesUsedInScene        = 3;
@@ -52,6 +54,11 @@ namespace SceneVulkanParameters
 
     static const uint32_t numRequiredExtensions   = 1;
     static const char*    requiredDeviceExtensionss[numRequiredExtensions] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+
+    // Parameters used to setup projection matrix 
+    static const float horizontal_fov = 70.0f;
+    static const float zNear          = 1.0f; //@TODO: have znear and zfar be initialized based on the volume used to do the scene transform?
+    static const float zFar           = 10.0;
 
     namespace window
     {
@@ -79,7 +86,6 @@ namespace SceneVulkanParameters
         static const uint32_t numInputAttachments = 0;
 
         static const uint32_t depthAttachmentIndex = RenderPassParameters::depthStencilAttachmentIndex;
-        static const bool enableDepthAttachment    = true;
 
         static const uint32_t numDescriptorSetsUsed = 1;
 

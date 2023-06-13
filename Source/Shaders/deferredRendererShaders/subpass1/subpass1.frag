@@ -1,4 +1,4 @@
-//glslc --target-env=vulkan1.3 -fshader-stage=frag -o frag.spv triangle.frag 
+//glslc --target-env=vulkan1.3 -fshader-stage=frag -o frag.spv subpass1.frag 
 
 #version 420
 
@@ -10,6 +10,9 @@ layout( binding = 0 ) uniform UniformBufferObject
     // Scene Transform
     mat4 sceneTransform;
     vec4 sceneScale;
+
+    // Projection matrix
+    mat4 projectionMatrix;
 
     // Scene ambient color
     vec4  ambient_color;

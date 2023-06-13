@@ -353,14 +353,14 @@ VkPipeline CreateSubpass0Pipeline (VkDevice               logicalDevice,
         /*...const.VkDynamicState*................pDynamicStates.........*/ dynamicStates
     };
 
-    static const uint32_t vertexShaderIdx = 0;
+    static const uint32_t vertexShaderIdx   = 0;
     static const uint32_t fragmentShaderIdx = 1;
-    static const uint32_t numStages = 2;
+    static const uint32_t numStages         = 2;
 
     VkShaderModule pShaderModules[2] = { VK_NULL_HANDLE, VK_NULL_HANDLE };
 
     pShaderModules[fragmentShaderIdx] = CreateShaderModule (logicalDevice, fragShaderPath, true, false);
-    pShaderModules[vertexShaderIdx] = CreateShaderModule (logicalDevice, vertShaderPath, false, true);
+    pShaderModules[vertexShaderIdx]   = CreateShaderModule (logicalDevice, vertShaderPath, false, true);
 
     VkPipelineShaderStageCreateInfo pShaderStageCreateInfos[numStages] =
     {
@@ -432,11 +432,11 @@ VkPipeline CreateSubpass0Pipeline (VkDevice               logicalDevice,
 
 VkPipeline CreateSubpass1Pipeline (VkDevice               logicalDevice,
                                    VkRenderPass           renderpass,
-                                   VkExtent2D* pExtent,
+                                   VkExtent2D*            pExtent,
                                    VkDescriptorSetLayout  descriptorSetLayoutHandle,
-                                   const char* fragShaderPath,
-                                   const char* vertShaderPath,
-                                   VkPipelineLayout* pPipelineLayoutHandleOut)
+                                   const char*            fragShaderPath,
+                                   const char*            vertShaderPath,
+                                   VkPipelineLayout*      pPipelineLayoutHandleOut)
 {
 
     VkPipelineVertexInputStateCreateInfo   vertexInputStateCreateInfo =
@@ -459,7 +459,7 @@ VkPipeline CreateSubpass1Pipeline (VkDevice               logicalDevice,
         /*....VkBool32...................................primitiveRestartEnable.....*/ VK_FALSE
     };
 
-    VkPipelineLayout                       pipelineLayout = VK_NULL_HANDLE;
+    VkPipelineLayout                       pipelineLayout   = VK_NULL_HANDLE;
     VkPipelineLayoutCreateInfo             layoutCreateInfo =
     {
         /*...VkStructureType.................sType......................*/ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,

@@ -610,6 +610,19 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
         /*..VkImageLayout...................finalLayout......*/ VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL
     };
 
+    VkAttachmentDescription normalAttachmentDescription =
+    {
+        /*..VkAttachmentDescriptionFlags....flags............*/ 0,
+        /*..VkFormat........................format...........*/ SceneVulkanParameters::normalVectorGbufferImageFormat,
+        /*..VkSampleCountFlagBits...........samples..........*/ VK_SAMPLE_COUNT_1_BIT,
+        /*..VkAttachmentLoadOp..............loadOp...........*/ VK_ATTACHMENT_LOAD_OP_CLEAR,
+        /*..VkAttachmentStoreOp.............storeOp..........*/ VK_ATTACHMENT_STORE_OP_STORE,
+        /*..VkAttachmentLoadOp..............stencilLoadOp....*/ VK_ATTACHMENT_LOAD_OP_DONT_CARE,  // Not using stencil so dont care
+        /*..VkAttachmentStoreOp.............stencilStoreOp...*/ VK_ATTACHMENT_STORE_OP_DONT_CARE, // Not using stencil so dont care
+        /*..VkImageLayout...................initialLayout....*/ VK_IMAGE_LAYOUT_UNDEFINED,
+        /*..VkImageLayout...................finalLayout......*/ VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL
+    };
+
     VkAttachmentDescription depthAttachmentDescription =
     {
         /*..VkAttachmentDescriptionFlags....flags............*/ 0,
@@ -744,7 +757,7 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
     VkAttachmentDescription pAttachmentDescriptions[SceneVulkanParameters::RenderPassParameters::totalNumAttachments] = {};
     pAttachmentDescriptions[swapchainColorAttachmentIndex] = presentAttachmentDescription;
     pAttachmentDescriptions[diffuseColorAttachmentIndex  ] = colorAttachmentDescription;
-    pAttachmentDescriptions[surfaceNormalAttachmentIndex ] = colorAttachmentDescription;
+    pAttachmentDescriptions[surfaceNormalAttachmentIndex ] = normalAttachmentDescription;
     pAttachmentDescriptions[depthStencilAttachmentIndex  ] = depthAttachmentDescription;
 
     VkRenderPassCreateInfo renderPassCreateInfo =
@@ -1275,14 +1288,12 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
         result = AcuireNextSwapchainImageIdx(queue, logicalDevice, swapchain, &imageIdx, *ppPerSwapchainImageResources);
     }
 
-
-
     VkClearColorValue colorClearValArray[] =
     {
-        {0.01f, 0.01f, 0.033f, 1.0f},
-        {0.01f, 0.033f, 0.01f, 1.0f},
-        {0.033f, 0.01f, 0.01f, 1.0f},
-        {0.02f, 0.01f, 0.01f, 1.0f}    };
+        {0.01f, 0.01f , 0.033f, 1.0f},
+        {0.01f, 0.033f, 0.01f , 1.0f},
+        {0.033f,0.01f , 0.01f , 1.0f},
+        {0.02f, 0.01f , 0.01f , 1.0f}    };
 
     VkClearDepthStencilValue depthClearValue = {/*...float.......depth.....*/ 0.0f,
                                                 /*...uint32_t....stencil...*/ 0 };
@@ -1304,6 +1315,8 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
     result = SubmitRenderCommandBuffer (/*...VkCommandBuffer...............commandBuffer.................*/ renderCommandBuffer,
                                         /*...VkQueue.......................queue.........................*/ queue,
                                         /*...PerSwapchainImageResources*...pPerSwapchainImageResources...*/ pCurrentSwapImageResources);
+
+    
 
     // present image
     result = PresentImage(swapchain, imageIdx, pCurrentSwapImageResources->releaseSwapchainImageSemaphore, queue);
