@@ -661,7 +661,7 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
         /*..VkAttachmentLoadOp..............stencilLoadOp....*/ VK_ATTACHMENT_LOAD_OP_DONT_CARE,  // Not using stencil so dont care
         /*..VkAttachmentStoreOp.............stencilStoreOp...*/ VK_ATTACHMENT_STORE_OP_DONT_CARE, // Not using stencil so dont care
         /*..VkImageLayout...................initialLayout....*/ VK_IMAGE_LAYOUT_UNDEFINED,
-        /*..VkImageLayout...................finalLayout......*/ VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+        /*..VkImageLayout...................finalLayout......*/ VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL
     };
 
     const uint32_t swapchainColorAttachmentIndex = SceneVulkanParameters::RenderPassParameters::swapchainColorAttachmentIndex;
@@ -1759,11 +1759,18 @@ VkDescriptorSet AllocateAndWriteSubpass1DescriptorSet (VkDevice               lo
     };
 
     VkDescriptorSet descriptorSetHandle = VK_NULL_HANDLE;
-    VkResult        result = vkAllocateDescriptorSets (logicalDevice,
-                                                       &descriptorSetAllocateInfo,
-                                                       &descriptorSetHandle);
+    VkResult        result              = vkAllocateDescriptorSets (logicalDevice,
+                                                                    &descriptorSetAllocateInfo,
+                                                                    &descriptorSetHandle);
     assert (result == VK_SUCCESS);
 
+
+    VkDescriptorBufferInfo uniformBufferDescriptorInfo =
+    {
+        /*...VkBuffer........buffer...*/ uniformBufferHandle,
+        /*...VkDeviceSize....offset...*/ 0,
+        /*...VkDeviceSize....range....*/ VK_WHOLE_SIZE
+    };
 
     VkDescriptorImageInfo diffuseColorImageDescriptorInfo
     {
@@ -1779,12 +1786,6 @@ VkDescriptorSet AllocateAndWriteSubpass1DescriptorSet (VkDevice               lo
         /*...VkImageLayout....imageLayout...*/ VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
     };
 
-    VkDescriptorImageInfo depthImageDescriptorInfo
-    {
-        /*...VkSampler........sampler.......*/ VK_NULL_HANDLE,
-        /*...VkImageView......imageView.....*/ depthStencilImageViewHandle,
-        /*...VkImageLayout....imageLayout...*/ VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-    };
 
     VkDescriptorImageInfo positionImageDescriptorInfo
     {
@@ -1793,11 +1794,11 @@ VkDescriptorSet AllocateAndWriteSubpass1DescriptorSet (VkDevice               lo
         /*...VkImageLayout....imageLayout...*/ VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
     };
 
-    VkDescriptorBufferInfo uniformBufferDescriptorInfo =
+    VkDescriptorImageInfo depthImageDescriptorInfo
     {
-        /*...VkBuffer........buffer...*/ uniformBufferHandle,
-        /*...VkDeviceSize....offset...*/ 0,
-        /*...VkDeviceSize....range....*/ VK_WHOLE_SIZE
+        /*...VkSampler........sampler.......*/ VK_NULL_HANDLE,
+        /*...VkImageView......imageView.....*/ depthStencilImageViewHandle,
+        /*...VkImageLayout....imageLayout...*/ VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
     };
 
     // Write the descriptor set with info about the resources backing the ubo and 4 input attachments

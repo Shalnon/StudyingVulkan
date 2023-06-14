@@ -176,11 +176,11 @@ VkDescriptorPool CreateDescriptorPool (VkDevice logicalDevice)
 
 VkPipeline CreateSubpass0Pipeline (VkDevice               logicalDevice,
                                    VkRenderPass           renderpass,
-                                   VkExtent2D* pExtent,
+                                   VkExtent2D*            pExtent,
                                    VkDescriptorSetLayout  descriptorSetLayoutHandle,
-                                   const char* fragShaderPath,
-                                   const char* vertShaderPath,
-                                   VkPipelineLayout* pPipelineLayoutHandleOut)
+                                   const char*            fragShaderPath,
+                                   const char*            vertShaderPath,
+                                   VkPipelineLayout*      pPipelineLayoutHandleOut)
 {
     uint32_t numVertexAttributes = sizeof (s_VertexShaderAttributes) / sizeof (AttributeInfo);
     assert (numVertexAttributes > 0);
@@ -371,7 +371,7 @@ VkPipeline CreateSubpass0Pipeline (VkDevice               logicalDevice,
     VkShaderModule pShaderModules[2] = { VK_NULL_HANDLE, VK_NULL_HANDLE };
 
     pShaderModules[fragmentShaderIdx] = CreateShaderModule (logicalDevice, fragShaderPath, true, false);
-    pShaderModules[vertexShaderIdx]   = CreateShaderModule (logicalDevice, vertShaderPath, false, true);
+    pShaderModules[vertexShaderIdx  ] = CreateShaderModule (logicalDevice, vertShaderPath, false, true);
 
     VkPipelineShaderStageCreateInfo pShaderStageCreateInfos[numStages] =
     {
@@ -395,10 +395,10 @@ VkPipeline CreateSubpass0Pipeline (VkDevice               logicalDevice,
         }
     };
 
-    assert (pShaderModules[vertexShaderIdx] != VK_NULL_HANDLE);
+    assert (pShaderModules[vertexShaderIdx]   != VK_NULL_HANDLE);
     assert (pShaderModules[fragmentShaderIdx] != VK_NULL_HANDLE);
-    assert (renderpass != VK_NULL_HANDLE);
-    assert (*pPipelineLayoutHandleOut != VK_NULL_HANDLE);
+    assert (renderpass                        != VK_NULL_HANDLE);
+    assert (*pPipelineLayoutHandleOut         != VK_NULL_HANDLE);
 
     VkGraphicsPipelineCreateInfo gfxPipelineCreateInfo =
     {
@@ -592,9 +592,9 @@ VkPipeline CreateSubpass1Pipeline (VkDevice               logicalDevice,
         /*...const.VkDynamicState*................pDynamicStates.........*/ dynamicStates
     };
 
-    static const uint32_t vertexShaderIdx = 0;
+    static const uint32_t vertexShaderIdx   = 0;
     static const uint32_t fragmentShaderIdx = 1;
-    static const uint32_t numStages = 2;
+    static const uint32_t numStages         = 2;
 
     VkShaderModule pShaderModules[2];
 

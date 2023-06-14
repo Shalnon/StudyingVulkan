@@ -110,7 +110,7 @@ namespace SceneVulkanParameters
         //@note: Subpass 1 DOES write to the swapchain color attachment.
         static const uint32_t numColorAttachments = 1; // Present image
         static const uint32_t numDepthAttachments = 0; // depth is disabled for subpass 1
-        static const uint32_t numInputAttachments = 4; // diffuse color + normal + subpass0 depth
+        static const uint32_t numInputAttachments = 4; // diffuse color + normal + + position + subpass0 depth
 
         static const uint32_t pColorAttachmentIndeces[numColorAttachments] =
         {

@@ -42,7 +42,6 @@ void main()
     // Assuming fragdepthStencil.r is depth
     //vec3 locationOnMeshSurface = vec3(in_positionOnFullScreenQuad.xy, fragDepthStencil.r);  // might still want to use this because it makes the lighting consistent potentially
 
-    //vec4 lightLocation = ubo.lightLocation * ubo.sceneTransform;
     float distanceFromLight = distance(ubo.lightLocation.xyz,  surfaceWorldPosition.xyz);
 	vec3  surfaceToLight    = normalize(ubo.lightLocation.xyz - surfaceWorldPosition.xyz);
 	float cosaoi            = dot(surfaceNormal.xyz, surfaceToLight);
@@ -51,5 +50,5 @@ void main()
 
 	vec3 Diffuse = diffuseColor.rgb * ubo.lightIntensities.xyz * Diffuse_Coefficient;
 
-	fragColor = Diffuse + ubo.ambient_color.rgb;
+	fragColor = Diffuse + (ubo.ambient_color.rgb * fragDepthStencil.r);
 }

@@ -204,8 +204,8 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                                                                                    pSubpassDescriptorSetLayouts[1],
                                                                                                    pSwapchainImageResourceSet->diffuseImageViewHandle,
                                                                                                    pSwapchainImageResourceSet->normalsImageViewHandle,
-                                                                                                   pSwapchainImageResourceSet->depthImageViewHandle,
                                                                                                    pSwapchainImageResourceSet->positionImageViewHandle,
+                                                                                                   pSwapchainImageResourceSet->depthImageViewHandle,
                                                                                                    uniformBufferInfo.bufferHandle);
 
         pSwapchainImageResourceSet->subpass1DesciptorSetHandle = subpass1DescriptorSet;
