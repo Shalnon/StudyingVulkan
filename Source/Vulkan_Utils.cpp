@@ -1517,6 +1517,7 @@ VkCommandBuffer RecordRenderGeometryBufferCmds(GeometryBufferSet*          pGeom
     pClearValues[SceneVulkanParameters::RenderPassParameters::swapchainColorAttachmentIndex].color        = *pColorClearValue;
     pClearValues[SceneVulkanParameters::RenderPassParameters::diffuseColorAttachmentIndex].color          = *pColorClearValue;
     pClearValues[SceneVulkanParameters::RenderPassParameters::surfaceNormalAttachmentIndex].color         = *pColorClearValue;
+    pClearValues[SceneVulkanParameters::RenderPassParameters::positionAttachmentIndex].color              = *pColorClearValue;
     pClearValues[SceneVulkanParameters::RenderPassParameters::depthStencilAttachmentIndex].depthStencil   = *pDepthStencilClearValue;
 
     VkRenderPassBeginInfo renderPassBeginInfo =

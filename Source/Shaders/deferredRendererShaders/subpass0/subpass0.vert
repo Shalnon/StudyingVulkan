@@ -1,6 +1,7 @@
 //glslc --target-env=vulkan1.3 -fshader-stage=vert -o vert.spv subpass0.vert 
 
 #version 450
+// implicitely using GL_KHR_vulkan_glsl
 precision highp float;
 
 layout(location = 0) in  vec3 inPosition;

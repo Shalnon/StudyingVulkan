@@ -1,10 +1,10 @@
 //glslc --target-env=vulkan1.3 -fshader-stage=vert -o vert.spv subpass1.vert 
 
 #version 420
+//implicitly using GL_KHR_vulkan_glsl
 
 precision highp float;
 
-layout(location = 0) out vec4 in_positionOnFullScreenQuad;
 
 vec3 fullScreenQuadVertices[6] = vec3[](
     vec3(-1.0, 1.0, 0.5),   // A
@@ -18,6 +18,5 @@ vec3 fullScreenQuadVertices[6] = vec3[](
 
 void main()
 {
-    in_positionOnFullScreenQuad = vec4(fullScreenQuadVertices[gl_VertexIndex], 1.0);
-    gl_Position                 = vec4(fullScreenQuadVertices[gl_VertexIndex], 1.0);
+    gl_Position = vec4(fullScreenQuadVertices[gl_VertexIndex], 1.0);
 }
