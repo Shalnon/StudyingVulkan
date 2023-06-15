@@ -46,7 +46,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     // Make sure we got queue index from the above function.
     assert (queueFamilyIndex != UINT32_MAX);
 
-    //Now that we have a device, create the semaphore list.
+    // Now that we have a device, create the semaphore list.
     VkSync::InitSemaphoreList(logicalDevice);
 
     VkExtent2D                   preferredFrameDimensions    = {WINDOW_WIDTH, WINDOW_HEIGHT};
@@ -150,7 +150,6 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     
 
     printf ("model path = %s\n", modelPath.c_str ());
-
     const aiScene* pScene = aiImportFile (modelPath.c_str (), MY_ASSIMP_PREPROCESSING_FLAGS);
 
     vulkanAllocatedBufferInfo colorsStorageBufferInfo = CreateMeshColorsStorageBuffer (physicalDevice,
