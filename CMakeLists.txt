@@ -7,6 +7,14 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 project ("StudyingVulkan")
 
+set(VERSION_MAJOR 0)
+set(VERSION_MINOR 1)
+SET(VERSION_PATCH 0)
+
+set(SHADERS_ROOT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Source/Shaders")
+set(ASSETS_DIRECTORY       "${CMAKE_CURRENT_SOURCE_DIR}/Assets")
+
+configure_file(Source/config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/Source/config.h @ONLY)
 
 # Add source to this project's executable.
 add_executable (StudyingVulkan "Source/AppWindowingSystem.cpp"

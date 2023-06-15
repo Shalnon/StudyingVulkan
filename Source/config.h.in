@@ -1,0 +1,16 @@
+#ifndef CONFIG_H_IN
+#define CONFIG_H_IN
+
+
+#define VERSION_MAJOR @VERSION_MAJOR@
+#define VERSION_MINOR @VERSION_MINOR@
+#define VERSION_PATCH @VERSION_PATCH@
+
+#define PROJECT_NAME    "@PROJECT_NAME@"
+#define SHADER_ROOT_DIR "@SHADERS_ROOT_DIRECTORY@"
+#define ASSET_DIR       "@ASSETS_DIRECTORY@"
+
+static const char* pShaderRootDirectory = SHADER_ROOT_DIR;
+static const char* pAssetDirectory      = ASSET_DIR;
+
+#endif //CONFIG_H_IN

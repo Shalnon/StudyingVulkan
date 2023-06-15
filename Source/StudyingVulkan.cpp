@@ -107,22 +107,37 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     // Handles for the pipeline layouts created for each pipeline will be filled in below and than used as an arg to vkCmdBindDescriptorSets when recording the command buffers
     VkPipelineLayout pPipelineLayoutHandles[numSubpasses] = { VK_NULL_HANDLE, VK_NULL_HANDLE };
 
-    // Create the pipeline used by subpass 1 to fill the gbuffer images
-    VkPipeline       subpass0Pipeline = CreateSubpass0Pipeline(logicalDevice,
-                                                               renderpassHandle,
-                                                               &actualFrameDimensions,
-                                                               pSubpassDescriptorSetLayouts[0],
-                                                               SceneVulkanParameters::Subpass0::pFragShaderPath,
-                                                               SceneVulkanParameters::Subpass0::pVertShaderPath,
-                                                               &pPipelineLayoutHandles[0]);
+    std::string subpass0FragPath = std::string (pShaderRootDirectory) + std::string (SceneVulkanParameters::Subpass0::pFragShaderPath);
+    std::string subpass0VertPath = std::string (pShaderRootDirectory) + std::string (SceneVulkanParameters::Subpass0::pVertShaderPath);
+    const char* s0_frag_path = subpass0FragPath.c_str();
+    const char* s0_vert_path = subpass0VertPath.c_str ();
 
-    VkPipeline       subpass1Pipeline = CreateSubpass1Pipeline (logicalDevice, 
-                                                                renderpassHandle,
-                                                                &actualFrameDimensions,
-                                                                pSubpassDescriptorSetLayouts[1],
-                                                                SceneVulkanParameters::Subpass1::pFragShaderPath,
-                                                                SceneVulkanParameters::Subpass1::pVertShaderPath,
-                                                                &pPipelineLayoutHandles[1]);
+    std::string subpass1FragPath = std::string (pShaderRootDirectory) + std::string (SceneVulkanParameters::Subpass1::pFragShaderPath);
+    std::string subpass1VertPath = std::string (pShaderRootDirectory) + std::string (SceneVulkanParameters::Subpass1::pVertShaderPath);
+    const char* s1_frag_path = subpass1FragPath.c_str ();
+    const char* s1_vert_path = subpass1VertPath.c_str ();
+
+    printf ("subpass0 - frag: %s\n", s0_frag_path);
+    printf ("subpass0 - vert: %s\n", s0_vert_path);
+    printf ("subpass1 - frag: %s\n", s1_frag_path);
+    printf ("subpass1 - vert: %s\n", s1_vert_path);
+
+    // Create the pipeline used by subpass 1 to fill the gbuffer images
+    VkPipeline subpass0Pipeline = CreateSubpass0Pipeline(logicalDevice,
+                                                         renderpassHandle,
+                                                         &actualFrameDimensions,
+                                                         pSubpassDescriptorSetLayouts[0],
+                                                         s0_frag_path,
+                                                         s0_vert_path,
+                                                         &pPipelineLayoutHandles[0]);
+
+    VkPipeline subpass1Pipeline = CreateSubpass1Pipeline (logicalDevice, 
+                                                          renderpassHandle,
+                                                          &actualFrameDimensions,
+                                                          pSubpassDescriptorSetLayouts[1],
+                                                          s1_frag_path,
+                                                          s1_vert_path,
+                                                          &pPipelineLayoutHandles[1]);
 
     CreateFrameBuffers(logicalDevice,
                        renderpassHandle,
@@ -130,15 +145,13 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                        numSwapChainImages,
                        pPerSwapchainImageResources);
      
-    std::string currentPath   = std::filesystem::current_path ().string ();
-    std::string assetsDirPath = currentPath   + std::string ("\\..\\..\\..\\Assets");
+    std::string assetsDirPath = std::string(pAssetDirectory);
     std::string modelPath     = assetsDirPath + std::string ("\\Models\\monkey_with_color.obj");
-    //std::string modelPath      = assetsDirPath + std::string ("\\Models\\3_cubes_rgb\\3_cubes_rgb.obj");
     
 
     printf ("model path = %s\n", modelPath.c_str ());
 
-    const aiScene* pScene = aiImportFile (modelPath.c_str (), MY_ASSIMP_PREPROCESSING_FLAGS);//aiProcessPreset_TargetRealtime_MaxQuality);
+    const aiScene* pScene = aiImportFile (modelPath.c_str (), MY_ASSIMP_PREPROCESSING_FLAGS);
 
     vulkanAllocatedBufferInfo colorsStorageBufferInfo = CreateMeshColorsStorageBuffer (physicalDevice,
                                                                                        logicalDevice,

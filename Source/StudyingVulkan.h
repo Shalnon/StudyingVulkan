@@ -12,6 +12,8 @@
 #include <fstream>
 #include <cstdlib>
 
+#include "config.h"
+
 #define DEBUG
 #define VK_USE_PLATFORM_WIN32_KHR
 #define USE_VOLK
@@ -92,8 +94,8 @@ namespace SceneVulkanParameters
 
         // Descriptor set layout binding information
         static const uint32_t numDescriptorSetLayoutBindings = 2;
-        static const uint32_t uniformBufferBinding      = 0; // VK_DESCRIPTOR_TYPE_STORAGE_BUFFER
-        static const uint32_t storageBufferBinding      = 1; // VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+        static const uint32_t uniformBufferBinding           = 0; // VK_DESCRIPTOR_TYPE_STORAGE_BUFFER
+        static const uint32_t storageBufferBinding           = 1; // VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
 
         //Vertex attrib information for pipeline
         static const uint32_t numInputBindings    = 1; // Number of vertex attribute buffers we need a binding for
@@ -102,8 +104,8 @@ namespace SceneVulkanParameters
         static const uint32_t vertexLocationAttributePosition = 0;
         static const uint32_t vertexNormalAttributePosition   = 1;
 
-        static const char* pFragShaderPath = "C:\\git\\CmakeExperiments\\StudyingVulkan\\StudyingVulkan\\Source\\Shaders\\deferredRendererShaders\\subpass0\\frag.spv";
-        static const char* pVertShaderPath = "C:\\git\\CmakeExperiments\\StudyingVulkan\\StudyingVulkan\\Source\\Shaders\\deferredRendererShaders\\subpass0\\vert.spv";
+        static const char* pFragShaderPath = "/deferredRendererShaders/subpass0/frag.spv";
+        static const char* pVertShaderPath = "/deferredRendererShaders/subpass0/vert.spv";
     }
     namespace Subpass1
     {
@@ -132,8 +134,8 @@ namespace SceneVulkanParameters
 
         static const uint32_t numDescriptorSetsUsed = 1;
 
-        static const char* pFragShaderPath = "C:\\git\\CmakeExperiments\\StudyingVulkan\\StudyingVulkan\\Source\\Shaders\\deferredRendererShaders\\subpass1\\frag.spv";
-        static const char* pVertShaderPath = "C:\\git\\CmakeExperiments\\StudyingVulkan\\StudyingVulkan\\Source\\Shaders\\deferredRendererShaders\\subpass1\\vert.spv";
+        static const char* pFragShaderPath = "/deferredRendererShaders/subpass1/frag.spv";
+        static const char* pVertShaderPath = "/deferredRendererShaders/subpass1/vert.spv";
     };
 
     static const uint32_t minSemaphoreListSize    = 64;
