@@ -12,6 +12,9 @@
 #include <fstream>
 #include <cstdlib>
 
+#include <glm/vec4.hpp>
+#include <glm/mat4x4.hpp>
+
 #include "config.h"
 
 #define DEBUG
@@ -31,7 +34,7 @@
 #define WINDOW_WIDTH  1280
 #define WINDOW_HEIGHT 720
 
-#define RADIANS_PER_DEGREE 0.0174532925
+#define RADIANS_PER_DEGREE 0.0174532925f
 
 namespace SceneVulkanParameters
 {
@@ -60,7 +63,7 @@ namespace SceneVulkanParameters
     // Parameters used to setup projection matrix 
     static const float horizontal_fov = 70.0f;
     static const float zNear          = 1.0f; //@TODO: have znear and zfar be initialized based on the volume used to do the scene transform?
-    static const float zFar           = 10.0;
+    static const float zFar           = 20.0;
 
     namespace window
     {
@@ -112,7 +115,7 @@ namespace SceneVulkanParameters
         //@note: Subpass 1 DOES write to the swapchain color attachment.
         static const uint32_t numColorAttachments = 1; // Present image
         static const uint32_t numDepthAttachments = 0; // depth is disabled for subpass 1
-        static const uint32_t numInputAttachments = 4; // diffuse color + normal + + position + subpass0 depth
+        static const uint32_t numInputAttachments = 4; // diffuse color + normal + position + subpass0 depth
 
         static const uint32_t pColorAttachmentIndeces[numColorAttachments] =
         {
@@ -151,6 +154,23 @@ namespace SceneVulkanParameters
     static const VkFormat preferredSwapchainImagesFormats[numPreferredSwapchainFormats]  = { VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_B8G8R8A8_SRGB };
     static const VkFormat preferredDeptAttachmentFormats[]                               = { VK_FORMAT_D32_SFLOAT };
 }
+
+// Defining a struct here that matches the UBO data layout described in the shader.
+struct UniformBufferData
+{
+    // Scene Transform
+    glm::mat4 sceneTransform;
+    glm::vec4 sceneScale;
+
+    glm::mat4 projecrtionMatrix;
+
+    // Scene ambient color
+    glm::vec4  ambient_color;
+
+    // Light location
+    glm::vec4 lightLocation;
+    glm::vec4 lightIntensities;
+};
 
 struct VertexAttributeData
 {

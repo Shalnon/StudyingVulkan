@@ -115,8 +115,6 @@ vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             phys
                                                VkDevice                     logicalDevice,
                                                VkQueue                      queue,
                                                uint32_t                     queueFamilyIndex,
-                                               const GeometryBufferSet*     pGeometryBufferSet,
-                                               VkAabbPositionsKHR*          pDesiredSceneBounds,
-                                               glm::mat4*                   pProjectionMatrix,
+                                               UniformBufferData*           pInitialUboData,
                                                bool                         maintainAspectRatio);
 #endif // VULKAN_BUFFER_TOOLS_H

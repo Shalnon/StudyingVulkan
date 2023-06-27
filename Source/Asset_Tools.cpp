@@ -143,11 +143,6 @@ glm::mat4 GetTransform_FitAABBToAABB (VkAabbPositionsKHR originalAABB,
     glm::vec3 originalAabbSize = { originalAABB.maxX - originalAABB.minX,    // original AABB width
                                    originalAABB.maxY - originalAABB.minY,    // original AABB height
                                    originalAABB.maxZ - originalAABB.minZ };  // original AABB depth
-#ifdef DEBUG
-        assert (originalAabbSize.x == fabs (originalAabbSize.x));
-        assert (originalAabbSize.y == fabs (originalAabbSize.y));
-        assert (originalAabbSize.z == fabs (originalAabbSize.z));
-#endif
 
     glm::vec3 desiredBoundsSize = { desiredBounds.maxX - desiredBounds.minX,   // Desired bounds width
                                     desiredBounds.maxY - desiredBounds.minY,   // Desired bounds height
@@ -156,22 +151,55 @@ glm::mat4 GetTransform_FitAABBToAABB (VkAabbPositionsKHR originalAABB,
         assert (desiredBoundsSize.x == fabs (desiredBoundsSize.x));
         assert (desiredBoundsSize.y == fabs (desiredBoundsSize.y));
         assert (desiredBoundsSize.z == fabs (desiredBoundsSize.z));
+        assert (originalAabbSize.x  == fabs (originalAabbSize.x) );
+        assert (originalAabbSize.y  == fabs (originalAabbSize.y) );
+        assert (originalAabbSize.z  == fabs (originalAabbSize.z) );
 #endif
 
     glm::vec3 scaleAmt      = glm::vec3 (1.0f, 1.0f, 1.0f);
     glm::vec3 boundsDivided = desiredBoundsSize / originalAabbSize;
+    bool      scaleDown     = true;
 
+    if ((desiredBoundsSize.x > originalAabbSize.x) &&
+        (desiredBoundsSize.y > originalAabbSize.y) &&
+        (desiredBoundsSize.z > originalAabbSize.z))
+    {
+        scaleDown = false;
+    }
+
+    // if all bounds on target aabb are larger, than i need to scale up
     if (maintainSceneAspectRatio == true)
     {
-        float smallestScale = 1.0f;
-        for (uint32_t i = 0; i < 3; i++)
-        {
-            if (boundsDivided[i] < smallestScale)
+        float scaleFactor = 1.0f;
+
+        if (scaleDown == true)
+        {// Find the axis on which the difference in AABB sizes is the SMALLEST
+
+            scaleFactor =  boundsDivided.x;
+            scaleFactor = (boundsDivided.y < scaleFactor) ? boundsDivided.y : scaleFactor;
+            scaleFactor = (boundsDivided.z < scaleFactor) ? boundsDivided.z : scaleFactor;
+
+            //for (uint32_t i = 0; i < 3; i++)
+            //{
+            //    if (boundsDivided[i] < scaleFactor)
+            //    {
+            //        scaleFactor = boundsDivided[i];
+            //    }
+            //}
+        }
+        else
+        { // Find the axis on which the difference in AABB sizes is the LARGEST
+            for (uint32_t i = 0; i < 3; i++)
             {
-                smallestScale = boundsDivided[i];
+                if (boundsDivided[i] > scaleFactor)
+                {
+                    scaleFactor = boundsDivided[i];
+                }
             }
         }
-        scaleAmt = glm::vec3 (smallestScale, smallestScale, smallestScale);
+
+
+        scaleAmt = glm::vec3 (scaleFactor, scaleFactor, scaleFactor);
     }
     else
     {
@@ -185,16 +213,16 @@ glm::mat4 GetTransform_FitAABBToAABB (VkAabbPositionsKHR originalAABB,
                                                     0.0f,       0.0f,       scaleAmt.z, 0.0f,
                                                     0.0f,       0.0f,       0.0f,       1.0f);
 
-    glm::vec3 originalAABBCenter = { originalAABB.minX + (originalAabbSize.x / 2),
-                                     originalAABB.minY + (originalAabbSize.y / 2),
-                                     originalAABB.minZ + (originalAabbSize.z / 2) };
+    glm::vec3 originalAABBCenter  = { originalAABB.minX + (originalAabbSize.x / 2),
+                                      originalAABB.minY + (originalAabbSize.y / 2),
+                                      originalAABB.minZ + (originalAabbSize.z / 2) };
 
     glm::vec3 desiredBoundsCenter = { desiredBounds.minX + (desiredBoundsSize.x / 2),
                                       desiredBounds.minY + (desiredBoundsSize.y / 2),
                                       desiredBounds.minZ + (desiredBoundsSize.z / 2) };
 
     printf ("originalAABBCenter   = { %.4f, %.4f, %.4f }\n", originalAABBCenter.x, originalAABBCenter.y, originalAABBCenter.z);
-    printf ("desiredBoundsCenter = { %.4f, %.4f, %.4f }\n", desiredBoundsCenter.x, desiredBoundsCenter.y, desiredBoundsCenter.z);
+    printf ("desiredBoundsCenter  = { %.4f, %.4f, %.4f }\n", desiredBoundsCenter.x, desiredBoundsCenter.y, desiredBoundsCenter.z);
 
     // Translate by the amount that places the scene AABB center point at the origin
     glm::mat4 translate2OriginMatrix = glm::mat4 (1.0f, 0.0f, 0.0f, -(originalAABBCenter.x),
@@ -207,11 +235,82 @@ glm::mat4 GetTransform_FitAABBToAABB (VkAabbPositionsKHR originalAABB,
                                                        0.0f, 0.0f, 1.0f, (desiredBoundsCenter.z),
                                                        0.0f, 0.0f, 0.0f, 1.0f);
 
-    return  translate2OriginMatrix * scaleToDesiredBoundsSize * translate2DesiredAabbCenter;
+
+    // Create rotation matrix
+    glm::mat4 identityMatrix = glm::mat4 (1.0f, 0.0f, 0.0f, 0.0f,
+                                          0.0f, 1.0f, 0.0f, 0.0f,
+                                          0.0f, 0.0f, 1.0f, 0.0f,
+                                          0.0f, 0.0f, 0.0f, 1.0f);
+
+    glm::mat4 rotationMatrix = glm::rotate (identityMatrix, 45.0f, glm::vec3 (0.0f, 1.0f, 0.0f));
 
 
-
-
+    return  translate2OriginMatrix * rotationMatrix * scaleToDesiredBoundsSize * translate2DesiredAabbCenter;
 }
 
+glm::mat4 GetSceneTransform (VkAabbPositionsKHR sceneBounds,
+                             VkAabbPositionsKHR meshDataAabb,
+                             glm::vec3          sceneRotation)
+{
+
+    glm::vec3 scaleAmt                     = ScaleAabbToAabb (meshDataAabb, sceneBounds, true);
+    glm::vec3 meshDataAabbSize             = GetAabbSize (meshDataAabb);
+    glm::vec3 desiredSceneBoundsDimensions = GetAabbSize (sceneBounds);
+
+    glm::vec3 meshAabbCenter = { meshDataAabb.minX + (meshDataAabbSize.x / 2),
+                                 meshDataAabb.minY + (meshDataAabbSize.y / 2),
+                                 meshDataAabb.minZ + (meshDataAabbSize.z / 2) };
+
+    glm::vec3 desiredBoundsCenter = { sceneBounds.minX + (desiredSceneBoundsDimensions.x / 2),
+                                      sceneBounds.minY + (desiredSceneBoundsDimensions.y / 2),
+                                      sceneBounds.minZ + (desiredSceneBoundsDimensions.z / 2) };
+
+    printf ("scaleAmt = { %.4f, %.4f, %.4f }\n", scaleAmt.x, scaleAmt.y, scaleAmt.z);
+
+    glm::mat4 scaleToDesiredBoundsSize = glm::mat4 (scaleAmt.x, 0.0f, 0.0f, 0.0f,
+                                                    0.0f, scaleAmt.y, 0.0f, 0.0f,
+                                                    0.0f, 0.0f, scaleAmt.z, 0.0f,
+                                                    0.0f, 0.0f, 0.0f, 1.0f);
+
+    printf ("originalAABBCenter   = { %.4f, %.4f, %.4f }\n", meshAabbCenter.x, meshAabbCenter.y, meshAabbCenter.z);
+    printf ("desiredBoundsCenter  = { %.4f, %.4f, %.4f }\n", desiredBoundsCenter.x, desiredBoundsCenter.y, desiredSceneBoundsDimensions.z);
+
+    // Translate by the amount that places the scene AABB center point at the origin
+    glm::mat4 translate2OriginMatrix = glm::mat4 (1.0f, 0.0f, 0.0f, -(meshAabbCenter.x),
+                                                  0.0f, 1.0f, 0.0f, -(meshAabbCenter.y),
+                                                  0.0f, 0.0f, 1.0f, -(meshAabbCenter.z),
+                                                  0.0f, 0.0f, 0.0f, 1.0f);
+
+    glm::mat4 translate2DesiredAabbCenter = glm::mat4 (1.0f, 0.0f, 0.0f, desiredBoundsCenter.x,
+                                                       0.0f, 1.0f, 0.0f, desiredBoundsCenter.y,
+                                                       0.0f, 0.0f, 1.0f, desiredBoundsCenter.z,
+                                                       0.0f, 0.0f, 0.0f, 1.0f);
+
+
+    // Create rotation matrix
+    glm::mat4 identityMatrix = glm::mat4 (1.0f, 0.0f, 0.0f, 0.0f,
+                                          0.0f, 1.0f, 0.0f, 0.0f,
+                                          0.0f, 0.0f, 1.0f, 0.0f,
+                                          0.0f, 0.0f, 0.0f, 1.0f);
+
+    glm::mat4 rotationMatrix = identityMatrix;// glm::rotate (identityMatrix, 45.0f, glm::vec3 (0.0f, 1.0f, 0.0f)); //identityMatrix;
+    
+    if (sceneRotation.x != 0)
+    {
+        rotationMatrix = glm::rotate (rotationMatrix, sceneRotation.x, glm::vec3 (1.0f, 0.0f, 0.0f));
+    }
+    else if (sceneRotation.y != 0)
+    {
+        rotationMatrix = glm::rotate (rotationMatrix, 45.0f, glm::vec3 (0.0f, 1.0f, 0.0f));
+    }
+    else if (sceneRotation.z != 0)
+    {
+        rotationMatrix = glm::rotate (rotationMatrix, sceneRotation.z, glm::vec3 (0.0f, 0.0f, 1.0f));
+    }
+    //glm::rotate (identityMatrix, 45.0f, glm::vec3 (0.0f, 1.0f, 0.0f));
+
+
+    return  translate2OriginMatrix * rotationMatrix * scaleToDesiredBoundsSize * translate2DesiredAabbCenter;
+  //  return  translate2OriginMatrix * scaleToDesiredBoundsSize * translate2DesiredAabbCenter;
+}
 #endif // MY_ASSET_TOOLS_CPP

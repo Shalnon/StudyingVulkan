@@ -2,13 +2,13 @@
 #define VULKAN_UTILS_H
 #include "StudyingVulkan.h"
 #include "Vulkan_Synchronization.h"
-#include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 extern uint32_t  numRequiredExtensions;
 
 // struct prototypes:
 struct GeometryBufferSet;
+struct vulkanAllocatedBufferInfo;
 
 struct PerSwapchainImageResources
 {
@@ -40,6 +40,10 @@ struct PerSwapchainImageResources
 
     VkFramebuffer   framebufferHandle;
     VkDescriptorSet subpass1DesciptorSetHandle;
+
+    VkBuffer        bufferUpdatesStagingBuffer;
+    VkDeviceMemory  bufferUpdatesStagingMemory;
+    VkDeviceSize    updatesStagingBufferSize;
 };
 
 
@@ -159,6 +163,8 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                            uint32_t*                    pNumSwapchainImages,
                            VkExtent2D*                  pExtent,
                            GeometryBufferSet*           pGeometryBufferSet,
+                           UniformBufferData*           pUboData,
+                           vulkanAllocatedBufferInfo*   pUniformBufferInfo,
                            uint32_t                     frameIdx);
 
 VkSwapchainKHR ReinitializeRenderungSurface(VkDevice                     logicalDevice,
@@ -180,6 +186,7 @@ VkCommandBuffer RecordRenderGeometryBufferCmds(GeometryBufferSet*          pGeom
                                                PerSwapchainImageResources* pPerSwapchainImageResources,
                                                PerSubpassRenderParameters* pSubpass0Parameters,
                                                PerSubpassRenderParameters* pSubpass1Parameters,
+                                               vulkanAllocatedBufferInfo*  pUniformBufferInfo,
                                                VkRenderPass                renderPass,
                                                VkExtent2D*                 pExtent,
                                                VkClearColorValue*          pColorClearValue,

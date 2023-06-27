@@ -8,6 +8,7 @@
 #include "Vulkan_enum_strings.h"
 #include "Vulkan_Buffer_Tools.h"
 #include "Vulkan_Descriptor_Tools.h"
+#include <glm/glm.hpp>
 
 inline uint32_t GetPhysicalDeviceCount(VkInstance instance)
 {
@@ -527,7 +528,7 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
         CreateAndAllocateColorImage (logicalDevice,
                                      physicalDevice,
                                      graphicsQueueIndex,
-                                     diffuseColorGbufferFormat,//chosenSwapchainFormat.format,
+                                     diffuseColorGbufferFormat,
                                      { swapchainExtent.width, swapchainExtent.height },
                                      pDiffuseImageMem,
                                      pDiffuseImage,
@@ -563,6 +564,21 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
                                      pPositionImage,
                                      pPositionImageView);
 
+
+
+        // Initialize with the size of the struct we want to update
+        VkDeviceSize updateStagingBufferDataSize = sizeof (UniformBufferData);
+
+        //Create a staging buffer which will be where the cpu writes matrix data to
+        vulkanAllocatedBufferInfo updateStagingBufferInfo = CreateAndAllocaStagingBuffer (physicalDevice,
+                                                                                          logicalDevice,
+                                                                                          updateStagingBufferDataSize,
+                                                                                          graphicsQueueIndex);
+
+        // Create the staging buffer that will be used to update resources as needed
+        pPerSwapchainImageResources[swapIdx].bufferUpdatesStagingBuffer = updateStagingBufferInfo.bufferHandle;
+        pPerSwapchainImageResources[swapIdx].bufferUpdatesStagingMemory = updateStagingBufferInfo.memoryHandle;
+        pPerSwapchainImageResources[swapIdx].updatesStagingBufferSize   = updateStagingBufferInfo.buffersize;
     }
 
     *pChosenDepthFormatOut             = depthFormat;
@@ -718,7 +734,6 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
         /*...uint32_t.........attachment....*/ swapchainColorAttachmentIndex, // 0
         /*...VkImageLayout....layout........*/ VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
     };
-
 
     VkSubpassDescription pSubpassDescriptions[SceneVulkanParameters::RenderPassParameters::numSubpasses] =
     {
@@ -1158,7 +1173,6 @@ void CreateAndAllocateColorImage (VkDevice            logicalDeviceHandle,
     *pColorImageViewHandleOut = colorImageView;
 }
 
-
 void CreateFrameBuffers(VkDevice                    logicalDevice,
                         VkRenderPass                renderPass,
                         VkExtent2D*                 pExtent,
@@ -1167,7 +1181,6 @@ void CreateFrameBuffers(VkDevice                    logicalDevice,
 {
     const uint32_t numColorAttachments = SceneVulkanParameters::RenderPassParameters::numColorAttachments; // 4 - diffuse color + surface normals + position + present
     const uint32_t numDepthAttachments = SceneVulkanParameters::RenderPassParameters::numDepthAttachments; // 1
-
 
     VkResult                result                  = VK_INCOMPLETE;
     static const uint32_t   numAttachments          = numColorAttachments +
@@ -1316,6 +1329,8 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                            uint32_t*                    pNumSwapchainImages,
                            VkExtent2D*                  pExtent,
                            GeometryBufferSet*           pGeometryBufferSet,
+                           UniformBufferData*           pUboData,
+                           vulkanAllocatedBufferInfo*   pUniformBufferInfo,
                            uint32_t                     frameIdx)
 {
     uint64_t                    time                = 0; ///@TODO: Look into any light-weight profiling measurements that can be taken here and returned from the function.
@@ -1325,7 +1340,7 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
     uint32_t imageIdx;
     result = AcuireNextSwapchainImageIdx(queue, logicalDevice, swapchain, &imageIdx, *ppPerSwapchainImageResources);
 
-    // This is expected to be hit when the window has resized, or some other change to the rendering surface that requires reinitialization
+    // This is expected to be hit when the window has resized, or when some other change to the rendering surface that requires reinitialization
     if ((result == VK_SUBOPTIMAL_KHR) || (result == VK_ERROR_OUT_OF_DATE_KHR))
     {
         printf ("Resizing window...\n");
@@ -1352,7 +1367,8 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
         {0.01f, 0.01f , 0.033f, 1.0f},
         {0.01f, 0.033f, 0.01f , 1.0f},
         {0.033f,0.01f , 0.01f , 1.0f},
-        {0.02f, 0.01f , 0.01f , 1.0f}    };
+        {0.02f, 0.01f , 0.01f , 1.0f}
+    };
 
     VkClearDepthStencilValue depthClearValue = {/*...float.......depth.....*/ 0.0f,
                                                 /*...uint32_t....stencil...*/ 0 };
@@ -1362,10 +1378,24 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
     //Now that we know which swapchain index we will be using we can fill in the rest of subpass1Params
     pSubpass1Parameters->descriptorSet = pCurrentSwapImageResources->subpass1DesciptorSetHandle;
 
+    // Write ubo data to the ubo staging buffer
+    vulkanAllocatedBufferInfo pUboUpdateStagingBufferInfo = {};
+    pUboUpdateStagingBufferInfo.bufferHandle = pCurrentSwapImageResources->bufferUpdatesStagingBuffer;
+    pUboUpdateStagingBufferInfo.buffersize   = pCurrentSwapImageResources->updatesStagingBufferSize;
+    pUboUpdateStagingBufferInfo.memoryHandle = pCurrentSwapImageResources->bufferUpdatesStagingMemory;
+
+    void* pMappedUboUpdateStagingBuff = MapBufferMemory (pUboUpdateStagingBufferInfo, logicalDevice);
+    memcpy (pMappedUboUpdateStagingBuff, pUboData, sizeof (UniformBufferData));
+    vkUnmapMemory (logicalDevice, pUboUpdateStagingBufferInfo.memoryHandle);
+
+    //Write *pUboData to the staging buffer corresponding to this swapchain index
+    // Than pass it to the functio below, where the command buffer will need to include a buffer copy. 
+
     renderCommandBuffer = RecordRenderGeometryBufferCmds (/*...GeometryBufferSet*...........pGeometryBufferSet............*/ pGeometryBufferSet,
                                                           /*...PerSwapchainImageResources*..pPerSwapchainImageResources...*/ pCurrentSwapImageResources,
                                                           /*...PerSubpassRenderParameters*..pSubpass0Parameters...........*/ pSubpass0Parameters,
                                                           /*...PerSubpassRenderParameters*..pSubpass1Parameters...........*/ pSubpass1Parameters,
+                                                          /*...vulkanAllocatedBufferInfo*...pUniformBufferInfo............*/ pUniformBufferInfo,
                                                           /*...VkRenderPass.................renderPass....................*/ renderpass,
                                                           /*...VkExtent2D*..................pExtent.......................*/ pExtent,
                                                           /*...VkClearColorValue*...........pClearValue...................*/ &(colorClearValArray[frameIdx % 3]),
@@ -1374,8 +1404,6 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
     result = SubmitRenderCommandBuffer (/*...VkCommandBuffer...............commandBuffer.................*/ renderCommandBuffer,
                                         /*...VkQueue.......................queue.........................*/ queue,
                                         /*...PerSwapchainImageResources*...pPerSwapchainImageResources...*/ pCurrentSwapImageResources);
-
-    
 
     // present image
     result = PresentImage(swapchain, imageIdx, pCurrentSwapImageResources->releaseSwapchainImageSemaphore, queue);
@@ -1480,6 +1508,7 @@ VkCommandBuffer RecordRenderGeometryBufferCmds(GeometryBufferSet*          pGeom
                                                PerSwapchainImageResources* pPerSwapchainImageResources,
                                                PerSubpassRenderParameters* pSubpass0Parameters,
                                                PerSubpassRenderParameters* pSubpass1Parameters,
+                                               vulkanAllocatedBufferInfo*  pUniformBufferInfo,
                                                VkRenderPass                renderPass,
                                                VkExtent2D*                 pExtent,
                                                VkClearColorValue*          pColorClearValue,
@@ -1504,6 +1533,23 @@ VkCommandBuffer RecordRenderGeometryBufferCmds(GeometryBufferSet*          pGeom
     // Begin command buffer
     vkBeginCommandBuffer (commandBuffer, &cmdBufferBeginInfo);
 
+    VkBufferCopy copyInfo =
+    {
+        /*...VkDeviceSize....srcOffset...*/ 0,
+        /*...VkDeviceSize....dstOffset...*/ 0,
+        /*...VkDeviceSize....size........*/ sizeof(UniformBufferData)
+    };
+
+
+    // Upload data from ubo staging buffer to the actual uniform buffer itself
+    vkCmdCopyBuffer (/*...VkCommandBuffer.............................commandBuffer...*/ commandBuffer,
+                     /*...VkBuffer....................................srcBuffer.......*/ pPerSwapchainImageResources->bufferUpdatesStagingBuffer,
+                     /*...VkBuffer....................................dstBuffer.......*/ pUniformBufferInfo->bufferHandle,
+                     /*...uint32_t....................................regionCount.....*/ 1,
+                     /*...const.VkBufferCopy*.........................pRegions........*/ &copyInfo);
+
+
+
     VkRect2D renderArea =
     {
         /*...VkOffset2D...offset...*/ {0, 0},
@@ -1515,10 +1561,10 @@ VkCommandBuffer RecordRenderGeometryBufferCmds(GeometryBufferSet*          pGeom
     VkClearValue   pClearValues[numClearValues] = {};
 
     pClearValues[SceneVulkanParameters::RenderPassParameters::swapchainColorAttachmentIndex].color        = *pColorClearValue;
-    pClearValues[SceneVulkanParameters::RenderPassParameters::diffuseColorAttachmentIndex].color          = *pColorClearValue;
-    pClearValues[SceneVulkanParameters::RenderPassParameters::surfaceNormalAttachmentIndex].color         = *pColorClearValue;
-    pClearValues[SceneVulkanParameters::RenderPassParameters::positionAttachmentIndex].color              = *pColorClearValue;
-    pClearValues[SceneVulkanParameters::RenderPassParameters::depthStencilAttachmentIndex].depthStencil   = *pDepthStencilClearValue;
+    pClearValues[SceneVulkanParameters::RenderPassParameters::diffuseColorAttachmentIndex  ].color        = *pColorClearValue;
+    pClearValues[SceneVulkanParameters::RenderPassParameters::surfaceNormalAttachmentIndex ].color        = *pColorClearValue;
+    pClearValues[SceneVulkanParameters::RenderPassParameters::positionAttachmentIndex      ].color        = *pColorClearValue;
+    pClearValues[SceneVulkanParameters::RenderPassParameters::depthStencilAttachmentIndex  ].depthStencil = *pDepthStencilClearValue;
 
     VkRenderPassBeginInfo renderPassBeginInfo =
     {

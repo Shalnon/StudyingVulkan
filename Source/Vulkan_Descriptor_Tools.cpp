@@ -212,9 +212,9 @@ VkPipeline CreateSubpass0Pipeline (VkDevice               logicalDevice,
         {
             /*..uint32_t.............binding......*/ s_VertexShaderAttributes[VERTEX_ATTRIB_POSITION_IDX].bufferBindingIdx,
             /*..uint32_t.............stride.......*/ s_VertexShaderAttributes[VERTEX_ATTRIB_POSITION_IDX].stride +
-                                                     s_VertexShaderAttributes[VERTEX_ATTRIB_NORMAL_IDX].stride,
-        /*..VkVertexInputRate....inputRate....*/ VK_VERTEX_INPUT_RATE_VERTEX
-    }
+                                                     s_VertexShaderAttributes[VERTEX_ATTRIB_NORMAL_IDX  ].stride,
+            /*..VkVertexInputRate....inputRate....*/ VK_VERTEX_INPUT_RATE_VERTEX
+        }
     };
     assert ((sizeof (pVertexInputBindingDescriptions) / sizeof (VkVertexInputBindingDescription)) == numInputBindings);
 
@@ -239,7 +239,7 @@ VkPipeline CreateSubpass0Pipeline (VkDevice               logicalDevice,
     };
 
     // The pipeline layout is used to register resources like UBOs, samplers, SSBOs and other resources requiring a descriptor set to be used
-    VkPipelineLayout           pipelineLayout = VK_NULL_HANDLE;
+    VkPipelineLayout           pipelineLayout    = VK_NULL_HANDLE;
     VkPipelineLayoutCreateInfo layout0CreateInfo =
     {
         /*...VkStructureType.................sType......................*/ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -256,8 +256,7 @@ VkPipeline CreateSubpass0Pipeline (VkDevice               logicalDevice,
     assert (result == VK_SUCCESS);
 
 
-    *pPipelineLayoutHandleOut = pipelineLayout;// pPipelineLayouts[0];
-   // pPipelineLayoutHandleOut[1] = pPipelineLayouts[1]; //This doesnt really work.  Move all this into its own func for the second subpass/pipeline
+    *pPipelineLayoutHandleOut = pipelineLayout;
 
     VkPipelineRasterizationStateCreateInfo rasterizationStateCreateInfo =
     {
@@ -276,7 +275,6 @@ VkPipeline CreateSubpass0Pipeline (VkDevice               logicalDevice,
         /*...float......................................lineWidth..................*/ 1.0f
     };
 
-    // From Khronos sample: | Our attachment will write to all color channels, but no blending is enabled.  |
     VkPipelineColorBlendAttachmentState pColorBlendAttachmentState[SceneVulkanParameters::Subpass0::numColorAttachments] = {};
     pColorBlendAttachmentState[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     pColorBlendAttachmentState[1].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -395,10 +393,10 @@ VkPipeline CreateSubpass0Pipeline (VkDevice               logicalDevice,
         }
     };
 
-    assert (pShaderModules[vertexShaderIdx]   != VK_NULL_HANDLE);
     assert (pShaderModules[fragmentShaderIdx] != VK_NULL_HANDLE);
-    assert (renderpass                        != VK_NULL_HANDLE);
-    assert (*pPipelineLayoutHandleOut         != VK_NULL_HANDLE);
+    assert (pShaderModules[vertexShaderIdx  ] != VK_NULL_HANDLE);
+    assert (        *pPipelineLayoutHandleOut != VK_NULL_HANDLE);
+    assert (                       renderpass != VK_NULL_HANDLE);
 
     VkGraphicsPipelineCreateInfo gfxPipelineCreateInfo =
     {
@@ -470,8 +468,8 @@ VkPipeline CreateSubpass1Pipeline (VkDevice               logicalDevice,
         /*....VkBool32...................................primitiveRestartEnable.....*/ VK_FALSE
     };
 
-    VkPipelineLayout                       pipelineLayout   = VK_NULL_HANDLE;
-    VkPipelineLayoutCreateInfo             layoutCreateInfo =
+    VkPipelineLayout            pipelineLayout   = VK_NULL_HANDLE;
+    VkPipelineLayoutCreateInfo  layoutCreateInfo =
     {
         /*...VkStructureType.................sType......................*/ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
         /*...const.void*.....................pNext......................*/ nullptr,

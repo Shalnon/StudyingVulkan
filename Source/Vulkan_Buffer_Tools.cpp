@@ -653,30 +653,12 @@ vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             phys
                                                VkDevice                     logicalDevice,
                                                VkQueue                      queue,
                                                uint32_t                     queueFamilyIndex,
-                                               const GeometryBufferSet*     pGeometryBufferSet,
-                                               VkAabbPositionsKHR*          pDesiredSceneBounds,
-                                               glm::mat4*                   pProjectionMatrix,
+                                               UniformBufferData*           pInitialUboData,
                                                bool                         maintainAspectRatio)
 {
-    // Defining a struct here that matches the UBO data layout described in the shader.
-    struct UniformBufferData
-    {
-        // Scene Transform
-        glm::mat4 sceneTransform;
-        glm::vec4 sceneScale;
-
-        glm::mat4 projecrtionMatrix;
-
-        // Scene ambient color
-        glm::vec4  ambient_color;
-
-        // Light location
-        glm::vec4 lightLocation;
-        glm::vec4 lightIntensities;
-    };
-
 #ifdef DEBUG
     // Make sure the data in the struct is packed
+    //const uint32_t num4x4Matrices = 2;
     const uint32_t numvec4s = 12;
     static_assert (sizeof (UniformBufferData) == numvec4s * 4 * sizeof (float));
 #endif
@@ -690,28 +672,13 @@ vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             phys
                                                                                        uniformBufferDataSize,
                                                                                        queueFamilyIndex);
 
-    // Initializing sceneTransformUBO to a transform that will translate and scale the scene such that if fits inside the AABB defined by *pDesiredSceneBounds
-    glm::mat4x4 sceneTransform = GetTransform_FitAABBToAABB (/*...VkAabbPositionsKHR...originalAABB...............*/ pGeometryBufferSet->sceneAABB,
-                                                             /*...VkAabbPositionsKHR...desiredBounds..............*/ *pDesiredSceneBounds,
-                                                             /*...bool.................maintainSceneAspectRatio...*/ maintainAspectRatio);
-    PrintNamedMatrix ("sceneTransform", &sceneTransform);
-
+    // Map the staging buffer memory
     void*              pMappedUniformStagingBufferMem = MapBufferMemory (uniformStagingBufferInfo, logicalDevice);
     UniformBufferData* pUniformStagingBuffer          = reinterpret_cast<UniformBufferData*>(pMappedUniformStagingBufferMem);
-
-    float ambientCoeficient = 0.3f;
-
-    // Write UBO data
-    *pUniformStagingBuffer =
     {
-        /*...mat4...sceneTransform.........*/ sceneTransform,
-        /*...vec4...sceneScale.............*/ glm::vec4 (2.0f,   2.0f,  1.0f, 1.0f),
-        /*...mat4...projectionMatrix.......*/ *pProjectionMatrix,
-        /*...vec3...ambient_color..........*/ glm::vec4 (0.4f,   0.4f,  0.4f, 1.0f) * ambientCoeficient,
-        /*...vec3...lightLocation..........*/ glm::vec4 (-2.0f, -2.0f,  -2.0f, 1.0f),
-        /*...vec3...lightIntensities.......*/ glm::vec4 (1.0f,   1.0f,  1.0f, 1.0f)
-    };
-
+        // Write initial UBO data to the staging buffer
+        *pUniformStagingBuffer = *pInitialUboData;
+    }
     // Unmap staging buffer
     vkUnmapMemory (logicalDevice, uniformStagingBufferInfo.memoryHandle);
 

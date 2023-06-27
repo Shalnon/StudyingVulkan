@@ -175,22 +175,39 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     //@NOTE: Ndc bounds on the z axis are [0,1] for vulkan, whereas for opengl it is [-1,1]
     VkAabbPositionsKHR sceneBounds =
     {
-        /*...float....minX...*/ -1.0f,
-        /*...float....minY...*/ -1.0f,
-        /*...float....minZ...*/  2.0f,
-        /*...float....maxX...*/  1.0f,
-        /*...float....maxY...*/  1.0f,
-        /*...float....maxZ...*/  3.0f
+        /*...float....minX...*/ -2.5f,
+        /*...float....minY...*/ -2.5f,
+        /*...float....minZ...*/  5.0f,
+        /*...float....maxX...*/  2.5f,
+        /*...float....maxY...*/  2.5f,
+        /*...float....maxZ...*/  10.0f
     };
+
+
+    // Initializing sceneTransformUBO to a transform that will translate and scale the scene such that if fits inside the AABB defined by *pDesiredSceneBounds
+    glm::mat4x4 sceneTransform = GetTransform_FitAABBToAABB (/*...VkAabbPositionsKHR...originalAABB...............*/ geometrysBuffers.sceneAABB,
+                                                             /*...VkAabbPositionsKHR...desiredBounds..............*/ sceneBounds,
+                                                             /*...bool.................maintainSceneAspectRatio...*/ true);
+
+    PrintNamedMatrix ("InitialSceneTransform", &sceneTransform);
+
+    UniformBufferData initialUboBufferData =
+    {
+        /*...mat4...sceneTransform.........*/ sceneTransform,
+        /*...vec4...sceneScale.............*/ glm::vec4 (1.0f,   1.0f,  1.0f, 1.0f),
+        /*...mat4...projectionMatrix.......*/ projectionMatrix,
+        /*...vec3...ambient_color..........*/ glm::vec4 (0.12f,  0.12f,  0.12f, 1.0f),
+        /*...vec3...lightLocation..........*/ glm::vec4 (-2.0f, -2.0f,  -2.0f, 1.0f),
+        /*...vec3...lightIntensities.......*/ glm::vec4 (1.0f,   1.0f,  1.0f, 1.0f)
+    };
+
 
     // Creates UBO and fills it with data. Contains scene transform
     vulkanAllocatedBufferInfo uniformBufferInfo = CreateUniformBuffer (physicalDevice,
                                                                        logicalDevice,
                                                                        queue,
                                                                        queueFamilyIndex,
-                                                                       &geometrysBuffers,
-                                                                       &sceneBounds,
-                                                                       &projectionMatrix,
+                                                                       &initialUboBufferData,
                                                                        true);
 
     VkDescriptorPool descriptorPoolHandle  = CreateDescriptorPool (logicalDevice);
@@ -243,6 +260,15 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     printf("about to start executing renderloop\n");
     for (uint32_t i = 0; i < numFramesToRender; i++)
     {
+        glm::vec3         currentSceneRotation = glm::vec3 (0.0, 0.0, i * 20.0);
+        UniformBufferData uboData              = initialUboBufferData;
+        
+        uboData.sceneTransform = GetSceneTransform(/*...VkAabbPositionsKHR...sceneBounds...............*/ sceneBounds,
+                                                   /*...VkAabbPositionsKHR...meshDataAabb..............*/ geometrysBuffers.sceneAABB,
+                                                   /*... glm::vec3...........sceneRotation.............*/ currentSceneRotation);
+        printf ("frame # %u\n", i);
+        PrintNamedMatrix ("SceneTransform", &(uboData.sceneTransform));
+
         printf ("\n--Frame %u begin--\n", i);
         ExecuteRenderLoop (/*...VkDevice.....................logicalDevice..................*/ logicalDevice,
                            /*...VkPhysicalDevice.............physicalDevice,................*/ physicalDevice,
@@ -261,7 +287,9 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                            /*...uint32_t*....................pNumSwapchainImages............*/ &numSwapChainImages,
                            /*...VkExtent2D*..................pExtent........................*/ &actualFrameDimensions,
                            /*...GeometryBufferSet*...........pGeometryBufferSet.............*/ &geometrysBuffers,
-                           /*...uint32_t.....................frameIdx)......................*/ i);
+                           /*...UniformBufferData*...........pUboData.......................*/ &uboData,
+                           /*...vulkanAllocatedBufferInfo*...pUniformBufferInfo.............*/ &uniformBufferInfo,
+                           /*...uint32_t.....................frameIdx.......................*/ i);
 
         printf ("\n--Frame %u end--\n",i);
     }
