@@ -43,6 +43,25 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 // Print the last win32 error
 void PrintLastWin32Error(const wchar_t* lpszFunction);
 
+// Ensures WndProc gets called for any window events such as button presses or window being moved
+inline void CheckForAndDispatchWindowEventMessages ()
+{
+    MSG message = {};
+
+    // PeekMessage doesnt block like GetMessage, and if the last arg is 0, than it will simply return the number of messages in the queue
+    uint32_t numOutstandingMessages = PeekMessage (&message, NULL, 0, 0, 0); // should add a filter here so it only checks for keyboard events
+    while (numOutstandingMessages > 0)
+    {
+        // Now that we know there ARE messages on the queue, we can call GetMessage() without worrying about it blocking while waiting for something to hit the queue
+        GetMessage (&message, NULL, 0, 0);
+        
+        TranslateMessage (&message);
+        DispatchMessage (&message);
+
+        numOutstandingMessages = PeekMessage (&message, NULL, 0, 0, 0);
+    }
+}
+
 // Brings up the console.
 inline void ShowConsole()
 {

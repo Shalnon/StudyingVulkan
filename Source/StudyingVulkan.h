@@ -17,7 +17,13 @@
 
 #include "config.h"
 
+#define ENABLE_DEBUG_PRINTS 0
+
+#if ENABLE_DEBUG_PRINTS
 #define DEBUG
+#endif
+
+//#define DEBUG
 #define VK_USE_PLATFORM_WIN32_KHR
 #define USE_VOLK
 

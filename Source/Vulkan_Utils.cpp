@@ -1548,8 +1548,6 @@ VkCommandBuffer RecordRenderGeometryBufferCmds(GeometryBufferSet*          pGeom
                      /*...uint32_t....................................regionCount.....*/ 1,
                      /*...const.VkBufferCopy*.........................pRegions........*/ &copyInfo);
 
-
-
     VkRect2D renderArea =
     {
         /*...VkOffset2D...offset...*/ {0, 0},

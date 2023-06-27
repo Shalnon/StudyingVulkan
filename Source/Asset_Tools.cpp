@@ -206,7 +206,6 @@ glm::mat4 GetTransform_FitAABBToAABB (VkAabbPositionsKHR originalAABB,
         scaleAmt = boundsDivided;
     }
     
-    printf ("scaleAmt = { %.4f, %.4f, %.4f }\n", scaleAmt.x, scaleAmt.y, scaleAmt.z);
 
     glm::mat4 scaleToDesiredBoundsSize = glm::mat4 (scaleAmt.x, 0.0f,       0.0f,       0.0f,
                                                     0.0f,       scaleAmt.y, 0.0f,       0.0f,
@@ -221,9 +220,11 @@ glm::mat4 GetTransform_FitAABBToAABB (VkAabbPositionsKHR originalAABB,
                                       desiredBounds.minY + (desiredBoundsSize.y / 2),
                                       desiredBounds.minZ + (desiredBoundsSize.z / 2) };
 
+#ifdef DEBUG
+    printf ("scaleAmt = { %.4f, %.4f, %.4f }\n", scaleAmt.x, scaleAmt.y, scaleAmt.z);
     printf ("originalAABBCenter   = { %.4f, %.4f, %.4f }\n", originalAABBCenter.x, originalAABBCenter.y, originalAABBCenter.z);
     printf ("desiredBoundsCenter  = { %.4f, %.4f, %.4f }\n", desiredBoundsCenter.x, desiredBoundsCenter.y, desiredBoundsCenter.z);
-
+#endif
     // Translate by the amount that places the scene AABB center point at the origin
     glm::mat4 translate2OriginMatrix = glm::mat4 (1.0f, 0.0f, 0.0f, -(originalAABBCenter.x),
                                                   0.0f, 1.0f, 0.0f, -(originalAABBCenter.y),
@@ -265,16 +266,17 @@ glm::mat4 GetSceneTransform (VkAabbPositionsKHR sceneBounds,
                                       sceneBounds.minY + (desiredSceneBoundsDimensions.y / 2),
                                       sceneBounds.minZ + (desiredSceneBoundsDimensions.z / 2) };
 
-    printf ("scaleAmt = { %.4f, %.4f, %.4f }\n", scaleAmt.x, scaleAmt.y, scaleAmt.z);
 
     glm::mat4 scaleToDesiredBoundsSize = glm::mat4 (scaleAmt.x, 0.0f, 0.0f, 0.0f,
                                                     0.0f, scaleAmt.y, 0.0f, 0.0f,
                                                     0.0f, 0.0f, scaleAmt.z, 0.0f,
                                                     0.0f, 0.0f, 0.0f, 1.0f);
 
+#ifdef DEBUG
+    printf ("scaleAmt = { %.4f, %.4f, %.4f }\n", scaleAmt.x, scaleAmt.y, scaleAmt.z);
     printf ("originalAABBCenter   = { %.4f, %.4f, %.4f }\n", meshAabbCenter.x, meshAabbCenter.y, meshAabbCenter.z);
     printf ("desiredBoundsCenter  = { %.4f, %.4f, %.4f }\n", desiredBoundsCenter.x, desiredBoundsCenter.y, desiredSceneBoundsDimensions.z);
-
+#endif
     // Translate by the amount that places the scene AABB center point at the origin
     glm::mat4 translate2OriginMatrix = glm::mat4 (1.0f, 0.0f, 0.0f, -(meshAabbCenter.x),
                                                   0.0f, 1.0f, 0.0f, -(meshAabbCenter.y),
@@ -293,7 +295,7 @@ glm::mat4 GetSceneTransform (VkAabbPositionsKHR sceneBounds,
                                           0.0f, 0.0f, 1.0f, 0.0f,
                                           0.0f, 0.0f, 0.0f, 1.0f);
 
-    glm::mat4 rotationMatrix = identityMatrix;// glm::rotate (identityMatrix, 45.0f, glm::vec3 (0.0f, 1.0f, 0.0f)); //identityMatrix;
+    glm::mat4 rotationMatrix = identityMatrix;
     
     if (sceneRotation.x != 0)
     {
@@ -301,16 +303,13 @@ glm::mat4 GetSceneTransform (VkAabbPositionsKHR sceneBounds,
     }
     else if (sceneRotation.y != 0)
     {
-        rotationMatrix = glm::rotate (rotationMatrix, 45.0f, glm::vec3 (0.0f, 1.0f, 0.0f));
+        rotationMatrix = glm::rotate (rotationMatrix, sceneRotation.y, glm::vec3 (0.0f, 1.0f, 0.0f));
     }
     else if (sceneRotation.z != 0)
     {
         rotationMatrix = glm::rotate (rotationMatrix, sceneRotation.z, glm::vec3 (0.0f, 0.0f, 1.0f));
     }
-    //glm::rotate (identityMatrix, 45.0f, glm::vec3 (0.0f, 1.0f, 0.0f));
-
 
     return  translate2OriginMatrix * rotationMatrix * scaleToDesiredBoundsSize * translate2DesiredAabbCenter;
-  //  return  translate2OriginMatrix * scaleToDesiredBoundsSize * translate2DesiredAabbCenter;
 }
 #endif // MY_ASSET_TOOLS_CPP

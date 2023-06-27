@@ -3,6 +3,7 @@
 
 #include "AppWindowingSystem.h"
 #include <strsafe.h>
+#include <wchar.h >
 #include "resource.h"
 
 WCHAR     szTitle[MAX_LOADSTRING];              // |EXTERN| The title bar text
@@ -21,10 +22,12 @@ WCHAR     szWindowClass[MAX_LOADSTRING];        // |EXTERN| the main window clas
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    wchar_t msg[32];
     switch (message)
     {
         case WM_COMMAND:
         {
+            printf ("WM_COMMAND\n");
             int wmId = LOWORD(wParam);
             // Parse the menu selections:
             switch (wmId)
@@ -41,13 +44,37 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             break;
         }
-        case WM_PAINT:
+        //case WM_PAINT:
+        //{
+        //    PAINTSTRUCT ps;
+        //    HDC hdc = BeginPaint(hWnd, &ps);
+        //    EndPaint(hWnd, &ps);
+        //    return DefWindowProc (hWnd, message, wParam, lParam);
+        //    break;
+        //}
+        case WM_LBUTTONDOWN: // left mouse button is down
         {
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hWnd, &ps);
-            EndPaint(hWnd, &ps);
-        
-            break;
+            printf ("WM_LBUTTONDOWN : %llu\n", wParam);
+            swprintf_s (msg, L"WM_KEYDOWN: 0x%x\n", wParam);
+            std::cout << msg;
+
+            return DefWindowProc (hWnd, message, wParam, lParam);
+            //OutputDebugString (msg);
+        }
+        case WM_KEYDOWN:
+        {
+            printf("WM_KEYDOWN: %llu\n", wParam);//VK_LBUTTON
+            if (GetKeyState (0X43) & 0x8000)
+            {
+                printf ("w is pressed!!!\n");
+            }
+            return DefWindowProc (hWnd, message, wParam, lParam);
+            //OutputDebugString (msg);
+        }
+        case WM_SYSKEYDOWN:
+        {
+            printf ("WM_SySKEYDOWN\n");
+            return DefWindowProc (hWnd, message, wParam, lParam);
         }
         case WM_DESTROY:
             PostQuitMessage(0);
@@ -87,7 +114,7 @@ ATOM RegisterWindowClass(HINSTANCE hInstance, LPCWSTR window_name)
         /*..int.......cbWndExtra.......*/  0,
         /*..HINSTANCE.hInstance........*/  hInstance,
         /*..HICON.....hIcon............*/  0,   //LoadIcon(hInstance, MAKEINTRESOURCE(IDI_WINDOWSDESKTOPTEMPLATEPROJECT));
-        /*..HCURSOR...hCursor..........*/  0,   //LoadCursor(nullptr, IDC_ARROW);
+        /*..HCURSOR...hCursor..........*/ LoadCursor(nullptr, IDC_ARROW),
         /*..HBRUSH....hbrBackground....*/  backgroundBrushHandle,
         /*..LPCWSTR...lpszMenuName.....*/  0,   //MAKEINTRESOURCEW(IDC_WINDOWSDESKTOPTEMPLATEPROJECT);
         /*..LPCWSTR...lpszClassName....*/  window_name,
@@ -146,10 +173,13 @@ HWND InitWindowInstance(HINSTANCE hInstance, int nCmdShow, LPWSTR szWindowClass,
            ||     update region is empty, no message is sent.  */
         UpdateWindow(window_handle);
     }
+#ifdef DEBUG
     else
     {
         printf("window_handle = 0\n");
+        assert (0);
     }
+#endif
 
     return window_handle;
 }

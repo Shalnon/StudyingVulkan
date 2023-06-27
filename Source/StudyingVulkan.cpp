@@ -11,6 +11,7 @@
 #include "Asset_Tools.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include "Logging.h"
+//#include <thread>
 
 int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -22,6 +23,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     ShowConsole();
 
     HWND window_handle = InitWindowInstance(hInstance, nCmdShow, szWindowClass, szTitle, WINDOW_WIDTH, WINDOW_HEIGHT);
+
 
     VkInstance    instance = InitializeVulkanAndCreateInstance();
     VkSurfaceKHR  surface  = CreateVkSurface(instance, hInstance, window_handle);
@@ -255,21 +257,27 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     };
 
 
-    uint32_t numFramesToRender = 5;
+    // Start watching for keybaord input in a separate thread
+    //std::thread thread_InputMonitor (ProcessMessageLoop);
+
+    uint32_t numFramesToRender = 5000;
+    float    rotationPerFrame  = 0.06;
+    uint32_t rotationsPer360   = static_cast<uint32_t>(360.0f / rotationPerFrame);
 
     printf("about to start executing renderloop\n");
     for (uint32_t i = 0; i < numFramesToRender; i++)
     {
-        glm::vec3         currentSceneRotation = glm::vec3 (0.0, 0.0, i * 20.0);
+        float rotationgAmt = ( i % rotationsPer360) * rotationPerFrame;
+
+        glm::vec3         currentSceneRotation = glm::vec3 (0.0, rotationgAmt, 0.0);
         UniformBufferData uboData              = initialUboBufferData;
         
         uboData.sceneTransform = GetSceneTransform(/*...VkAabbPositionsKHR...sceneBounds...............*/ sceneBounds,
                                                    /*...VkAabbPositionsKHR...meshDataAabb..............*/ geometrysBuffers.sceneAABB,
                                                    /*... glm::vec3...........sceneRotation.............*/ currentSceneRotation);
-        printf ("frame # %u\n", i);
-        PrintNamedMatrix ("SceneTransform", &(uboData.sceneTransform));
 
-        printf ("\n--Frame %u begin--\n", i);
+        CheckForAndDispatchWindowEventMessages (); // This makes sure that WndProc gets called when keyboard or mouse buttons are pressed, or any other window events.
+
         ExecuteRenderLoop (/*...VkDevice.....................logicalDevice..................*/ logicalDevice,
                            /*...VkPhysicalDevice.............physicalDevice,................*/ physicalDevice,
                            /*...VkSwapchainKHR...............swapchain......................*/ swapchain,
@@ -290,11 +298,13 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                            /*...UniformBufferData*...........pUboData.......................*/ &uboData,
                            /*...vulkanAllocatedBufferInfo*...pUniformBufferInfo.............*/ &uniformBufferInfo,
                            /*...uint32_t.....................frameIdx.......................*/ i);
-
+#ifdef DEBUG
         printf ("\n--Frame %u end--\n",i);
+#endif // DEBUG
+
     }
    
-    printf ("finished executing render loop %u times.\n", numFramesToRender);
+    printf ("Finished executing render loop %u times.\n", numFramesToRender);
 
     // Destroying vk objects below. Also wraping the destroy calls in an extra {} scope just so it can be collapsed easily in an IDE
     {

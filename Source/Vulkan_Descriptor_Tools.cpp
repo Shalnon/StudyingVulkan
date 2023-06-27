@@ -622,8 +622,8 @@ VkPipeline CreateSubpass1Pipeline (VkDevice               logicalDevice,
         }
     };
 
-    assert (pShaderModules[vertexShaderIdx]   != VK_NULL_HANDLE);
     assert (pShaderModules[fragmentShaderIdx] != VK_NULL_HANDLE);
+    assert (pShaderModules[  vertexShaderIdx] != VK_NULL_HANDLE);
     assert (                   pipelineLayout != VK_NULL_HANDLE);
     assert (                       renderpass != VK_NULL_HANDLE);
 
