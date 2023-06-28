@@ -363,7 +363,6 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
     VkSurfaceTransformFlagBitsKHR preTransform              = ((surfaceCapabilities.supportedTransforms & preferredSurfaceTransform) > 0) ? 
                                                                                   preferredSurfaceTransform : surfaceCapabilities.currentTransform;
 
-    //@TODO: Should look into what to do if VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR isnt supported. that might also require changes to the FS output. 
     VkCompositeAlphaFlagBitsKHR preferredCompositeBit = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     assert((surfaceCapabilities.supportedCompositeAlpha & preferredCompositeBit) != 0);
 
@@ -1231,11 +1230,6 @@ void WaitOnPendingSwapchainImageFence(PerSwapchainImageResources* pPerFrameResou
 
     VkResult fenceStatus = vkGetFenceStatus (logicalDevice, pSwapchainImageResources->queueSubmitFence);
 
-    //printf ("fence[%u](0x%016x) status is %s\n",
-    //        swapchainImageIdx,
-    //        pSwapchainImageResources->queueSubmitFence,
-    //        VkResultToString (fenceStatus));
-
     fenceStatus = vkWaitForFences (logicalDevice, 1, &(pSwapchainImageResources->queueSubmitFence), VK_TRUE, UINT64_MAX);
     assert (fenceStatus == VK_SUCCESS);
     fenceStatus = vkResetFences (logicalDevice, 1, &(pSwapchainImageResources->queueSubmitFence));
@@ -1331,7 +1325,7 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                            GeometryBufferSet*           pGeometryBufferSet,
                            UniformBufferData*           pUboData,
                            vulkanAllocatedBufferInfo*   pUniformBufferInfo,
-                           uint32_t                     frameIdx)
+                           uint32_t                     frameIdx) //@TODO: remove this arg
 {
     uint64_t                    time                = 0; ///@TODO: Look into any light-weight profiling measurements that can be taken here and returned from the function.
     VkResult                    result              = VK_INCOMPLETE;

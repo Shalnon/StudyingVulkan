@@ -301,11 +301,11 @@ glm::mat4 GetSceneTransform (VkAabbPositionsKHR sceneBounds,
     {
         rotationMatrix = glm::rotate (rotationMatrix, sceneRotation.x, glm::vec3 (1.0f, 0.0f, 0.0f));
     }
-    else if (sceneRotation.y != 0)
+    if (sceneRotation.y != 0)
     {
         rotationMatrix = glm::rotate (rotationMatrix, sceneRotation.y, glm::vec3 (0.0f, 1.0f, 0.0f));
     }
-    else if (sceneRotation.z != 0)
+    if (sceneRotation.z != 0)
     {
         rotationMatrix = glm::rotate (rotationMatrix, sceneRotation.z, glm::vec3 (0.0f, 0.0f, 1.0f));
     }

@@ -73,7 +73,6 @@ inline vulkanAllocatedBufferInfo CreateAndAllocateVertexBuffer (VkPhysicalDevice
             /*...uint32_t.......offset............*/ 0 };
 }
 
-///@TODO: Make this functions inline
 inline vulkanAllocatedBufferInfo CreateAndAllocateIndexBuffer (VkPhysicalDevice physicalDevice,
                                                                VkDevice         logicalDevice,
                                                                uint32_t         bufferSizeInBytes,
@@ -161,7 +160,6 @@ inline vulkanAllocatedBufferInfo CreateAndAllocateUniformBuffer (VkPhysicalDevic
                                                                  uint32_t         bufferSizeInBytes,
                                                                  uint32_t         queueIndex)
 {
-    //@TODO: change the naming here so its not matrix buffer
     VkBuffer           sceneTransformUBO               = VK_NULL_HANDLE;
     VkBufferUsageFlags sceneTransformBufferUsageFlags  = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     VkBufferCreateInfo sceneTransformxBufferCreateInfo =
@@ -526,10 +524,10 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physical
     assert (vertexBufferDataSize <= vertexBufferInfo.buffersize         );
 
     //@TODO: create a function to record the buffer2buffer copy for the index and vertex buffer in the same command buffer
-    //               To be even more efficient i should also be able to create a single staging buffer that would be the size of the vertex AND position data. 
+    //               To be even more efficient i should also be able to create a single staging buffer that would be the size of the vertex position data AND the index buffer data. 
     //                   Than the relevant data would be copied into separate device visible buffers at their individal offsets inside the staging buffer.
     //@TODO: Also check if the device local vertex and index buffers can be backed by memory from the same allocation. 
-    //             I doubt index and vertex buffers need to use different memory types, so it should be fine. but double check
+    //             I doubt index and vertex buffers need to use different memory types, so it should be fine. but double check.
             
     // Upload vertex buffer data to the device local buffer
     ExecuteBuffer2BufferCopy (/*...VkPhysicalDevice..........physicalDevice.....*/ physicalDevice,

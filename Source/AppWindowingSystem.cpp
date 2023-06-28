@@ -9,6 +9,11 @@
 WCHAR     szTitle[MAX_LOADSTRING];              // |EXTERN| The title bar text
 WCHAR     szWindowClass[MAX_LOADSTRING];        // |EXTERN| the main window class name
 
+bool     KeyStates::rightArrowKeyPressed = false; // |EXTERN|  is right arrow in a pressed state
+bool     KeyStates::downArrowKeyPressed  = false; // |EXTERN|  is down arrow in a pressed state
+bool     KeyStates::leftArrowKeyPressed  = false; // |EXTERN|  is left arrow in a pressed state
+bool     KeyStates::upArrowKeyPressed    = false; // |EXTERN|  is up arrow in a pressed state
+
 
 //
 //  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
@@ -55,21 +60,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         case WM_LBUTTONDOWN: // left mouse button is down
         {
             printf ("WM_LBUTTONDOWN : %llu\n", wParam);
-            swprintf_s (msg, L"WM_KEYDOWN: 0x%x\n", wParam);
-            std::cout << msg;
-
             return DefWindowProc (hWnd, message, wParam, lParam);
-            //OutputDebugString (msg);
         }
         case WM_KEYDOWN:
         {
-            printf("WM_KEYDOWN: %llu\n", wParam);//VK_LBUTTON
-            if (GetKeyState (0X43) & 0x8000)
-            {
-                printf ("w is pressed!!!\n");
-            }
+            //@reminder: The VK_LEFT (and other similarly named) key identifiers are not from vulkan. 
+            //           The VK_*key* identifiers are from a microsoft header
+            KeyStates::rightArrowKeyPressed = ((GetKeyState (VK_RIGHT) & 0x8000 ) != 0) ?   true : false;
+            KeyStates::downArrowKeyPressed  = ((GetKeyState ( VK_DOWN) & 0x8000 ) != 0) ?   true : false;
+            KeyStates::leftArrowKeyPressed  = ((GetKeyState ( VK_LEFT) & 0x8000 ) != 0) ?   true : false;
+            KeyStates::upArrowKeyPressed    = ((GetKeyState (   VK_UP) & 0x8000 ) != 0) ?   true : false;
+
             return DefWindowProc (hWnd, message, wParam, lParam);
-            //OutputDebugString (msg);
+        }
+        case WM_KEYUP:
+        {
+            KeyStates::rightArrowKeyPressed = ((GetKeyState (VK_RIGHT) & 0x8000) != 0) ? true : false;
+            KeyStates::downArrowKeyPressed  = ((GetKeyState (VK_DOWN)  & 0x8000) != 0) ? true : false;
+            KeyStates::leftArrowKeyPressed  = ((GetKeyState (VK_LEFT)  & 0x8000) != 0) ? true : false;
+            KeyStates::upArrowKeyPressed    = ((GetKeyState (VK_UP)    & 0x8000) != 0) ? true : false;
+
+            return DefWindowProc (hWnd, message, wParam, lParam);
         }
         case WM_SYSKEYDOWN:
         {

@@ -7,6 +7,14 @@
 extern WCHAR     szTitle[MAX_LOADSTRING];              // The title bar text
 extern WCHAR     szWindowClass[MAX_LOADSTRING];        // the main window class name
 
+namespace KeyStates
+{
+    extern bool     rightArrowKeyPressed;
+    extern bool     downArrowKeyPressed;
+    extern bool     leftArrowKeyPressed;
+    extern bool     upArrowKeyPressed;
+};
+
 //  FUNCTION: RegisterWindowClass()
 //
 //  PURPOSE: Registers the window class.

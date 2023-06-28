@@ -121,8 +121,7 @@ VkResult CreateDescriptorSetLayout (VkDevice logicalDevice,
     return result;
 }
 
-
-
+// Creates a descriptor pool that allocates enough descriptors for all descriptor sets that will be used
 VkDescriptorPool CreateDescriptorPool (VkDevice logicalDevice)
 {
     VkResult         result               = VK_INCOMPLETE;
@@ -325,14 +324,14 @@ VkPipeline CreateSubpass0Pipeline (VkDevice               logicalDevice,
         /*...VkStructureType...........................sType..................*/ VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
         /*...const.void*...............................pNext..................*/ 0,
         /*...VkPipelineDepthStencilStateCreateFlags....flags..................*/ 0,
-        /*...VkBool32..................................depthTestEnable........*/ VK_TRUE, //@TODO: check if i need to disable for second pipeline?
-        /*...VkBool32..................................depthWriteEnable.......*/ VK_TRUE, //
+        /*...VkBool32..................................depthTestEnable........*/ VK_TRUE,
+        /*...VkBool32..................................depthWriteEnable.......*/ VK_TRUE,
         /*...VkCompareOp...............................depthCompareOp.........*/ VK_COMPARE_OP_GREATER,
         /*...VkBool32..................................depthBoundsTestEnable..*/ VK_TRUE,
         /*...VkBool32..................................stencilTestEnable......*/ VK_FALSE,
         /*...VkStencilOpState..........................front..................*/ {},
         /*...VkStencilOpState..........................back...................*/ {},
-        /*...float.....................................minDepthBounds.........*/ viewport.minDepth,//0.0f,
+        /*...float.....................................minDepthBounds.........*/ viewport.minDepth,//0.0f - matching these to ndc bounds
         /*...float.....................................maxDepthBounds.........*/ viewport.maxDepth //1.0f
     };
 
@@ -438,7 +437,7 @@ VkPipeline CreateSubpass0Pipeline (VkDevice               logicalDevice,
     return gfxPipeline;
 }
 
-
+// Creates the pipeline used in the second subpass
 VkPipeline CreateSubpass1Pipeline (VkDevice               logicalDevice,
                                    VkRenderPass           renderpass,
                                    VkExtent2D*            pExtent,

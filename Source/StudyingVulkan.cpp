@@ -11,6 +11,7 @@
 #include "Asset_Tools.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include "Logging.h"
+#include <math.h>  
 //#include <thread>
 
 int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
@@ -72,7 +73,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     |* Sets up swapchain images as color attachments and creates the swapchain
     |* Creates a fence for each swapchain image that can be used to find when that image is no longer being used by GPU
     |* Creates Command Pool
-    |* Allocates a command buffer for each of the swapchain images  -- @todo: pull this out? not sure if it fits this otherwise image focused function
+    |* Allocates a command buffer for each of the swapchain images
     |* Creates image views for swapchain images
     |* Chooses a supported depth format from the lists above.
     |* Allocates and binds image memory to the depth images.
@@ -256,27 +257,27 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
         /*...VkPipelineLayout..pipelineLayout...*/ pPipelineLayoutHandles[1] // Needed when binding the descriptor set
     };
 
-
-    // Start watching for keybaord input in a separate thread
-    //std::thread thread_InputMonitor (ProcessMessageLoop);
-
     uint32_t numFramesToRender = 5000;
     float    rotationPerFrame  = 0.06;
-    uint32_t rotationsPer360   = static_cast<uint32_t>(360.0f / rotationPerFrame);
+    float    rotationsPer360   = 360.0f / rotationPerFrame;
+    float    numRotations      = 0;
+
+
+    glm::vec3 currentSceneRotation = glm::vec3 (0.0f, 0.0f, 0.0f);
+    float     rotationRate         = 0.04;
 
     printf("about to start executing renderloop\n");
     for (uint32_t i = 0; i < numFramesToRender; i++)
     {
-        float rotationgAmt = ( i % rotationsPer360) * rotationPerFrame;
+        currentSceneRotation = glm::vec3(std::fmod(currentSceneRotation.x, 360.0f),
+                                         std::fmod(currentSceneRotation.y, 360.0f),
+                                         std::fmod(currentSceneRotation.z, 360.0f));
 
-        glm::vec3         currentSceneRotation = glm::vec3 (0.0, rotationgAmt, 0.0);
-        UniformBufferData uboData              = initialUboBufferData;
-        
+        // We will only be changing some matrices, so we can fill in most of the paramters by setting uboData to initialUboBufferData
+        UniformBufferData uboData = initialUboBufferData; //@TODO: get normal rotation matrix
         uboData.sceneTransform = GetSceneTransform(/*...VkAabbPositionsKHR...sceneBounds...............*/ sceneBounds,
                                                    /*...VkAabbPositionsKHR...meshDataAabb..............*/ geometrysBuffers.sceneAABB,
                                                    /*... glm::vec3...........sceneRotation.............*/ currentSceneRotation);
-
-        CheckForAndDispatchWindowEventMessages (); // This makes sure that WndProc gets called when keyboard or mouse buttons are pressed, or any other window events.
 
         ExecuteRenderLoop (/*...VkDevice.....................logicalDevice..................*/ logicalDevice,
                            /*...VkPhysicalDevice.............physicalDevice,................*/ physicalDevice,
@@ -298,6 +299,32 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                            /*...UniformBufferData*...........pUboData.......................*/ &uboData,
                            /*...vulkanAllocatedBufferInfo*...pUniformBufferInfo.............*/ &uniformBufferInfo,
                            /*...uint32_t.....................frameIdx.......................*/ i);
+
+
+        CheckForAndDispatchWindowEventMessages (); // This makes sure that WndProc gets called when keyboard or mouse buttons are pressed, or any other window events.
+
+
+        if (KeyStates::rightArrowKeyPressed)
+        {
+            currentSceneRotation.y -= rotationRate;
+        }
+
+        if (KeyStates::leftArrowKeyPressed)
+        {
+            currentSceneRotation.y += rotationRate;
+        }
+
+        if (KeyStates::downArrowKeyPressed)
+        {
+            currentSceneRotation.x += rotationRate;
+        }
+
+        if (KeyStates::upArrowKeyPressed)
+        {
+            currentSceneRotation.x -= rotationRate;
+        }
+
+
 #ifdef DEBUG
         printf ("\n--Frame %u end--\n",i);
 #endif // DEBUG

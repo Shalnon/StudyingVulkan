@@ -68,7 +68,7 @@ namespace SceneVulkanParameters
 
     // Parameters used to setup projection matrix 
     static const float horizontal_fov = 70.0f;
-    static const float zNear          = 1.0f; //@TODO: have znear and zfar be initialized based on the volume used to do the scene transform?
+    static const float zNear          = 1.0f;
     static const float zFar           = 20.0;
 
     namespace window
