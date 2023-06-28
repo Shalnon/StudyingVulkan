@@ -655,9 +655,8 @@ vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             phys
                                                bool                         maintainAspectRatio)
 {
 #ifdef DEBUG
-    // Make sure the data in the struct is packed
-    //const uint32_t num4x4Matrices = 2;
-    const uint32_t numvec4s = 12;
+    // Make sure the data in the struct is packed. Working in vec4s, since that should be a safe alignment that will work in shaders
+    const uint32_t numvec4s = 16;
     static_assert (sizeof (UniformBufferData) == numvec4s * 4 * sizeof (float));
 #endif
 

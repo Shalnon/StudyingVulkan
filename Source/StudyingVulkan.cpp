@@ -199,6 +199,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
         /*...mat4...sceneTransform.........*/ sceneTransform,
         /*...vec4...sceneScale.............*/ glm::vec4 (1.0f,   1.0f,  1.0f, 1.0f),
         /*...mat4...projectionMatrix.......*/ projectionMatrix,
+        /*...mat4...normalRotation.........*/ glm::identity<glm::mat4>(),
         /*...vec3...ambient_color..........*/ glm::vec4 (0.12f,  0.12f,  0.12f, 1.0f),
         /*...vec3...lightLocation..........*/ glm::vec4 (-2.0f, -2.0f,  -2.0f, 1.0f),
         /*...vec3...lightIntensities.......*/ glm::vec4 (1.0f,   1.0f,  1.0f, 1.0f)
@@ -274,10 +275,12 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                          std::fmod(currentSceneRotation.z, 360.0f));
 
         // We will only be changing some matrices, so we can fill in most of the paramters by setting uboData to initialUboBufferData
-        UniformBufferData uboData = initialUboBufferData; //@TODO: get normal rotation matrix
+        UniformBufferData uboData = initialUboBufferData;
+
         uboData.sceneTransform = GetSceneTransform(/*...VkAabbPositionsKHR...sceneBounds...............*/ sceneBounds,
                                                    /*...VkAabbPositionsKHR...meshDataAabb..............*/ geometrysBuffers.sceneAABB,
-                                                   /*... glm::vec3...........sceneRotation.............*/ currentSceneRotation);
+                                                   /*...glm::vec3............sceneRotation.............*/ currentSceneRotation,
+                                                   /*...glm::mat4*...........pNormalRotationOut........*/ &uboData.normalRotation);
 
         ExecuteRenderLoop (/*...VkDevice.....................logicalDevice..................*/ logicalDevice,
                            /*...VkPhysicalDevice.............physicalDevice,................*/ physicalDevice,

@@ -20,6 +20,7 @@ layout( binding = 0) uniform UniformBufferObject
 
     // Projection matrix
     mat4 projectionMatrix;
+    mat4 normalRotation;
 
     // Scene ambient color
     vec4  ambient_color;
@@ -43,6 +44,6 @@ void main()
 
     gl_Position           = projectedVertexPosition/projectedVertexPosition.w;
     out_color             = ssbo.colors[gl_InstanceIndex].rgb;
-    out_normal            = vec4(inNormal,1.0);
+    out_normal            = vec4(inNormal,1.0) * ubo.normalRotation;
     out_worldPosition     = worldPosition;
 }

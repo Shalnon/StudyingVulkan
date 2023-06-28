@@ -14,6 +14,7 @@ layout( binding = 0 ) uniform UniformBufferObject
 
     // Projection matrix
     mat4 projectionMatrix;
+    mat4 normalRotation;
 
     // Scene ambient color
     vec4  ambient_color;
@@ -38,9 +39,6 @@ void main()
     vec4 surfaceNormal        = subpassLoad(normalVectorInputAttachment);
     vec4 surfaceWorldPosition = subpassLoad(worldPositionInputAttachment);
     vec4 fragDepthStencil     = subpassLoad(depthStencilInputAttachment);
-
-    // Assuming fragdepthStencil.r is depth
-    //vec3 locationOnMeshSurface = vec3(in_positionOnFullScreenQuad.xy, fragDepthStencil.r);  // might still want to use this because it makes the lighting consistent potentially
 
     float distanceFromLight = distance(ubo.lightLocation.xyz,  surfaceWorldPosition.xyz);
 	vec3  surfaceToLight    = normalize(ubo.lightLocation.xyz - surfaceWorldPosition.xyz);

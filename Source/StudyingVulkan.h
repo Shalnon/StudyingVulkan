@@ -169,6 +169,7 @@ struct UniformBufferData
     glm::vec4 sceneScale;
 
     glm::mat4 projecrtionMatrix;
+    glm::mat4 normalRotation;
 
     // Scene ambient color
     glm::vec4  ambient_color;

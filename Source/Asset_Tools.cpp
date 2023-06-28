@@ -251,7 +251,8 @@ glm::mat4 GetTransform_FitAABBToAABB (VkAabbPositionsKHR originalAABB,
 
 glm::mat4 GetSceneTransform (VkAabbPositionsKHR sceneBounds,
                              VkAabbPositionsKHR meshDataAabb,
-                             glm::vec3          sceneRotation)
+                             glm::vec3          sceneRotation,
+                             glm::mat4*         pNormalRotationOut)
 {
 
     glm::vec3 scaleAmt                     = ScaleAabbToAabb (meshDataAabb, sceneBounds, true);
@@ -309,6 +310,8 @@ glm::mat4 GetSceneTransform (VkAabbPositionsKHR sceneBounds,
     {
         rotationMatrix = glm::rotate (rotationMatrix, sceneRotation.z, glm::vec3 (0.0f, 0.0f, 1.0f));
     }
+
+    *pNormalRotationOut = rotationMatrix;
 
     return  translate2OriginMatrix * rotationMatrix * scaleToDesiredBoundsSize * translate2DesiredAabbCenter;
 }

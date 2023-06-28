@@ -140,7 +140,8 @@ inline glm::vec3 ScaleAabbToAabb (VkAabbPositionsKHR originalAABB,
 }
 
 glm::mat4 GetSceneTransform (VkAabbPositionsKHR sceneBounds,
-                                    VkAabbPositionsKHR meshDataAabb,
-                                    glm::vec3          sceneRotation);
+                             VkAabbPositionsKHR meshDataAabb,
+                             glm::vec3          sceneRotation,
+                             glm::mat4*         pNormalRotationOut);
 
 #endif // MY_ASSET_TOOLS_H
