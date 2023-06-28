@@ -37,12 +37,12 @@ struct MeshGeometryData
 
 void PrintGeometryInformation (const aiScene* pScene);
 
+
+// Returns a transformation that will translate and scale an AABB such that it is identical to another aabb.
+//  Good for fitting models into a specific bounding box.
 glm::mat4 GetTransform_FitAABBToAABB (VkAabbPositionsKHR originalAABB,
                                       VkAabbPositionsKHR desiredBounds,
                                       bool               maintainSceneAspectRatio);
-
-void Copy3dModelAssetFromFile (const char*        pFilePath, 
-                               MeshGeometryData** pMeshesOut);
 
 inline VkAabbPositionsKHR TranslateAabb (VkAabbPositionsKHR* pAABB, glm::vec3 translation)
 {
@@ -68,13 +68,16 @@ inline glm::vec3 GetAabbSize (VkAabbPositionsKHR aabb)
                       aabb.maxZ - aabb.minZ);  // original AABB depth
 }
 
+//@note: When true, if the dimensions of desiredBounds have a different aspect ratio, 
+//          than original aabb will be scaled on all sides to the smalles dimension of the desiredAABB
 inline glm::vec3 ScaleAabbToAabb (VkAabbPositionsKHR originalAABB,
-                                  VkAabbPositionsKHR desiredBounds, // for now, im going to assume the center of this box is always 0,0,0
+                                  VkAabbPositionsKHR desiredBounds,
                                   bool               maintainSceneAspectRatio)
 {
     glm::vec3 originalAabbSize  = GetAabbSize (originalAABB);
     glm::vec3 desiredBoundsSize = GetAabbSize (desiredBounds);
-#ifdef DEBUG // check size is positive
+
+#ifdef DEBUG // check size is positive - i think the code below needs to be adjusted first before such a transform to be correctly caluclated
     assert (desiredBoundsSize.x == fabs (desiredBoundsSize.x));
     assert (desiredBoundsSize.y == fabs (desiredBoundsSize.y));
     assert (desiredBoundsSize.z == fabs (desiredBoundsSize.z));
@@ -128,13 +131,6 @@ inline glm::vec3 ScaleAabbToAabb (VkAabbPositionsKHR originalAABB,
     {
         scaleAmt = boundsDivided;
     }
-
-   // printf ("scaleAmt = { %.4f, %.4f, %.4f }\n", scaleAmt.x, scaleAmt.y, scaleAmt.z);
-   //
-   // glm::mat4 scaleToDesiredBoundsSize = glm::mat4 (scaleAmt.x, 0.0f, 0.0f, 0.0f,
-   //                                                 0.0f, scaleAmt.y, 0.0f, 0.0f,
-   //                                                 0.0f, 0.0f, scaleAmt.z, 0.0f,
-   //                                                 0.0f, 0.0f, 0.0f, 1.0f);
 
     return scaleAmt;
 }

@@ -196,7 +196,7 @@ inline vulkanAllocatedBufferInfo CreateAndAllocateUniformBuffer (VkPhysicalDevic
 void ExecuteBuffer2BufferCopy (VkPhysicalDevice          physicalDevice,
                                VkDevice                  logicalDevice,
                                VkQueue                   queue,
-                               uint32_t                  queueFamilyIndex,
+                               uint32_t                  graphicsQueueIndex,
                                VkDeviceSize              copySize,
                                vulkanAllocatedBufferInfo srcBufferInfo,
                                vulkanAllocatedBufferInfo dstBufferInfo)
@@ -207,7 +207,7 @@ void ExecuteBuffer2BufferCopy (VkPhysicalDevice          physicalDevice,
         /*..VkStructureType.............sType.................*/ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
         /*..const.void*.................pNext.................*/ 0,
         /*..VkCommandPoolCreateFlags....flags.................*/ VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-        /*..uint32_t....................queueFamilyIndex......*/ queueFamilyIndex
+        /*..uint32_t....................graphicsQueueIndex....*/ graphicsQueueIndex
     };
 
     VkCommandPool commandPool = VK_NULL_HANDLE;
@@ -319,15 +319,15 @@ vulkanAllocatedBufferInfo CreateAndAllocaStagingBuffer (VkPhysicalDevice physica
             /*...uint32_t.......offset............*/ 0 };
 }
 
-GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physicalDevice,
-                                                    VkDevice            logicalDevice,
-                                                    VkQueue             queue,
-                                                    uint32_t            queueFamilyIndex,
-                                                    const aiScene*      pScene) // ex: const aiScene* pScene = aiImportFile (pFilePath, aiProcessPreset_TargetRealtime_MaxQuality);
+GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice    physicalDevice,
+                                                 VkDevice            logicalDevice,
+                                                 VkQueue             queue,
+                                                 uint32_t            graphicsQueueIndex,
+                                                 const aiScene*      pScene) // ex: const aiScene* pScene = aiImportFile (pFilePath, aiProcessPreset_TargetRealtime_MaxQuality);
 {
     assert(physicalDevice      != VK_NULL_HANDLE);
     assert(logicalDevice       != VK_NULL_HANDLE);
-    assert(queueFamilyIndex    != UINT32_MAX    );
+    assert(graphicsQueueIndex  != UINT32_MAX    );
     assert(pScene              != nullptr       );
     assert(pScene->HasMeshes() == true          );
 
@@ -383,13 +383,13 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physical
     vertexStagingBufferInfo = CreateAndAllocaStagingBuffer (physicalDevice,
                                                             logicalDevice,
                                                             vertexBufferDataSize,
-                                                            queueFamilyIndex);
+                                                            graphicsQueueIndex);
 
     // Create a staging buffer which will be where the cpu writes index data to
     indexStagingBufferInfo = CreateAndAllocaStagingBuffer (physicalDevice,
                                                            logicalDevice,
                                                            indexBufferDataSize,
-                                                           queueFamilyIndex);
+                                                           graphicsQueueIndex);
 
     // Map vertex buffer and index buffer memory , than get typed pointers to it
     void*     pMappedPositionStagingBufferMem = MapBufferMemory (vertexStagingBufferInfo, logicalDevice);
@@ -508,13 +508,13 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physical
     vertexBufferInfo = CreateAndAllocateVertexBuffer (physicalDevice,
                                                       logicalDevice,
                                                       vertexBufferDataSize,
-                                                      queueFamilyIndex);
+                                                      graphicsQueueIndex);
 
     // Create and allocate memory for a device local index buffer
     indexBufferInfo  = CreateAndAllocateIndexBuffer (physicalDevice,
                                                      logicalDevice,
                                                      indexBufferDataSize,
-                                                     queueFamilyIndex);
+                                                     graphicsQueueIndex);
 
 
     // Sanity checking the size of what we've created so far
@@ -533,7 +533,7 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physical
     ExecuteBuffer2BufferCopy (/*...VkPhysicalDevice..........physicalDevice.....*/ physicalDevice,
                               /*...VkDevice..................logicalDevice......*/ logicalDevice,
                               /*...VkQueue...................queue..............*/ queue,
-                              /*...uint32_t..................queueFamilyIndex...*/ queueFamilyIndex,
+                              /*...uint32_t..................graphicsQueueIndex.*/ graphicsQueueIndex,
                               /*...VkDeviceSize..............copySize...........*/ vertexBufferDataSize,
                               /*...vulkanAllocatedBufferInfo.srcBufferInfo......*/ vertexStagingBufferInfo,  // Src buffer
                               /*...vulkanAllocatedBufferInfo.dstBufferInfo......*/ vertexBufferInfo);        // Dst buffer
@@ -542,7 +542,7 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice       physical
     ExecuteBuffer2BufferCopy (/*...VkPhysicalDevice..........physicalDevice.......*/ physicalDevice,
                                 /*...VkDevice..................logicalDevice......*/ logicalDevice,
                                 /*...VkQueue...................queue..............*/ queue,
-                                /*...uint32_t..................queueFamilyIndex...*/ queueFamilyIndex,
+                                /*...uint32_t..................graphicsQueueIndex.*/ graphicsQueueIndex,
                                 /*...VkDeviceSize..............copySize...........*/ indexBufferDataSize,
                                 /*...vulkanAllocatedBufferInfo.srcBufferInfo......*/ indexStagingBufferInfo, // Src buffer
                                 /*...vulkanAllocatedBufferInfo.dstBufferInfo......*/ indexBufferInfo);       // Dst buffer
@@ -635,7 +635,7 @@ vulkanAllocatedBufferInfo CreateMeshColorsStorageBuffer (VkPhysicalDevice    phy
     ExecuteBuffer2BufferCopy (/*...VkPhysicalDevice............physicalDevice........*/ physicalDevice,
                               /*...VkDevice....................logicalDevice.........*/ logicalDevice,
                               /*...VkQueue.....................queue.................*/ queue,
-                              /*...uint32_t....................queueFamilyIndex......*/ queueFamilyIndex,
+                              /*...uint32_t....................graphicsQueueIndex......*/ queueFamilyIndex,
                               /*...VkDeviceSize................copySize..............*/ storageBufferDataSize,
                               /*...vulkanAllocatedBufferInfo...srcBufferInfo.........*/ storageStagingBufferInfo,   // Src buffer
                               /*...vulkanAllocatedBufferInfo...dstBufferInfo.........*/ colorStorageBufferInfo);    // Dst buffer
@@ -689,7 +689,7 @@ vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             phys
     ExecuteBuffer2BufferCopy (/*...VkPhysicalDevice..........physicalDevice.....*/ physicalDevice,
                               /*...VkDevice..................logicalDevice......*/ logicalDevice,
                               /*...VkQueue...................queue..............*/ queue,
-                              /*...uint32_t..................queueFamilyIndex...*/ queueFamilyIndex,
+                              /*...uint32_t..................graphicsQueueIndex...*/ queueFamilyIndex,
                               /*...VkDeviceSize..............copySize...........*/ uniformBufferDataSize,
                               /*...vulkanAllocatedBufferInfo.srcBufferInfo......*/ uniformStagingBufferInfo,   // Src buffer
                               /*...vulkanAllocatedBufferInfo.dstBufferInfo......*/ uniformBufferInfo);         // Dst buffer

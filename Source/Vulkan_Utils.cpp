@@ -1306,26 +1306,25 @@ VkResult AcuireNextSwapchainImageIdx(VkQueue                     queue,
     return result;
 }
 
-uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
-                           VkPhysicalDevice             physicalDevice, 
-                           VkSwapchainKHR               swapchain,
-                           VkQueue                      queue,
-                           PerSubpassRenderParameters*  pSubpass0Parameters,
-                           PerSubpassRenderParameters*  pSubpass1Parameters,
-                           uint32_t                     gfxQueueIdx,
-                           uint32_t                     numPreferredSwapchainFormats,
-                           uint32_t                     numPreferredDepthFormats,
-                           const VkFormat*              pPreferredSwapchainFormats,
-                           const VkFormat*              pPreferredDepthFormats,
-                           VkSurfaceKHR                 surface,
-                           VkRenderPass                 renderpass,
-                           PerSwapchainImageResources** ppPerSwapchainImageResources,
-                           uint32_t*                    pNumSwapchainImages,
-                           VkExtent2D*                  pExtent,
-                           GeometryBufferSet*           pGeometryBufferSet,
-                           UniformBufferData*           pUboData,
-                           vulkanAllocatedBufferInfo*   pUniformBufferInfo,
-                           uint32_t                     frameIdx) //@TODO: remove this arg
+uint64_t ExecuteRenderLoop (VkDevice                     logicalDevice,
+                            VkPhysicalDevice             physicalDevice,
+                            VkSwapchainKHR               swapchain,
+                            VkQueue                      queue,
+                            PerSubpassRenderParameters* pSubpass0Parameters,
+                            PerSubpassRenderParameters* pSubpass1Parameters,
+                            uint32_t                     gfxQueueIdx,
+                            uint32_t                     numPreferredSwapchainFormats,
+                            uint32_t                     numPreferredDepthFormats,
+                            const VkFormat* pPreferredSwapchainFormats,
+                            const VkFormat* pPreferredDepthFormats,
+                            VkSurfaceKHR                 surface,
+                            VkRenderPass                 renderpass,
+                            PerSwapchainImageResources** ppPerSwapchainImageResources,
+                            uint32_t* pNumSwapchainImages,
+                            VkExtent2D* pExtent,
+                            GeometryBufferSet* pGeometryBufferSet,
+                            UniformBufferData* pUboData,
+                            vulkanAllocatedBufferInfo* pUniformBufferInfo)
 {
     uint64_t                    time                = 0; ///@TODO: Look into any light-weight profiling measurements that can be taken here and returned from the function.
     VkResult                    result              = VK_INCOMPLETE;
@@ -1356,13 +1355,7 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
         result = AcuireNextSwapchainImageIdx(queue, logicalDevice, swapchain, &imageIdx, *ppPerSwapchainImageResources);
     }
 
-    VkClearColorValue colorClearValArray[] =
-    {
-        {0.01f, 0.01f , 0.033f, 1.0f},
-        {0.01f, 0.033f, 0.01f , 1.0f},
-        {0.033f,0.01f , 0.01f , 1.0f},
-        {0.02f, 0.01f , 0.01f , 1.0f}
-    };
+    VkClearColorValue colorClearValue = { 0.01f, 0.033f, 0.01f , 1.0f };
 
     VkClearDepthStencilValue depthClearValue = {/*...float.......depth.....*/ 0.0f,
                                                 /*...uint32_t....stencil...*/ 0 };
@@ -1392,7 +1385,7 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                                                           /*...vulkanAllocatedBufferInfo*...pUniformBufferInfo............*/ pUniformBufferInfo,
                                                           /*...VkRenderPass.................renderPass....................*/ renderpass,
                                                           /*...VkExtent2D*..................pExtent.......................*/ pExtent,
-                                                          /*...VkClearColorValue*...........pClearValue...................*/ &(colorClearValArray[frameIdx % 3]),
+                                                          /*...VkClearColorValue*...........pClearValue...................*/ &colorClearValue,
                                                           /*...VkClearDepthStencilValue*....pClearValue...................*/ &depthClearValue );
 
     result = SubmitRenderCommandBuffer (/*...VkCommandBuffer...............commandBuffer.................*/ renderCommandBuffer,

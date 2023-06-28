@@ -9,10 +9,11 @@ extern WCHAR     szWindowClass[MAX_LOADSTRING];        // the main window class 
 
 namespace KeyStates
 {
-    extern bool     rightArrowKeyPressed;
-    extern bool     downArrowKeyPressed;
-    extern bool     leftArrowKeyPressed;
-    extern bool     upArrowKeyPressed;
+    extern bool rightArrowKeyPressed;
+    extern bool downArrowKeyPressed;
+    extern bool leftArrowKeyPressed;
+    extern bool upArrowKeyPressed;
+    extern bool escapeKeyPressed;
 };
 
 //  FUNCTION: RegisterWindowClass()
@@ -40,13 +41,11 @@ HWND InitWindowInstance(HINSTANCE hInstance, int nCmdShow, LPWSTR szWindowClass,
 //
 //  WM_COMMAND  - command: process the application menu
 //  WM_PAINT    - command: Paint the main window
-//  WM_DESTROY  - command: post a quit message and return
-//
+//  WM_KEYDOWN  - a key has been pressed 
+//  WM_KEYUP    - a key has been released
+//  WM_SYSKEYDOWN - a system key has been pressed
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-
-// Message handler for about box.
-INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
 // Print the last win32 error
 void PrintLastWin32Error(const wchar_t* lpszFunction);

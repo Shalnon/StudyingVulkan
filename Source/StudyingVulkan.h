@@ -17,9 +17,7 @@
 
 #include "config.h"
 
-#define ENABLE_DEBUG_PRINTS 0
-
-#if ENABLE_DEBUG_PRINTS
+#if DEBUG_PRINTS_ENABLE
 #define DEBUG
 #endif
 
@@ -66,6 +64,7 @@ namespace SceneVulkanParameters
     static const uint32_t numRequiredExtensions   = 1;
     static const char*    requiredDeviceExtensionss[numRequiredExtensions] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
+    //@NOTE: Ndc bounds on the z axis are [0,1] for vulkan, whereas for opengl it is [-1,1]
     // Parameters used to setup projection matrix 
     static const float horizontal_fov = 70.0f;
     static const float zNear          = 1.0f;

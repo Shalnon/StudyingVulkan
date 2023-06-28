@@ -155,27 +155,25 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     printf ("model path = %s\n", modelPath.c_str ());
     const aiScene* pScene = aiImportFile (modelPath.c_str (), MY_ASSIMP_PREPROCESSING_FLAGS);
 
-    vulkanAllocatedBufferInfo colorsStorageBufferInfo = CreateMeshColorsStorageBuffer (physicalDevice,
-                                                                                       logicalDevice,
-                                                                                       queue,
-                                                                                       queueFamilyIndex,
-                                                                                       pScene);
+    vulkanAllocatedBufferInfo colorsStorageBufferInfo = CreateMeshColorsStorageBuffer (/*.VkPhysicalDevice..physicalDevice.......*/ physicalDevice,
+                                                                                       /*.VkDevice..........logicalDevice........*/ logicalDevice,
+                                                                                       /*.VkQueue...........queue................*/ queue,
+                                                                                       /*.uint32_t..........graphicsQueueIndex...*/ queueFamilyIndex,
+                                                                                       /*.const.aiScene*....pScene...............*/ pScene);
 
     const float renderingSurfaceAspectRatio = float (WINDOW_WIDTH) / float (WINDOW_HEIGHT);
-    const float fov                         = SceneVulkanParameters::horizontal_fov;
-    glm::mat4   projectionMatrix            = glm::perspective (fov,
+    glm::mat4   projectionMatrix            = glm::perspective (SceneVulkanParameters::horizontal_fov,
                                                                 renderingSurfaceAspectRatio,
                                                                 SceneVulkanParameters::zNear,
                                                                 SceneVulkanParameters::zFar);
 
     // Create a vertex and index buffer
-    GeometryBufferSet geometrysBuffers = CreateGeometryBuffersAndAABBs (physicalDevice,
-                                                                        logicalDevice,
-                                                                        queue,
-                                                                        queueFamilyIndex,
-                                                                        pScene);
-
-    //@NOTE: Ndc bounds on the z axis are [0,1] for vulkan, whereas for opengl it is [-1,1]
+    GeometryBufferSet geometrysBuffers = CreateGeometryBuffersAndAABBs (/*.VkPhysicalDevice..physicalDevice.......*/ physicalDevice,
+                                                                        /*.VkDevice..........logicalDevice........*/ logicalDevice,
+                                                                        /*.VkQueue...........queue................*/ queue,
+                                                                        /*.uint32_t..........graphicsQueueIndex...*/ queueFamilyIndex,
+                                                                        /*.const.aiScene*....pScene...............*/ pScene);
+    
     VkAabbPositionsKHR sceneBounds =
     {
         /*...float....minX...*/ -2.5f,
@@ -185,7 +183,6 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
         /*...float....maxY...*/  2.5f,
         /*...float....maxZ...*/  10.0f
     };
-
 
     // Initializing sceneTransformUBO to a transform that will translate and scale the scene such that if fits inside the AABB defined by *pDesiredSceneBounds
     glm::mat4x4 sceneTransform = GetTransform_FitAABBToAABB (/*...VkAabbPositionsKHR...originalAABB...............*/ geometrysBuffers.sceneAABB,
@@ -205,7 +202,6 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
         /*...vec3...lightIntensities.......*/ glm::vec4 (1.0f,   1.0f,  1.0f, 1.0f)
     };
 
-
     // Creates UBO and fills it with data. Contains scene transform
     vulkanAllocatedBufferInfo uniformBufferInfo = CreateUniformBuffer (physicalDevice,
                                                                        logicalDevice,
@@ -216,14 +212,18 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
 
     VkDescriptorPool descriptorPoolHandle  = CreateDescriptorPool (logicalDevice);
 
-    // Descriptor set containing a storage buffer and uniform buffer descriptor
-    // Only need one descriptor set for subpass 1, because the buffers used to back the ssbo and ubo are not per swapchain image, and are not written to either.
+    // Descriptor set containing a storage buffer and uniform buffer descriptor:
+    //   || Only need one descriptor set for the first subpass is needed because the buffers used to back the ssbo and ubo
+    //   || are not just read from, and the resources it references do not contain anything that is needed on a per-swapchain-image
     VkDescriptorSet       subpass0DescriptorSet = AllocateAndWriteSubpass0DescriptorSet (logicalDevice,
                                                                                          descriptorPoolHandle,
                                                                                          pSubpassDescriptorSetLayouts[0],
                                                                                          uniformBufferInfo.bufferHandle,
                                                                                          colorsStorageBufferInfo.bufferHandle);
 
+    // We will create multiple instances of the resources that are algorithmically tied to a specific swapchain image.
+    //   || Per-swapchain-image descriptor-sets will be created that can be bound when recording commands that will render to said image,
+    //   || Pointing the shader to the correct swapchain-image-specific buffers/images.
     for (uint32_t swapIdx = 0; swapIdx < numSwapChainImages; swapIdx++)
     {
 #ifdef DEBUG
@@ -231,15 +231,14 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
 #endif
 
         PerSwapchainImageResources* pSwapchainImageResourceSet = &pPerSwapchainImageResources[swapIdx];
-        // do i need one of these for each swap image?
-        VkDescriptorSet             subpass1DescriptorSet = AllocateAndWriteSubpass1DescriptorSet (logicalDevice,
-                                                                                                   descriptorPoolHandle,
-                                                                                                   pSubpassDescriptorSetLayouts[1],
-                                                                                                   pSwapchainImageResourceSet->diffuseImageViewHandle,
-                                                                                                   pSwapchainImageResourceSet->normalsImageViewHandle,
-                                                                                                   pSwapchainImageResourceSet->positionImageViewHandle,
-                                                                                                   pSwapchainImageResourceSet->depthImageViewHandle,
-                                                                                                   uniformBufferInfo.bufferHandle);
+        VkDescriptorSet             subpass1DescriptorSet      = AllocateAndWriteSubpass1DescriptorSet (logicalDevice,
+                                                                                                        descriptorPoolHandle,
+                                                                                                        pSubpassDescriptorSetLayouts[1],
+                                                                                                        pSwapchainImageResourceSet->diffuseImageViewHandle,
+                                                                                                        pSwapchainImageResourceSet->normalsImageViewHandle,
+                                                                                                        pSwapchainImageResourceSet->positionImageViewHandle,
+                                                                                                        pSwapchainImageResourceSet->depthImageViewHandle,
+                                                                                                        uniformBufferInfo.bufferHandle);
 
         pSwapchainImageResourceSet->subpass1DesciptorSetHandle = subpass1DescriptorSet;
     }
@@ -258,29 +257,25 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
         /*...VkPipelineLayout..pipelineLayout...*/ pPipelineLayoutHandles[1] // Needed when binding the descriptor set
     };
 
-    uint32_t numFramesToRender = 5000;
-    float    rotationPerFrame  = 0.06;
-    float    rotationsPer360   = 360.0f / rotationPerFrame;
-    float    numRotations      = 0;
 
-
-    glm::vec3 currentSceneRotation = glm::vec3 (0.0f, 0.0f, 0.0f);
-    float     rotationRate         = 0.04;
-
+    bool      exitKeyPressed       = false;
+    glm::vec3 currentSceneRotation = glm::vec3 (0.0f, 0.0f, 0.0f);  // rotation around each respective axis (xyz)
+    float     rotationRate         = 0.04;                          // Amount of rotation applied per frame when a rotation key is pressed
+    
     printf("about to start executing renderloop\n");
-    for (uint32_t i = 0; i < numFramesToRender; i++)
+    while (exitKeyPressed == false)
     {
-        currentSceneRotation = glm::vec3(std::fmod(currentSceneRotation.x, 360.0f),
-                                         std::fmod(currentSceneRotation.y, 360.0f),
-                                         std::fmod(currentSceneRotation.z, 360.0f));
+        currentSceneRotation = glm::vec3 (std::fmod (currentSceneRotation.x, 360.0f),
+                                          std::fmod (currentSceneRotation.y, 360.0f),
+                                          std::fmod (currentSceneRotation.z, 360.0f));
 
         // We will only be changing some matrices, so we can fill in most of the paramters by setting uboData to initialUboBufferData
         UniformBufferData uboData = initialUboBufferData;
 
-        uboData.sceneTransform = GetSceneTransform(/*...VkAabbPositionsKHR...sceneBounds...............*/ sceneBounds,
-                                                   /*...VkAabbPositionsKHR...meshDataAabb..............*/ geometrysBuffers.sceneAABB,
-                                                   /*...glm::vec3............sceneRotation.............*/ currentSceneRotation,
-                                                   /*...glm::mat4*...........pNormalRotationOut........*/ &uboData.normalRotation);
+        uboData.sceneTransform = GetSceneTransform (/*...VkAabbPositionsKHR...sceneBounds...............*/ sceneBounds,
+                                                    /*...VkAabbPositionsKHR...meshDataAabb..............*/ geometrysBuffers.sceneAABB,
+                                                    /*...glm::vec3............sceneRotation.............*/ currentSceneRotation,
+                                                    /*...glm::mat4*...........pNormalRotationOut........*/ &uboData.normalRotation);
 
         ExecuteRenderLoop (/*...VkDevice.....................logicalDevice..................*/ logicalDevice,
                            /*...VkPhysicalDevice.............physicalDevice,................*/ physicalDevice,
@@ -300,8 +295,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                            /*...VkExtent2D*..................pExtent........................*/ &actualFrameDimensions,
                            /*...GeometryBufferSet*...........pGeometryBufferSet.............*/ &geometrysBuffers,
                            /*...UniformBufferData*...........pUboData.......................*/ &uboData,
-                           /*...vulkanAllocatedBufferInfo*...pUniformBufferInfo.............*/ &uniformBufferInfo,
-                           /*...uint32_t.....................frameIdx.......................*/ i);
+                           /*...vulkanAllocatedBufferInfo*...pUniformBufferInfo.............*/ &uniformBufferInfo);
 
 
         CheckForAndDispatchWindowEventMessages (); // This makes sure that WndProc gets called when keyboard or mouse buttons are pressed, or any other window events.
@@ -327,18 +321,22 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
             currentSceneRotation.x -= rotationRate;
         }
 
+        if (KeyStates::escapeKeyPressed)
+        {
+            exitKeyPressed = true;
+        }
 
 #ifdef DEBUG
         printf ("\n--Frame %u end--\n",i);
 #endif // DEBUG
 
     }
-   
-    printf ("Finished executing render loop %u times.\n", numFramesToRender);
 
-    // Destroying vk objects below. Also wraping the destroy calls in an extra {} scope just so it can be collapsed easily in an IDE
-    {
-        // Destroy vk resources tracked in PerSwapchainImageResources structures
+    //@TODO: Enable VK_KHR_present_wait and call vkWaitForPresentKHR so that any pending rendering work finishes before we start destroying things.
+    
+    {// Destroying vk objects below.
+
+        // Destroy vk resources tracked in PerSwapchainImageResources structures first
         for (uint32_t imgIdx = 0; imgIdx < numSwapChainImages; imgIdx++)
         {
             PerSwapchainImageResources* pSwapImageResources = &(pPerSwapchainImageResources[imgIdx]);
@@ -367,8 +365,44 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
             {
                 vkDestroyFramebuffer (logicalDevice, pSwapImageResources->framebufferHandle, nullptr);
             }
-        }
 
+            // If nothing has gone wrong already, than it can probably be safely assumed that if the image handle is not null,
+            //   than the memory and view are also not null.
+            if (pSwapImageResources->diffuseImageHandle != VK_NULL_HANDLE)
+            {
+                vkDestroyImage (logicalDevice, pSwapImageResources->diffuseImageHandle, nullptr);
+                vkFreeMemory (logicalDevice, pSwapImageResources->diffuseImageMemoryHandle, nullptr);
+                vkDestroyImageView (logicalDevice, pSwapImageResources->diffuseImageViewHandle, nullptr);
+            }
+
+            if (pSwapImageResources->normalsImageHandle != VK_NULL_HANDLE)
+            {
+                vkDestroyImage (logicalDevice, pSwapImageResources->normalsImageHandle, nullptr);
+                vkFreeMemory (logicalDevice, pSwapImageResources->normalsImageMemoryHandle, nullptr);
+                vkDestroyImageView (logicalDevice, pSwapImageResources->normalsImageViewHandle, nullptr);
+            }
+
+            if (pSwapImageResources->positionImageHandle != VK_NULL_HANDLE)
+            {
+                vkDestroyImage (logicalDevice, pSwapImageResources->positionImageHandle, nullptr);
+                vkFreeMemory (logicalDevice, pSwapImageResources->positionImageMemoryHandle, nullptr);
+                vkDestroyImageView (logicalDevice, pSwapImageResources->positionImageViewHandle, nullptr);
+            }
+
+            if (pSwapImageResources->framebufferHandle)
+            {
+                vkDestroyFramebuffer (logicalDevice, pSwapImageResources->framebufferHandle, nullptr);
+            }
+
+            if (pSwapImageResources->bufferUpdatesStagingBuffer != VK_NULL_HANDLE)
+            {
+                vkDestroyBuffer (logicalDevice, pSwapImageResources->bufferUpdatesStagingBuffer, nullptr);
+                vkFreeMemory (logicalDevice, pSwapImageResources->bufferUpdatesStagingMemory, nullptr);
+                pSwapImageResources->updatesStagingBufferSize = 0;
+            }
+
+        }
+       
         /*
         if (pipelineLayout != VK_NULL_HANDLE)
         {

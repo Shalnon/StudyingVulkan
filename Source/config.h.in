@@ -9,8 +9,10 @@
 #define PROJECT_NAME    "@PROJECT_NAME@"
 #define SHADER_ROOT_DIR "@SHADERS_ROOT_DIRECTORY@"
 #define ASSET_DIR       "@ASSETS_DIRECTORY@"
+#define DEBUG_PRINTS_ENABLE @DEBUG_PRINTS_ENABLE@
 
 static const char* pShaderRootDirectory = SHADER_ROOT_DIR;
 static const char* pAssetDirectory      = ASSET_DIR;
+ 
 
 #endif //CONFIG_H_IN

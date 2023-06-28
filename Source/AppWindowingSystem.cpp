@@ -13,7 +13,7 @@ bool     KeyStates::rightArrowKeyPressed = false; // |EXTERN|  is right arrow in
 bool     KeyStates::downArrowKeyPressed  = false; // |EXTERN|  is down arrow in a pressed state
 bool     KeyStates::leftArrowKeyPressed  = false; // |EXTERN|  is left arrow in a pressed state
 bool     KeyStates::upArrowKeyPressed    = false; // |EXTERN|  is up arrow in a pressed state
-
+bool     KeyStates::escapeKeyPressed     = false; // |EXTERN|  is the esacpe key in a pressed state
 
 //
 //  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
@@ -66,15 +66,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             //@reminder: The VK_LEFT (and other similarly named) key identifiers are not from vulkan. 
             //           The VK_*key* identifiers are from a microsoft header
-            KeyStates::rightArrowKeyPressed = ((GetKeyState (VK_RIGHT) & 0x8000 ) != 0) ?   true : false;
-            KeyStates::downArrowKeyPressed  = ((GetKeyState ( VK_DOWN) & 0x8000 ) != 0) ?   true : false;
-            KeyStates::leftArrowKeyPressed  = ((GetKeyState ( VK_LEFT) & 0x8000 ) != 0) ?   true : false;
-            KeyStates::upArrowKeyPressed    = ((GetKeyState (   VK_UP) & 0x8000 ) != 0) ?   true : false;
+            KeyStates::escapeKeyPressed     = ((GetKeyState (VK_ESCAPE) & 0x8000)  != 0) ?   true : false;
+            KeyStates::rightArrowKeyPressed = ((GetKeyState ( VK_RIGHT) & 0x8000 ) != 0) ?   true : false;
+            KeyStates::downArrowKeyPressed  = ((GetKeyState (  VK_DOWN) & 0x8000 ) != 0) ?   true : false;
+            KeyStates::leftArrowKeyPressed  = ((GetKeyState (  VK_LEFT) & 0x8000 ) != 0) ?   true : false;
+            KeyStates::upArrowKeyPressed    = ((GetKeyState (    VK_UP) & 0x8000 ) != 0) ?   true : false;
 
             return DefWindowProc (hWnd, message, wParam, lParam);
         }
         case WM_KEYUP:
         {
+            KeyStates::escapeKeyPressed     = ((GetKeyState (VK_ESCAPE) & 0x8000) != 0) ? true : false;
             KeyStates::rightArrowKeyPressed = ((GetKeyState (VK_RIGHT) & 0x8000) != 0) ? true : false;
             KeyStates::downArrowKeyPressed  = ((GetKeyState (VK_DOWN)  & 0x8000) != 0) ? true : false;
             KeyStates::leftArrowKeyPressed  = ((GetKeyState (VK_LEFT)  & 0x8000) != 0) ? true : false;
@@ -194,27 +196,6 @@ HWND InitWindowInstance(HINSTANCE hInstance, int nCmdShow, LPWSTR szWindowClass,
 
     return window_handle;
 }
-
-// Message handler for about box.
-INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    UNREFERENCED_PARAMETER(lParam);
-    switch (message)
-    {
-    case WM_INITDIALOG:
-        return (INT_PTR)TRUE;
-
-    case WM_COMMAND:
-        if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
-        {
-            EndDialog(hDlg, LOWORD(wParam));
-            return (INT_PTR)TRUE;
-        }
-        break;
-    }
-    return (INT_PTR)FALSE;
-}
-
 
 void PrintLastWin32Error(const wchar_t * lpszFunction)
 {

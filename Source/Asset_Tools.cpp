@@ -66,76 +66,6 @@ void PrintGeometryInformation (const aiScene* pScene)
     }
 }
 
-void Copy3dModelAssetFromFile (const char* pFilePath, MeshGeometryData** pMeshesOut)
-{
-    const aiScene* pScene = aiImportFile (pFilePath, aiProcessPreset_TargetRealtime_MaxQuality);
-
-    if (pScene->HasMeshes () == true)
-    {
-        uint32_t pathLength  = strlen (pFilePath);
-        char*    pIndentation = static_cast<char*>(calloc(pathLength + 14, sizeof(char)));
-
-        printf ("3d model file %s: contains %u meshes\n", pFilePath, pScene->mNumMeshes);
-        printf ("%s: contains %u materials\n", pIndentation, pScene->mNumMaterials);
-
-        MeshGeometryData* pMeshesOut = static_cast<MeshGeometryData*>(calloc (pScene->mNumMeshes, sizeof (MeshGeometryData)));
-
-        // This assert makes sure that floats are stored contiguously
-        assert ((sizeof (aiVector3D) / 3 == sizeof (float))  && (sizeof(ai_real) == sizeof(float)));
-
-        const uint32_t floatsPerPosition = sizeof(aiVector3D) / sizeof(float);  /**/ assert(floatsPerPosition == 3);
-        const uint32_t floatsPerNormal   = sizeof(aiVector3D) / sizeof(float);  /**/ assert(floatsPerNormal   == 3);
-        const uint32_t floatsPerColor    = sizeof(aiColor4D)  / sizeof(float);  /**/ assert(floatsPerColor    == 4);
-
-        const uint32_t indicesPerTri = 3;
-
-        for (uint32_t meshIdx = 0; meshIdx < pScene->mNumMeshes; meshIdx++)
-        {
-            const aiMesh*     pAiMeshIn = pScene->mMeshes[meshIdx];
-            MeshGeometryData* pMeshOut  = &(pMeshesOut[meshIdx]);
-               
-            assert(pAiMeshIn->HasPositions() == true);
-            assert(pAiMeshIn->HasNormals()   == true);
-            assert(pAiMeshIn->mNumVertices    > 0);
-
-            //pAiMeshIn->mAABB
-            const uint32_t numVertices = pAiMeshIn->mNumVertices;
-            const uint32_t numTriangles = pAiMeshIn->mNumFaces;
-
-            pMeshOut->numVertices  = numVertices;
-            pMeshOut->numTriangles = numTriangles;
-
-            pMeshOut->pVertexPositions = static_cast<float*   >(calloc(numVertices  * floatsPerPosition,  sizeof(float)));
-            pMeshOut->pVertexNormals   = static_cast<float*   >(calloc(numVertices  * floatsPerNormal  ,  sizeof (float)));
-            pMeshOut->pTriangleIndices = static_cast<uint32_t*>(calloc(numTriangles * indicesPerTri    ,  sizeof(uint32_t)));
-
-            // Copy position and normal data from ai mesh
-            memcpy (pMeshOut->pVertexPositions, pAiMeshIn->mVertices, sizeof(float) * numVertices * floatsPerPosition);
-            memcpy (pMeshOut->pVertexNormals  , pAiMeshIn->mNormals , sizeof(float) * numVertices * floatsPerNormal);
-
-            // The face indices arent stored contiguously, so we need to loop over them.
-            uint32_t indicesInCount = 0;
-            for (uint32_t faceIdx = 0; faceIdx < pAiMeshIn->mNumFaces; faceIdx++)
-            {
-                const aiFace* pFace = &(pAiMeshIn->mFaces[faceIdx]);
-                assert (pFace->mNumIndices == 3);
-
-                pMeshOut->pTriangleIndices[indicesInCount++] = pFace->mIndices[0];
-                pMeshOut->pTriangleIndices[indicesInCount++] = pFace->mIndices[1];
-                pMeshOut->pTriangleIndices[indicesInCount++] = pFace->mIndices[2];
-
-            }
-            //const uint32_t assimpColorSetIdx = 0;
-            //if (pMesh->HasVertexColors(assimpColorSetIdx) == true)
-            //{
-            //    pColors = static_cast<float*>(malloc (pMesh->mNumVertices * floatsPerColor));
-            //    memcpy (pColors, pMesh->mColors, sizeof (float) * pMesh->mNumVertices * floatsPerColor);
-            //}
-        }
-
-    }
-}
-
 glm::mat4 GetTransform_FitAABBToAABB (VkAabbPositionsKHR originalAABB,
                                       VkAabbPositionsKHR desiredBounds, // for now, im going to assume the center of this box is always 0,0,0
                                       bool               maintainSceneAspectRatio)    
@@ -254,10 +184,10 @@ glm::mat4 GetSceneTransform (VkAabbPositionsKHR sceneBounds,
                              glm::vec3          sceneRotation,
                              glm::mat4*         pNormalRotationOut)
 {
-
-    glm::vec3 scaleAmt                     = ScaleAabbToAabb (meshDataAabb, sceneBounds, true);
-    glm::vec3 meshDataAabbSize             = GetAabbSize (meshDataAabb);
-    glm::vec3 desiredSceneBoundsDimensions = GetAabbSize (sceneBounds);
+    const bool maintainMeshAspectRatio      = true; 
+    glm::vec3  scaleAmt                     = ScaleAabbToAabb (meshDataAabb, sceneBounds, maintainMeshAspectRatio);
+    glm::vec3  meshDataAabbSize             = GetAabbSize (meshDataAabb);
+    glm::vec3  desiredSceneBoundsDimensions = GetAabbSize (sceneBounds);
 
     glm::vec3 meshAabbCenter = { meshDataAabb.minX + (meshDataAabbSize.x / 2),
                                  meshDataAabb.minY + (meshDataAabbSize.y / 2),
@@ -268,17 +198,17 @@ glm::mat4 GetSceneTransform (VkAabbPositionsKHR sceneBounds,
                                       sceneBounds.minZ + (desiredSceneBoundsDimensions.z / 2) };
 
 
-    glm::mat4 scaleToDesiredBoundsSize = glm::mat4 (scaleAmt.x, 0.0f, 0.0f, 0.0f,
-                                                    0.0f, scaleAmt.y, 0.0f, 0.0f,
-                                                    0.0f, 0.0f, scaleAmt.z, 0.0f,
-                                                    0.0f, 0.0f, 0.0f, 1.0f);
+    glm::mat4 scaleToDesiredBoundsSize = glm::mat4 (scaleAmt.x, 0.0f,       0.0f,       0.0f,
+                                                    0.0f,       scaleAmt.y, 0.0f,       0.0f,
+                                                    0.0f,       0.0f,       scaleAmt.z, 0.0f,
+                                                    0.0f,       0.0f,       0.0f,       1.0f);
 
 #ifdef DEBUG
     printf ("scaleAmt = { %.4f, %.4f, %.4f }\n", scaleAmt.x, scaleAmt.y, scaleAmt.z);
     printf ("originalAABBCenter   = { %.4f, %.4f, %.4f }\n", meshAabbCenter.x, meshAabbCenter.y, meshAabbCenter.z);
     printf ("desiredBoundsCenter  = { %.4f, %.4f, %.4f }\n", desiredBoundsCenter.x, desiredBoundsCenter.y, desiredSceneBoundsDimensions.z);
 #endif
-    // Translate by the amount that places the scene AABB center point at the origin
+    // Translate by the amount that places the center of the scene AABB at origin
     glm::mat4 translate2OriginMatrix = glm::mat4 (1.0f, 0.0f, 0.0f, -(meshAabbCenter.x),
                                                   0.0f, 1.0f, 0.0f, -(meshAabbCenter.y),
                                                   0.0f, 0.0f, 1.0f, -(meshAabbCenter.z),
@@ -289,14 +219,8 @@ glm::mat4 GetSceneTransform (VkAabbPositionsKHR sceneBounds,
                                                        0.0f, 0.0f, 1.0f, desiredBoundsCenter.z,
                                                        0.0f, 0.0f, 0.0f, 1.0f);
 
-
-    // Create rotation matrix
-    glm::mat4 identityMatrix = glm::mat4 (1.0f, 0.0f, 0.0f, 0.0f,
-                                          0.0f, 1.0f, 0.0f, 0.0f,
-                                          0.0f, 0.0f, 1.0f, 0.0f,
-                                          0.0f, 0.0f, 0.0f, 1.0f);
-
-    glm::mat4 rotationMatrix = identityMatrix;
+    // Initialize the rotation matrix with an identity matrix, than update if scene rotation is non-zero
+    glm::mat4 rotationMatrix = glm::identity<glm::mat4>();
     
     if (sceneRotation.x != 0)
     {

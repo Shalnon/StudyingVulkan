@@ -164,8 +164,7 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                            VkExtent2D*                  pExtent,
                            GeometryBufferSet*           pGeometryBufferSet,
                            UniformBufferData*           pUboData,
-                           vulkanAllocatedBufferInfo*   pUniformBufferInfo,
-                           uint32_t                     frameIdx);
+                           vulkanAllocatedBufferInfo*   pUniformBufferInfo);
 
 VkSwapchainKHR ReinitializeRenderungSurface(VkDevice                     logicalDevice,
                                             VkPhysicalDevice             physicalDevice,

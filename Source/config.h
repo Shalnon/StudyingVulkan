@@ -9,8 +9,10 @@
 #define PROJECT_NAME    "StudyingVulkan"
 #define SHADER_ROOT_DIR "C:/git/CmakeExperiments/StudyingVulkan/StudyingVulkan/Source/Shaders"
 #define ASSET_DIR       "C:/git/CmakeExperiments/StudyingVulkan/StudyingVulkan/Assets"
+#define DEBUG_PRINTS_ENABLE 0
 
 static const char* pShaderRootDirectory = SHADER_ROOT_DIR;
 static const char* pAssetDirectory      = ASSET_DIR;
+ 
 
 #endif //CONFIG_H_IN
