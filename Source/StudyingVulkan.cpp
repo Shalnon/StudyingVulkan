@@ -1,3 +1,18 @@
+/* Copyright 2023 Sean Halnon
+**
+** Licensed under the Apache License, Version 2.0 (the "License");
+** you may not use this file except in compliance with the License.
+**  You may obtain a copy of the License at
+**
+**  http://www.apache.org/licenses/LICENSE-2.0
+**
+** Unless required by applicable law or agreed to in writing, software
+**  distributed under the License is distributed on an "AS IS" BASIS,
+**  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+**  See the License for the specific language governing permissionsand
+**  limitations under the License.
+**/
+
 #ifndef STUDYING_VULKAN_CPP
 #define STUDYING_VULKAN_CPP
 
@@ -173,7 +188,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                                                         /*.VkQueue...........queue................*/ queue,
                                                                         /*.uint32_t..........graphicsQueueIndex...*/ queueFamilyIndex,
                                                                         /*.const.aiScene*....pScene...............*/ pScene);
-    
+
     VkAabbPositionsKHR sceneBounds =
     {
         /*...float....minX...*/ -2.5f,
@@ -257,12 +272,14 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
         /*...VkPipelineLayout..pipelineLayout...*/ pPipelineLayoutHandles[1] // Needed when binding the descriptor set
     };
 
-
     bool      exitKeyPressed       = false;
     glm::vec3 currentSceneRotation = glm::vec3 (0.0f, 0.0f, 0.0f);  // rotation around each respective axis (xyz)
     float     rotationRate         = 0.04;                          // Amount of rotation applied per frame when a rotation key is pressed
-    
+
+#ifdef DEBUG
     printf("about to start executing renderloop\n");
+#endif
+
     while (exitKeyPressed == false)
     {
         currentSceneRotation = glm::vec3 (std::fmod (currentSceneRotation.x, 360.0f),
@@ -402,7 +419,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
             }
 
         }
-       
+
         /*
         if (pipelineLayout != VK_NULL_HANDLE)
         {

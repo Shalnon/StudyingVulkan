@@ -1,3 +1,17 @@
+/* Copyright 2023 Sean Halnon
+**
+** Licensed under the Apache License, Version 2.0 (the "License");
+** you may not use this file except in compliance with the License.
+**  You may obtain a copy of the License at
+**
+**  http://www.apache.org/licenses/LICENSE-2.0
+**
+** Unless required by applicable law or agreed to in writing, software
+**  distributed under the License is distributed on an "AS IS" BASIS,
+**  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+**  See the License for the specific language governing permissionsand
+**  limitations under the License.
+**/
 #ifndef MY_ASSET_TOOLS_CPP
 #define MY_ASSET_TOOLS_CPP
 
@@ -184,7 +198,7 @@ glm::mat4 GetSceneTransform (VkAabbPositionsKHR sceneBounds,
                              glm::vec3          sceneRotation,
                              glm::mat4*         pNormalRotationOut)
 {
-    const bool maintainMeshAspectRatio      = true; 
+    const bool maintainMeshAspectRatio      = true;
     glm::vec3  scaleAmt                     = ScaleAabbToAabb (meshDataAabb, sceneBounds, maintainMeshAspectRatio);
     glm::vec3  meshDataAabbSize             = GetAabbSize (meshDataAabb);
     glm::vec3  desiredSceneBoundsDimensions = GetAabbSize (sceneBounds);
