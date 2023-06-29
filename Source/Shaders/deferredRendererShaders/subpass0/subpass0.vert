@@ -11,12 +11,13 @@
 **  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 **  See the License for the specific language governing permissionsand
 **  limitations under the License.
-**/
+*/
 
 //compile command: glslc --target-env=vulkan1.3 -fshader-stage=vert -o vert.spv subpass0.vert 
 
+//@note: implicitely using GL_KHR_vulkan_glsl
+
 #version 450
-// implicitely using GL_KHR_vulkan_glsl
 precision highp float;
 
 layout(location = 0) in  vec3 inPosition;

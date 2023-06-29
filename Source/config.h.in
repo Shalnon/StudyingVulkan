@@ -11,7 +11,7 @@
 **  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 **  See the License for the specific language governing permissionsand
 **  limitations under the License.
-**/
+*/
 
 #ifndef CONFIG_H_IN
 #define CONFIG_H_IN
@@ -21,9 +21,9 @@
 #define VERSION_MINOR @VERSION_MINOR@
 #define VERSION_PATCH @VERSION_PATCH@
 
-#define PROJECT_NAME    "@PROJECT_NAME@"
-#define SHADER_ROOT_DIR "@SHADERS_ROOT_DIRECTORY@"
-#define ASSET_DIR       "@ASSETS_DIRECTORY@"
+#define PROJECT_NAME        "@PROJECT_NAME@"
+#define SHADER_ROOT_DIR     "@SHADERS_ROOT_DIRECTORY@"
+#define ASSET_DIR           "@ASSETS_DIRECTORY@"
 #define DEBUG_PRINTS_ENABLE @DEBUG_PRINTS_ENABLE@
 
 static const char* pShaderRootDirectory = SHADER_ROOT_DIR;

@@ -11,7 +11,7 @@
 **  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 **  See the License for the specific language governing permissionsand
 **  limitations under the License.
-**/
+*/
 
 #ifndef STUDYING_VULKAN_CPP
 #define STUDYING_VULKAN_CPP
@@ -204,7 +204,9 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                                              /*...VkAabbPositionsKHR...desiredBounds..............*/ sceneBounds,
                                                              /*...bool.................maintainSceneAspectRatio...*/ true);
 
+#ifdef DEBUG
     PrintNamedMatrix ("InitialSceneTransform", &sceneTransform);
+#endif
 
     UniformBufferData initialUboBufferData =
     {

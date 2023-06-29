@@ -12,7 +12,7 @@
 **  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 **  See the License for the specific language governing permissionsand
 **  limitations under the License.
-**/
+*/
 #ifndef APP_WINDOWING_SYSTEM_H
 #define APP_WINDOWING_SYSTEM_H
 
@@ -22,6 +22,7 @@
 extern WCHAR     szTitle[MAX_LOADSTRING];              // The title bar text
 extern WCHAR     szWindowClass[MAX_LOADSTRING];        // the main window class name
 
+// Some global variables for tracking the press states of keys we care about
 namespace KeyStates
 {
     extern bool rightArrowKeyPressed;

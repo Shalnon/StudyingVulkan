@@ -11,7 +11,7 @@
 **  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 **  See the License for the specific language governing permissionsand
 **  limitations under the License.
-**/
+*/
 #ifndef VULKAN_UTILS_CPP
 #define VULKAN_UTILS_CPP
 
@@ -1058,7 +1058,8 @@ void CreateAndAllocateDepthImage (VkDevice            logicalDeviceHandle,
 
     VkImageSubresourceRange subResourceRange =
     {
-        /*...VkImageAspectFlags....aspectMask.........*/ formatIsDepthOnly ? (VK_IMAGE_ASPECT_DEPTH_BIT) : (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT),
+        /*...VkImageAspectFlags....aspectMask.........*/ formatIsDepthOnly ? VkImageAspectFlags(VK_IMAGE_ASPECT_DEPTH_BIT) :
+                                                                             VkImageAspectFlags(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT),
         /*...uint32_t..............baseMipLevel.......*/ 0,
         /*...uint32_t..............levelCount.........*/ 1,
         /*...uint32_t..............baseArrayLayer.....*/ 0,

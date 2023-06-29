@@ -11,7 +11,7 @@
 **  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 **  See the License for the specific language governing permissionsand
 **  limitations under the License.
-**/
+*/
 #ifndef VULKAN_SYNCHRONIZATION_CPP
 #define VULKAN_SYNCHRONIZATION_CPP
 

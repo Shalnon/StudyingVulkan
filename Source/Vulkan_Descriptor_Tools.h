@@ -11,7 +11,7 @@
 **  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 **  See the License for the specific language governing permissionsand
 **  limitations under the License.
-**/
+*/
 
 #ifndef VULKAN_DESCRIPTOR_TOOLS_H
 #define VULKAN_DESCRIPTOR_TOOLS_H
@@ -28,7 +28,7 @@ VkResult CreateDescriptorSetLayout (VkDevice logicalDevice,
 VkDescriptorPool CreateDescriptorPool (VkDevice logicalDevice);
 
 
-
+// Creates pipeline that will be used by the first subpass
 VkPipeline CreateSubpass0Pipeline(VkDevice               logicalDevice, 
                                   VkRenderPass           renderpass, 
                                   VkExtent2D*            pExtent, 
@@ -37,6 +37,7 @@ VkPipeline CreateSubpass0Pipeline(VkDevice               logicalDevice,
                                   const char*            vertShaderPath,
                                   VkPipelineLayout*      pipelineLayoutHandleOut);
 
+// Creates pipeline that will be used by the second subpass
 VkPipeline CreateSubpass1Pipeline (VkDevice               logicalDevice,
                                    VkRenderPass           renderpass,
                                    VkExtent2D*            pExtent,

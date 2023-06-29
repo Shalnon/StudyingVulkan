@@ -11,7 +11,7 @@
 **  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 **  See the License for the specific language governing permissionsand
 **  limitations under the License.
-**/
+*/
 #pragma once
 #ifndef VULKAN_SYCHRONIZATION_H
 #define VULKAN_SYCHRONIZATION_H

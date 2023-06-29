@@ -11,7 +11,7 @@
 **  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 **  See the License for the specific language governing permissionsand
 **  limitations under the License.
-**/
+*/
 
 #ifndef MY_ASSET_TOOLS_H
 #define MY_ASSET_TOOLS_H
@@ -23,6 +23,7 @@
 #include <assimp\postprocess.h>
 #include <glm\glm.hpp>
 
+//@TODO: come up with a better prefix than 'MY_'. It does need some prefix or it creates a name collision issue that breaks the build
 #define MY_ASSIMP_PREPROCESSING_FLAGS     aiProcess_CalcTangentSpace              |  \
                                           aiProcess_GenSmoothNormals              |  \
                                           aiProcess_JoinIdenticalVertices         |  \
@@ -34,8 +35,6 @@
                                           aiProcess_SortByPType                   |  \
                                           aiProcess_FindDegenerates               |  \
                                           aiProcess_FindInvalidData
-                                          
-
 
 struct MeshGeometryData
 {
@@ -50,6 +49,8 @@ struct MeshGeometryData
     glm::vec3   center;
 };
 
+
+//@note: currently unused, but keeping anyway for now
 void PrintGeometryInformation (const aiScene* pScene);
 
 
@@ -73,8 +74,6 @@ inline VkAabbPositionsKHR TranslateAabb (VkAabbPositionsKHR* pAABB, glm::vec3 tr
 
     return aabbOut;
 }
-
-
 
 inline glm::vec3 GetAabbSize (VkAabbPositionsKHR aabb)
 {

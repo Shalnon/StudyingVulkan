@@ -11,12 +11,12 @@
 **  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 **  See the License for the specific language governing permissionsand
 **  limitations under the License.
-**/
+*/
 #ifndef VULKAN_BUFFER_TOOLS_H
 #define VULKAN_BUFFER_TOOLS_H
+
 #include "Vulkan_Utils.h"
 #include <glm\glm.hpp>
-
 
 // Struct for tracking per-mesh data
 struct MeshInfo
@@ -47,8 +47,9 @@ struct GeometryBufferSet
     uint32_t                  numMeshes;
 
     const MeshInfo*           pMeshes;
+
     // Using the VK sceneAABB struct which is a part of VK_KHR_acceleration_structure extenction,
-    //      but were just using it as a generic sceneAABB tracking struct.
+    //      but im just using it as a generic sceneAABB tracking struct.
     VkAabbPositionsKHR sceneAABB; // AABB for all geometry
 };
 
@@ -76,28 +77,28 @@ VkDeviceMemory AllocateVkBufferMemory (VkPhysicalDevice      physicalDevice,
 
 vulkanAllocatedBufferInfo CreateAndAllocaStagingBuffer (VkPhysicalDevice physicalDevice,
                                                         VkDevice         logicalDevice,
-                                                        uint32_t         bufferSizeInBytes,
+                                                        VkDeviceSize     bufferSizeInBytes,
                                                         uint32_t         queueIndex);
 
 
 inline vulkanAllocatedBufferInfo CreateAndAllocateVertexBuffer (VkPhysicalDevice physicalDevice,
                                                                 VkDevice         logicalDevice,
-                                                                uint32_t         bufferSizeInBytes,
+                                                                VkDeviceSize     bufferSizeInBytes,
                                                                 uint32_t         queueIndex);
  
 inline vulkanAllocatedBufferInfo CreateAndAllocateIndexBuffer (VkPhysicalDevice physicalDevice,
                                                                VkDevice         logicalDevice,
-                                                               uint32_t         bufferSizeInBytes,
+                                                               VkDeviceSize     bufferSizeInBytes,
                                                                uint32_t         queueIndex);
 
 inline vulkanAllocatedBufferInfo CreateAndAllocateUniformBuffer (VkPhysicalDevice physicalDevice,
                                                                  VkDevice         logicalDevice,
-                                                                 uint32_t         bufferSizeInBytes,
+                                                                 VkDeviceSize     bufferSizeInBytes,
                                                                  uint32_t         queueIndex);
 
 inline vulkanAllocatedBufferInfo CreateAndAllocateSsbo (VkPhysicalDevice physicalDevice,
                                                         VkDevice         logicalDevice,
-                                                        uint64_t         bufferSizeInBytes,
+                                                        VkDeviceSize     bufferSizeInBytes,
                                                         uint32_t         queueIndex);
  
 void ExecuteBuffer2BufferCopy (VkPhysicalDevice          physicalDevice,

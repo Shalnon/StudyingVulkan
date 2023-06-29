@@ -11,7 +11,7 @@
 **  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 **  See the License for the specific language governing permissionsand
 **  limitations under the License.
-**/
+*/
 #ifndef VULKAN_DESCRIPTOR_TOOLS_CPP
 #define VULKAN_DESCRIPTOR_TOOLS_CPP
 
@@ -545,7 +545,7 @@ VkPipeline CreateSubpass1Pipeline (VkDevice               logicalDevice,
 
     VkRect2D scissor =
     {
-        /*...VkOffset2D....offset....*/ { 0.0f, 0.0},
+        /*...VkOffset2D....offset....*/ { 0, 0},
         /*...VkExtent2D....extent....*/ {pExtent->width, pExtent->height}
     };
 

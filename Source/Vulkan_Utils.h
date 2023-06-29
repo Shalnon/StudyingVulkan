@@ -11,10 +11,11 @@
 **  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 **  See the License for the specific language governing permissionsand
 **  limitations under the License.
-**/
+*/
 
 #ifndef VULKAN_UTILS_H
 #define VULKAN_UTILS_H
+
 #include "StudyingVulkan.h"
 #include "Vulkan_Synchronization.h"
 #include <glm/gtc/matrix_transform.hpp>
@@ -34,7 +35,7 @@ struct PerSwapchainImageResources
     VkSemaphore     releaseSwapchainImageSemaphore;
     int32_t         queue_index;
     
-    // Corresponding VkImage is provided by swapchain and not manually created
+    //@Note: Corresponding VkImage is provided by swapchain and not manually created
     VkImageView     presentImageViewHandle;
 
     VkDeviceMemory  depthImageMemoryHandle;
@@ -100,13 +101,14 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
                          VkSwapchainKHR               oldSwapchain,
                          VkSwapchainKHR*              pSwapchainOut,
                          VkExtent2D*                  pSwapchainExtentChosenOut,  // Swapchain format used. see related note in function body
-                         VkSurfaceFormatKHR*          pSurfaceFormatOut,          // pass back the format used
+                         VkSurfaceFormatKHR*          pSurfaceFormatOut,          // pass back the format chosen for use
                          VkFormat*                    pChosenDepthFormatOut,
                          uint32_t*                    pNumSwapchainImages,
                          PerSwapchainImageResources** ppPerSwapchainImageResourcesInOut);
 
 VkRenderPass CreateRenderpass(VkFormat swapChainFormat, VkFormat depthFormat, VkDevice logicalDevice);
 
+// Chooses the format that will be used for depth attachments from a list of depth formats specified by SceneVulkanParameters::preferredDeptAttachmentFormats
 VkFormat ChooseDepthFormat (VkPhysicalDevice   physicalDeviceHandle,
                             uint32_t           numPrefferredDepthFormats,
                             const VkFormat*    pPreferredDepthFormats);

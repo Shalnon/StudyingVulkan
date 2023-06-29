@@ -11,13 +11,12 @@
 **  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 **  See the License for the specific language governing permissionsand
 **  limitations under the License.
-**/
+*/
 
 #ifndef LOGGING_H
 #define LOGGING_H
 
 #include <glm\glm.hpp>
-
 
 inline void PrintNamedMatrix (const char* pName, glm::mat4* pMatrix)
 {

@@ -11,7 +11,8 @@
 **  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 **  See the License for the specific language governing permissionsand
 **  limitations under the License.
-**/
+*/
+
 #ifndef VULKAN_BUFFER_TOOLS_CPP
 #define VULKAN_BUFFER_TOOLS_CPP
 
@@ -48,7 +49,7 @@ VkDeviceMemory AllocateVkBufferMemory (VkPhysicalDevice      physicalDevice,
 
 inline vulkanAllocatedBufferInfo CreateAndAllocateVertexBuffer (VkPhysicalDevice physicalDevice,
                                                                 VkDevice         logicalDevice,
-                                                                uint32_t         bufferSizeInBytes,
+                                                                VkDeviceSize     bufferSizeInBytes,
                                                                 uint32_t         queueIndex)
 {
     // Create vertex buffer
@@ -89,7 +90,7 @@ inline vulkanAllocatedBufferInfo CreateAndAllocateVertexBuffer (VkPhysicalDevice
 
 inline vulkanAllocatedBufferInfo CreateAndAllocateIndexBuffer (VkPhysicalDevice physicalDevice,
                                                                VkDevice         logicalDevice,
-                                                               uint32_t         bufferSizeInBytes,
+                                                               VkDeviceSize     bufferSizeInBytes,
                                                                uint32_t         queueIndex)
 {
     VkBuffer           indexBuffer           = VK_NULL_HANDLE;
@@ -125,7 +126,7 @@ inline vulkanAllocatedBufferInfo CreateAndAllocateIndexBuffer (VkPhysicalDevice 
 
 inline vulkanAllocatedBufferInfo CreateAndAllocateSsbo (VkPhysicalDevice physicalDevice,
                                                         VkDevice         logicalDevice,
-                                                        uint64_t         bufferSizeInBytes,
+                                                        VkDeviceSize     bufferSizeInBytes,
                                                         uint32_t         queueIndex)
 {
     VkBuffer           storageBufferHandle = VK_NULL_HANDLE;
@@ -171,7 +172,7 @@ inline vulkanAllocatedBufferInfo CreateAndAllocateSsbo (VkPhysicalDevice physica
 
 inline vulkanAllocatedBufferInfo CreateAndAllocateUniformBuffer (VkPhysicalDevice physicalDevice,
                                                                  VkDevice         logicalDevice,
-                                                                 uint32_t         bufferSizeInBytes,
+                                                                 VkDeviceSize     bufferSizeInBytes,
                                                                  uint32_t         queueIndex)
 {
     VkBuffer           sceneTransformUBO               = VK_NULL_HANDLE;
@@ -289,7 +290,7 @@ void ExecuteBuffer2BufferCopy (VkPhysicalDevice          physicalDevice,
 
 vulkanAllocatedBufferInfo CreateAndAllocaStagingBuffer (VkPhysicalDevice physicalDevice,
                                                         VkDevice         logicalDevice,
-                                                        uint32_t         bufferSizeInBytes,
+                                                        VkDeviceSize     bufferSizeInBytes,
                                                         uint32_t         queueIndex)
 {
     // Create staging buffer first
@@ -345,11 +346,6 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice    physicalDev
     assert(pScene              != nullptr       );
     assert(pScene->HasMeshes() == true          );
 
-
-    static const glm::mat4 sIdentityMat4x4 = glm::mat4 (1.0f, 0.0f, 0.0f, 0.0f,
-                                                        0.0f, 1.0f, 0.0f, 0.0f,
-                                                        0.0f, 0.0f, 1.0f, 0.0f,
-                                                        0.0f, 0.0f, 0.0f, 1.0f);
     const uint32_t numMeshes = pScene->mNumMeshes;
 
     // Initialize scene aabb with min/max coordinates derived from the first vertex in the first mesh
@@ -366,8 +362,8 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice    physicalDev
 
     vulkanAllocatedBufferInfo vertexStagingBufferInfo  = {}; // Will correspond to a buffer backed by host visible memory, and will be where we initally write vertex data
     vulkanAllocatedBufferInfo indexStagingBufferInfo   = {}; // Will correspond to a buffer backed by host visible memory, and will be where vert indices defining primitives will be written
-    vulkanAllocatedBufferInfo vertexBufferInfo         = {};
-    vulkanAllocatedBufferInfo indexBufferInfo          = {};
+    vulkanAllocatedBufferInfo vertexBufferInfo         = {}; // Will correspond to a buffer backed by gpu local memory, and will be the buffer from which the vertex shader reads vertex data
+    vulkanAllocatedBufferInfo indexBufferInfo          = {}; // Will correspond to a buffer backed by gpu local memory, and will contain index data used to determine which vertices form primitives.
     VkDeviceSize              singleVertexSize         = 0; // Size of all the vertex attributes
     VkDeviceSize              vertexBufferDataSize     = 0;
     VkDeviceSize              indexBufferDataSize      = 0;
@@ -417,6 +413,7 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice    physicalDev
     sceneVertexCount   = 0;
 
     uint32_t currentCoordIdx = 0;
+
     // This loop accomplishes 4 things:
     // - Write vertex position data to the vertex staging buffer
     // - Initialize MeshInfo structs
@@ -443,7 +440,6 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice    physicalDev
         };
 
 
-        printf ("----------===== Vertex Data for mesh %u  =====------\n", meshIdx);
         // Write vertex position data to the vertex position staging buffer, and update the mesh AABB.
         for (uint32_t meshVertexIdx = 0; meshVertexIdx < pAiMesh->mNumVertices; meshVertexIdx++)
         {
@@ -474,7 +470,6 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice    physicalDev
 
         sceneVertexCount += pAiMesh->mNumVertices;
 
-        printf ("----------===== Triangle Index Data for mesh %u  =====------\n", meshIdx);
         // Write vertex index data to the vertex index staging buffer
         for (uint32_t meshPrimIndex = 0; meshPrimIndex < pAiMesh->mNumFaces; meshPrimIndex++)
         {
@@ -501,7 +496,7 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice    physicalDev
         pMeshInfos[meshIdx] = { /*...uint32_t.............firstPrimIdx...*/ firstPrimInMesh,
                                 /*...uint32_t.............numPrims.......*/ sceneTriangleCount - firstPrimInMesh,
                                 /*...uint32_t.............materialIdx....*/ pAiMesh->mMaterialIndex,
-                                /*...glm::mat4x4..........modelMatrix....*/ sIdentityMat4x4,
+                                /*...glm::mat4x4..........modelMatrix....*/ glm::identity<glm::mat4>(),
                                 /*...VkAabbPositionsKHR...aabb...........*/ meshAABB };
 
         // Updating AABB for the whole scene based on mesh AABBs
@@ -585,7 +580,6 @@ vulkanAllocatedBufferInfo CreateMeshColorsStorageBuffer (VkPhysicalDevice    phy
                                                          uint32_t            queueFamilyIndex,
                                                          const aiScene*      pScene)
 {
-
     uint32_t numMaterialColors = pScene->HasMaterials () ? pScene->mNumMaterials : 0;
     assert (numMaterialColors > 0);
 
@@ -607,11 +601,11 @@ vulkanAllocatedBufferInfo CreateMeshColorsStorageBuffer (VkPhysicalDevice    phy
     static_assert(offsetof (glm::vec4, g) == 4);
     static_assert(offsetof (glm::vec4, b) == 8);
     static_assert(offsetof (glm::vec4, a) == 12);
-#endif
 
-    //@TODO: Account for different alignments: Subsequent colors must be at addresses that are >= the alignment reported from the memRequirements.
     printf ("\n============== Material Colors ==============\n");
     printf ("numMaterials = %u\n", pScene->mNumMaterials);
+#endif
+    //@TODO: Account for different alignments: Subsequent colors must be at addresses that are >= the alignment reported from the memRequirements.
     for (uint32_t materialIdx = 0; materialIdx < pScene->mNumMaterials; materialIdx++)
     {
         // Get the material's diffuse color using assimp's material interface
@@ -629,17 +623,19 @@ vulkanAllocatedBufferInfo CreateMeshColorsStorageBuffer (VkPhysicalDevice    phy
                                                      /*.b.*/ colorInSrgbSpace.b,
                                                      /*.a.*/ 1.0f               };
 
+#ifdef DEBUG
         printf ("pScene->mMaterials[%u].get(AI_MATKEY_COLOR_DIFFUSE) = srgb - { %.4f, %.4f, %.4f }\n", materialIdx,
                                                                                                        colorInSrgbSpace.r,
                                                                                                        colorInSrgbSpace.g,
                                                                                                        colorInSrgbSpace.b);
+        if (materialIdx+1 == pScene->mNumMaterials) { printf ("\n\n"); }
+#endif
     }
-    printf ("\n\n");
 
     // Unmap staging buffer
     vkUnmapMemory (logicalDevice, storageStagingBufferInfo.memoryHandle);
 
-
+    // Create the buffer that will hold per-material colors.
     vulkanAllocatedBufferInfo colorStorageBufferInfo = CreateAndAllocateSsbo (physicalDevice,
                                                                               logicalDevice,
                                                                               storageBufferDataSize,
@@ -694,19 +690,19 @@ vulkanAllocatedBufferInfo CreateUniformBuffer (VkPhysicalDevice             phys
     vkUnmapMemory (logicalDevice, uniformStagingBufferInfo.memoryHandle);
 
     // Create and allocate memory for a device local buffer that will contain the UBO data
-    vulkanAllocatedBufferInfo uniformBufferInfo = CreateAndAllocateUniformBuffer (physicalDevice, // Create and allocate memory for a device local UBO with per-mesh data
+    vulkanAllocatedBufferInfo uniformBufferInfo = CreateAndAllocateUniformBuffer (physicalDevice,
                                                                                   logicalDevice,
                                                                                   uniformBufferDataSize,
                                                                                   queueFamilyIndex);
 
     // Upload transform uniform data to device local buffer
-    ExecuteBuffer2BufferCopy (/*...VkPhysicalDevice..........physicalDevice.....*/ physicalDevice,
-                              /*...VkDevice..................logicalDevice......*/ logicalDevice,
-                              /*...VkQueue...................queue..............*/ queue,
-                              /*...uint32_t..................graphicsQueueIndex...*/ queueFamilyIndex,
-                              /*...VkDeviceSize..............copySize...........*/ uniformBufferDataSize,
-                              /*...vulkanAllocatedBufferInfo.srcBufferInfo......*/ uniformStagingBufferInfo,   // Src buffer
-                              /*...vulkanAllocatedBufferInfo.dstBufferInfo......*/ uniformBufferInfo);         // Dst buffer
+    ExecuteBuffer2BufferCopy (/*..VkPhysicalDevice............physicalDevice.......*/ physicalDevice,
+                              /*..VkDevice....................logicalDevice........*/ logicalDevice,
+                              /*..VkQueue.....................queue................*/ queue,
+                              /*..uint32_t....................graphicsQueueIndex...*/ queueFamilyIndex,
+                              /*..VkDeviceSize................copySize.............*/ uniformBufferDataSize,
+                              /*..vulkanAllocatedBufferInfo...srcBufferInfo........*/ uniformStagingBufferInfo,   // Src buffer
+                              /*..vulkanAllocatedBufferInfo...dstBufferInfo........*/ uniformBufferInfo);         // Dst buffer
 
     // Dont need the staging buffer or memory anymore
     vkFreeMemory    (logicalDevice, uniformStagingBufferInfo.memoryHandle, nullptr);

@@ -11,7 +11,7 @@
 **  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 **  See the License for the specific language governing permissionsand
 **  limitations under the License.
-**/
+*/
 #ifndef APP_WINDOWING_SYSTEM_CPP
 #define APP_WINDOWING_SYSTEM_CPP
 
@@ -20,14 +20,14 @@
 #include <wchar.h >
 #include "resource.h"
 
-WCHAR     szTitle[MAX_LOADSTRING];              // |EXTERN| The title bar text
-WCHAR     szWindowClass[MAX_LOADSTRING];        // |EXTERN| the main window class name
+WCHAR szTitle[MAX_LOADSTRING];              // |EXTERN| The title bar text
+WCHAR szWindowClass[MAX_LOADSTRING];        // |EXTERN| the main window class name
 
-bool     KeyStates::rightArrowKeyPressed = false; // |EXTERN|  is right arrow in a pressed state
-bool     KeyStates::downArrowKeyPressed  = false; // |EXTERN|  is down arrow in a pressed state
-bool     KeyStates::leftArrowKeyPressed  = false; // |EXTERN|  is left arrow in a pressed state
-bool     KeyStates::upArrowKeyPressed    = false; // |EXTERN|  is up arrow in a pressed state
-bool     KeyStates::escapeKeyPressed     = false; // |EXTERN|  is the esacpe key in a pressed state
+bool KeyStates::rightArrowKeyPressed = false; // |EXTERN|  is right arrow in a pressed state
+bool KeyStates::downArrowKeyPressed  = false; // |EXTERN|  is down arrow in a pressed state
+bool KeyStates::leftArrowKeyPressed  = false; // |EXTERN|  is left arrow in a pressed state
+bool KeyStates::upArrowKeyPressed    = false; // |EXTERN|  is up arrow in a pressed state
+bool KeyStates::escapeKeyPressed     = false; // |EXTERN|  is the esacpe key in a pressed state
 
 //
 //  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
@@ -41,7 +41,6 @@ bool     KeyStates::escapeKeyPressed     = false; // |EXTERN|  is the esacpe key
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    wchar_t msg[32];
     switch (message)
     {
         case WM_COMMAND:
@@ -73,7 +72,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         //}
         case WM_LBUTTONDOWN: // left mouse button is down
         {
+#ifdef DEBUG
             printf ("WM_LBUTTONDOWN : %llu\n", wParam);
+#endif
             return DefWindowProc (hWnd, message, wParam, lParam);
         }
         case WM_KEYDOWN:
@@ -100,7 +101,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         case WM_SYSKEYDOWN:
         {
+#ifdef DEBUG
             printf ("WM_SySKEYDOWN\n");
+#endif
             return DefWindowProc (hWnd, message, wParam, lParam);
         }
         case WM_DESTROY:
@@ -112,11 +115,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
-//
-//  FUNCTION: RegisterWindowClass()
-//
-//  PURPOSE: Registers the window class.
-//
 ATOM RegisterWindowClass(HINSTANCE hInstance, LPCWSTR window_name)
 {
     /*-- Documentation for WNDCLASSEXW::hbrBackground  -   https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-wndclassexw
@@ -140,10 +138,10 @@ ATOM RegisterWindowClass(HINSTANCE hInstance, LPCWSTR window_name)
         /*..int.......cbClsExtra.......*/  0,
         /*..int.......cbWndExtra.......*/  0,
         /*..HINSTANCE.hInstance........*/  hInstance,
-        /*..HICON.....hIcon............*/  0,   //LoadIcon(hInstance, MAKEINTRESOURCE(IDI_WINDOWSDESKTOPTEMPLATEPROJECT));
+        /*..HICON.....hIcon............*/  0,   //LoadIcon(hInstance, MAKEINTRESOURCE(IDI_STUDYINGVULKANPROJECT));
         /*..HCURSOR...hCursor..........*/ LoadCursor(nullptr, IDC_ARROW),
         /*..HBRUSH....hbrBackground....*/  backgroundBrushHandle,
-        /*..LPCWSTR...lpszMenuName.....*/  0,   //MAKEINTRESOURCEW(IDC_WINDOWSDESKTOPTEMPLATEPROJECT);
+        /*..LPCWSTR...lpszMenuName.....*/  0,   //MAKEINTRESOURCEW(IDC_STUDYINGVULKANPROJECT);
         /*..LPCWSTR...lpszClassName....*/  window_name,
         /*..HICON.....hIconSm..........*/  0   //LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
     };
@@ -151,16 +149,7 @@ ATOM RegisterWindowClass(HINSTANCE hInstance, LPCWSTR window_name)
     return RegisterClassExW(&wcex);
 }
 
-//
-//   FUNCTION: InitInstance(HINSTANCE, int)
-//
-//   PURPOSE: Saves instance handle and creates main window
-//
-//   COMMENTS:
-//
-//        In this function, we save the instance handle in a global variable and
-//        create and display the main program window.
-//
+
 HWND InitWindowInstance(HINSTANCE hInstance, int nCmdShow, LPWSTR szWindowClass, LPWSTR szTitle, int32_t windowWidth, int32_t windowHeight)
 {
 

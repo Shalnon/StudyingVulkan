@@ -11,7 +11,7 @@
 **  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 **  See the License for the specific language governing permissionsand
 **  limitations under the License.
-**/
+*/
 
 #ifndef STUDYING_VULKAN_H
 #define STUDYING_VULKAN_H
@@ -33,6 +33,7 @@
 #include "config.h"
 
 
+//@TODO: Define a macro to do debug prints instead of manually placing #ifdef DEBUG around every print
 #if DEBUG_PRINTS_ENABLE
 #define DEBUG
 #endif
