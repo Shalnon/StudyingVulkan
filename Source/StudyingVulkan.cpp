@@ -164,7 +164,8 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                        pPerSwapchainImageResources);
      
     std::string assetsDirPath = std::string(pAssetDirectory);
-    std::string modelPath     = assetsDirPath + std::string ("\\Models\\monkey_with_color.obj");
+    //std::string modelPath     = assetsDirPath + std::string ("\\Models\\monkey_with_color.obj");
+    std::string modelPath = assetsDirPath + std::string ("\\Models\\fullWall\\FULL_WALL_SIM_basic.obj");
     
 
     printf ("model path = %s\n", modelPath.c_str ());
@@ -191,12 +192,12 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
 
     VkAabbPositionsKHR sceneBounds =
     {
-        /*...float....minX...*/ -2.5f,
-        /*...float....minY...*/ -2.5f,
-        /*...float....minZ...*/  5.0f,
-        /*...float....maxX...*/  2.5f,
-        /*...float....maxY...*/  2.5f,
-        /*...float....maxZ...*/  10.0f
+        /*...float....minX...*/ -6.5f,
+        /*...float....minY...*/ -6.5f,
+        /*...float....minZ...*/  1.0f,
+        /*...float....maxX...*/  6.5f,
+        /*...float....maxY...*/  6.5f,
+        /*...float....maxZ...*/  14.0f
     };
 
     // Initializing sceneTransformUBO to a transform that will translate and scale the scene such that if fits inside the AABB defined by *pDesiredSceneBounds

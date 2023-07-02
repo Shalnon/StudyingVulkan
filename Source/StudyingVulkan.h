@@ -52,8 +52,8 @@
 
 // used to map data to the vertex attributes
 
-#define WINDOW_WIDTH  1280
-#define WINDOW_HEIGHT 720
+#define WINDOW_WIDTH  1920
+#define WINDOW_HEIGHT 1080
 
 #define RADIANS_PER_DEGREE 0.0174532925f
 
@@ -84,8 +84,8 @@ namespace SceneVulkanParameters
     //@NOTE: Ndc bounds on the z axis are [0,1] for vulkan, whereas for opengl it is [-1,1]
     // Parameters used to setup projection matrix 
     static const float horizontal_fov = 70.0f;
-    static const float zNear          = 1.0f;
-    static const float zFar           = 20.0;
+    static const float zNear          = 2.0f;
+    static const float zFar           = 50.0;
 
     namespace window
     {
@@ -168,7 +168,7 @@ namespace SceneVulkanParameters
 
 
     static const VkFormat normalVectorGbufferImageFormat   = VK_FORMAT_R16G16B16A16_SNORM;
-    static const VkFormat positionVectorGbufferImageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
+    static const VkFormat positionVectorGbufferImageFormat = VK_FORMAT_R32G32B32A32_SFLOAT;//VK_FORMAT_R16G16B16A16_SFLOAT;
     static const VkFormat diffuseColorGbufferImageFormat   = VK_FORMAT_B8G8R8A8_UNORM;
 
     static const uint32_t numPreferredSwapchainFormats                                   = 2;
