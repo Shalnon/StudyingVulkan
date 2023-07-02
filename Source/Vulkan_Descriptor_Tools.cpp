@@ -355,7 +355,7 @@ VkPipeline CreateSubpass0Pipeline (VkDevice               logicalDevice,
         /*...VkStructureType..........................sType.....................*/ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
         /*...const.void*..............................pNext.....................*/ 0,
         /*...VkPipelineMultisampleStateCreateFlags....flags.....................*/ 0,
-        /*...VkSampleCountFlagBits....................rasterizationSamples......*/ VK_SAMPLE_COUNT_1_BIT,
+        /*...VkSampleCountFlagBits....................rasterizationSamples......*/ VK_SAMPLE_COUNT_1_BIT,//SceneVulkanParameters::Subpass0::msaaNumSamples,
         /*...VkBool32.................................sampleShadingEnable.......*/ VK_FALSE,
         /*...float....................................minSampleShading..........*/ 0.0,      // Dont think this is used unless sampleShadingEnable is true. 
         /*...const.VkSampleMask*......................pSampleMask...............*/ 0,        // @VK_SPEC: If pSampleMask is NULL, it is treated as if the mask has all bits set to 1.
@@ -583,7 +583,7 @@ VkPipeline CreateSubpass1Pipeline (VkDevice               logicalDevice,
         /*...VkStructureType..........................sType.....................*/ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
         /*...const.void*..............................pNext.....................*/ 0,
         /*...VkPipelineMultisampleStateCreateFlags....flags.....................*/ 0,
-        /*...VkSampleCountFlagBits....................rasterizationSamples......*/ VK_SAMPLE_COUNT_1_BIT,
+        /*...VkSampleCountFlagBits....................rasterizationSamples......*/ SceneVulkanParameters::Subpass0::msaaNumSamples,
         /*...VkBool32.................................sampleShadingEnable.......*/ VK_FALSE,
         /*...float....................................minSampleShading..........*/ 0.0,      // Dont think this is used unless sampleShadingEnable is true. 
         /*...const.VkSampleMask*......................pSampleMask...............*/ 0,        // @VK_SPEC: If pSampleMask is NULL, it is treated as if the mask has all bits set to 1.

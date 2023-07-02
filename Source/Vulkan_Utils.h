@@ -54,6 +54,10 @@ struct PerSwapchainImageResources
     VkImage         positionImageHandle;
     VkImageView     positionImageViewHandle;
 
+    VkDeviceMemory  pResolveAttachmentsMem[SceneVulkanParameters::Subpass0::numColorAttachments];
+    VkImage         pResolveImageHandles[SceneVulkanParameters::Subpass0::numColorAttachments];
+    VkImageView     pResolveImageViews[SceneVulkanParameters::Subpass0::numColorAttachments];
+
     VkFramebuffer   framebufferHandle;
     VkDescriptorSet subpass1DesciptorSetHandle;
 
@@ -124,14 +128,15 @@ void CreateAndAllocateDepthImage (VkDevice            logicalDeviceHandle,
                                   VkImageView*        pDepthImageViewHandleOut);
 
 //Need to make one per swapchain image 
-void CreateAndAllocateColorImage (VkDevice           logicalDeviceHandle,
-                                  VkPhysicalDevice   physicalDeviceHandle,
-                                  uint32_t           queueFamilyIdx,
-                                  VkFormat           imageFormat,
-                                  VkExtent2D         imageDimensions,
-                                  VkDeviceMemory*    pColorImageMemOut,
-                                  VkImage*           pImageHandleOut,
-                                  VkImageView*       pColorImageViewHandleOut);
+void CreateAndAllocateColorImage (VkDevice              logicalDeviceHandle,
+                                  VkPhysicalDevice      physicalDeviceHandle,
+                                  uint32_t              queueFamilyIdx,
+                                  VkFormat              imageFormat,
+                                  VkExtent2D            imageDimensions,
+                                  VkDeviceMemory*       pColorImageMemOut,
+                                  VkImage*              pImageHandleOut,
+                                  VkImageView*          pColorImageViewHandleOut,
+                                  VkSampleCountFlagBits sampleCount);
 
 void CreateFrameBuffers(VkDevice                    logicalDevice,
                         VkRenderPass                renderPass,

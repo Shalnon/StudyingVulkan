@@ -129,6 +129,8 @@ namespace SceneVulkanParameters
         static const uint32_t vertexLocationAttributePosition = 0;
         static const uint32_t vertexNormalAttributePosition   = 1;
 
+        static const VkSampleCountFlagBits msaaNumSamples = VK_SAMPLE_COUNT_4_BIT;
+
         static const char* pFragShaderPath = "/deferredRendererShaders/subpass0/frag.spv";
         static const char* pVertShaderPath = "/deferredRendererShaders/subpass0/vert.spv";
     }

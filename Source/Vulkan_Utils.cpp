@@ -516,7 +516,7 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
                                               numPreferredDepthFormats,
                                               pPreferredDepthFormats);
 
-    // Allocates memory for a depth image than creates the image
+    // Creates and allocates the iamges that will back the color, depth and resolve attachments
     for (uint32_t swapIdx = 0; swapIdx < imageCount; swapIdx++)
     {
         VkImage*         pDepthImage             = &(pPerSwapchainImageResources[swapIdx].depthImageHandle);
@@ -545,7 +545,8 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
                                      { swapchainExtent.width, swapchainExtent.height },
                                      pDiffuseImageMem,
                                      pDiffuseImage,
-                                     pDiffuseImageView);
+                                     pDiffuseImageView,
+                                     VK_SAMPLE_COUNT_1_BIT);
 
         // Create image that will contain surface normal vectors
         VkImage*        pNormalImage               = &( pPerSwapchainImageResources[swapIdx].normalsImageHandle       );
@@ -560,7 +561,8 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
                                      { swapchainExtent.width, swapchainExtent.height },
                                      pNormalImageMem,
                                      pNormalImage,
-                                     pNormalImageView);
+                                     pNormalImageView,
+                                     VK_SAMPLE_COUNT_1_BIT);
 
         // Create image that will contain surface normal vectors
         VkImage*        pPositionImage               = &( pPerSwapchainImageResources[swapIdx].positionImageHandle       );
@@ -575,7 +577,26 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
                                      { swapchainExtent.width, swapchainExtent.height },
                                      pPositionImageMem,
                                      pPositionImage,
-                                     pPositionImageView);
+                                     pPositionImageView,
+                                     VK_SAMPLE_COUNT_1_BIT);
+
+        for (uint32_t r = 0; r < SceneVulkanParameters::Subpass0::numColorAttachments; r++)
+        {
+            VkDeviceMemory* pResolveImageMem  = &(pPerSwapchainImageResources[swapIdx].pResolveAttachmentsMem[r]);
+            VkImage*        pResolveImage     = &( pPerSwapchainImageResources[swapIdx].pResolveImageHandles[r]);
+            VkImageView*    pResolveImageView = &( pPerSwapchainImageResources[swapIdx].pResolveImageViews[r]);
+
+            CreateAndAllocateColorImage (logicalDevice,
+                                         physicalDevice,
+                                         graphicsQueueIndex,
+                                         surfacePositionGbufferFormat,
+                                         { swapchainExtent.width, swapchainExtent.height },
+                                         pPositionImageMem,
+                                         pPositionImage,
+                                         pPositionImageView,
+                                         VK_SAMPLE_COUNT_1_BIT);
+
+        }
 
 
 
@@ -645,7 +666,7 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
     {
         /*..VkAttachmentDescriptionFlags....flags............*/ 0,
         /*..VkFormat........................format...........*/ swapChainFormat,
-        /*..VkSampleCountFlagBits...........samples..........*/ VK_SAMPLE_COUNT_1_BIT,
+        /*..VkSampleCountFlagBits...........samples..........*/ SceneVulkanParameters::Subpass0::msaaNumSamples,
         /*..VkAttachmentLoadOp..............loadOp...........*/ VK_ATTACHMENT_LOAD_OP_CLEAR,
         /*..VkAttachmentStoreOp.............storeOp..........*/ VK_ATTACHMENT_STORE_OP_STORE,
         /*..VkAttachmentLoadOp..............stencilLoadOp....*/ VK_ATTACHMENT_LOAD_OP_DONT_CARE,  // Not using stencil so dont care
@@ -658,7 +679,7 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
     {
         /*..VkAttachmentDescriptionFlags....flags............*/ 0,
         /*..VkFormat........................format...........*/ SceneVulkanParameters::normalVectorGbufferImageFormat,
-        /*..VkSampleCountFlagBits...........samples..........*/ VK_SAMPLE_COUNT_1_BIT,
+        /*..VkSampleCountFlagBits...........samples..........*/ SceneVulkanParameters::Subpass0::msaaNumSamples,
         /*..VkAttachmentLoadOp..............loadOp...........*/ VK_ATTACHMENT_LOAD_OP_CLEAR,
         /*..VkAttachmentStoreOp.............storeOp..........*/ VK_ATTACHMENT_STORE_OP_STORE,
         /*..VkAttachmentLoadOp..............stencilLoadOp....*/ VK_ATTACHMENT_LOAD_OP_DONT_CARE,  // Not using stencil so dont care
@@ -671,7 +692,7 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
     {
         /*..VkAttachmentDescriptionFlags....flags............*/ 0,
         /*..VkFormat........................format...........*/ SceneVulkanParameters::positionVectorGbufferImageFormat,
-        /*..VkSampleCountFlagBits...........samples..........*/ VK_SAMPLE_COUNT_1_BIT,
+        /*..VkSampleCountFlagBits...........samples..........*/ SceneVulkanParameters::Subpass0::msaaNumSamples,
         /*..VkAttachmentLoadOp..............loadOp...........*/ VK_ATTACHMENT_LOAD_OP_CLEAR,
         /*..VkAttachmentStoreOp.............storeOp..........*/ VK_ATTACHMENT_STORE_OP_STORE,
         /*..VkAttachmentLoadOp..............stencilLoadOp....*/ VK_ATTACHMENT_LOAD_OP_DONT_CARE,  // Not using stencil so dont care
@@ -684,7 +705,7 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
     {
         /*..VkAttachmentDescriptionFlags....flags............*/ 0,
         /*..VkFormat........................format...........*/ depthFormat,
-        /*..VkSampleCountFlagBits...........samples..........*/ VK_SAMPLE_COUNT_1_BIT,
+        /*..VkSampleCountFlagBits...........samples..........*/ SceneVulkanParameters::Subpass0::msaaNumSamples,//VK_SAMPLE_COUNT_1_BIT,
         /*..VkAttachmentLoadOp..............loadOp...........*/ VK_ATTACHMENT_LOAD_OP_CLEAR,
         /*..VkAttachmentStoreOp.............storeOp..........*/ VK_ATTACHMENT_STORE_OP_STORE,
         /*..VkAttachmentLoadOp..............stencilLoadOp....*/ VK_ATTACHMENT_LOAD_OP_DONT_CARE,  // Not using stencil so dont care
@@ -692,6 +713,15 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
         /*..VkImageLayout...................initialLayout....*/ VK_IMAGE_LAYOUT_UNDEFINED,
         /*..VkImageLayout...................finalLayout......*/ VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL
     };
+
+    VkAttachmentDescription pColorResolveAttachments[SceneVulkanParameters::Subpass0::numColorAttachments] = {};
+
+    for (uint32_t i = 0; i < SceneVulkanParameters::Subpass0::numColorAttachments; i++)
+    {
+        pColorResolveAttachments[i]         = colorAttachmentDescription;
+        pColorResolveAttachments[i].samples = SceneVulkanParameters::Subpass0::msaaNumSamples;
+    }
+
 
     const uint32_t swapchainColorAttachmentIndex = SceneVulkanParameters::RenderPassParameters::swapchainColorAttachmentIndex;
     const uint32_t diffuseColorAttachmentIndex   = SceneVulkanParameters::RenderPassParameters::diffuseColorAttachmentIndex;
@@ -701,6 +731,22 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
 
 
     VkAttachmentReference pSubpass0ColorAttachments[SceneVulkanParameters::Subpass0::numColorAttachments] =
+    {
+        {
+            /*...uint32_t.........attachment....*/ diffuseColorAttachmentIndex, // 1
+            /*...VkImageLayout....layout........*/ VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+        },
+        {
+            /*...uint32_t.........attachment....*/ surfaceNormalAttachmentIndex, // 2
+            /*...VkImageLayout....layout........*/ VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+        },
+        {
+            /*...uint32_t.........attachment....*/ positionVectorAttachmentIndex, // 3
+            /*...VkImageLayout....layout........*/ VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+        }
+    };
+
+    VkAttachmentReference pSubpass0ColorResolveAttachments[SceneVulkanParameters::Subpass0::numColorAttachments] =
     {
         {
             /*...uint32_t.........attachment....*/ diffuseColorAttachmentIndex, // 1
@@ -757,7 +803,7 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
             /*...const.VkAttachmentReference*....pInputAttachments.........*/ nullptr,
             /*...uint32_t........................colorAttachmentCount......*/ SceneVulkanParameters::Subpass0::numColorAttachments, // 3
             /*...const.VkAttachmentReference*....pColorAttachments.........*/ pSubpass0ColorAttachments,
-            /*...const.VkAttachmentReference*....pResolveAttachments.......*/ nullptr,
+            /*...const.VkAttachmentReference*....pResolveAttachments.......*/ pSubpass0ColorResolveAttachments,
             /*...const.VkAttachmentReference*....pDepthStencilAttachment...*/ &depthAttachmentRef,
             /*...uint32_t........................preserveAttachmentCount...*/ 0,
             /*...const.uint32_t*.................pPreserveAttachments......*/ nullptr
@@ -1087,14 +1133,15 @@ void CreateAndAllocateDepthImage (VkDevice            logicalDeviceHandle,
 }
 
 //Need to make one per swapchain image 
-void CreateAndAllocateColorImage (VkDevice            logicalDeviceHandle,
-                                  VkPhysicalDevice    physicalDeviceHandle,
-                                  uint32_t            queueFamilyIdx,
-                                  VkFormat            imageFormat,
-                                  VkExtent2D          imageDimensions,
-                                  VkDeviceMemory*     pColorImageMemOut,
-                                  VkImage*            pColorImageHandleOut,
-                                  VkImageView*        pColorImageViewHandleOut)
+void CreateAndAllocateColorImage (VkDevice              logicalDeviceHandle,
+                                  VkPhysicalDevice      physicalDeviceHandle,
+                                  uint32_t              queueFamilyIdx,
+                                  VkFormat              imageFormat,
+                                  VkExtent2D            imageDimensions,
+                                  VkDeviceMemory*       pColorImageMemOut,
+                                  VkImage*              pColorImageHandleOut,
+                                  VkImageView*          pColorImageViewHandleOut,
+                                  VkSampleCountFlagBits sampleCount)
 {
     VkResult       result           = VK_INCOMPLETE;
     VkDeviceMemory colorImageMem    = VK_NULL_HANDLE;
@@ -1111,7 +1158,7 @@ void CreateAndAllocateColorImage (VkDevice            logicalDeviceHandle,
         /*...VkExtent3D...............extent..................*/ {imageDimensions.width, imageDimensions.height, 1}, //@spec: "If imageType is VK_IMAGE_TYPE_1D, both extent.height and extent.depth must be 1"
         /*...uint32_t.................mipLevels...............*/ 1,
         /*...uint32_t.................arrayLayers.............*/ 1,
-        /*...VkSampleCountFlagBits....samples.................*/ VK_SAMPLE_COUNT_1_BIT, // if i want to use more than 1, i need to check the value the driver returns in VkPhysicalDeviceProperties::limits::framebufferDepthSampleCounts
+        /*...VkSampleCountFlagBits....samples.................*/ sampleCount, // if i want to use more than 1, i need to check the value the driver returns in VkPhysicalDeviceProperties::limits::framebufferDepthSampleCounts
         /*...VkImageTiling............tiling..................*/ VK_IMAGE_TILING_OPTIMAL,
         /*...VkImageUsageFlags........usage...................*/ VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
         /*...VkSharingMode............sharingMode.............*/ VK_SHARING_MODE_EXCLUSIVE,
