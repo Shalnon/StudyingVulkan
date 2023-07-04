@@ -76,28 +76,21 @@ VkResult CreateDescriptorSetLayout (VkDevice logicalDevice,
             /*...const.VkSampler*......pImmutableSamplers.....*/ nullptr
         },
         {
-            /*...uint32_t..............binding................*/ SceneVulkanParameters::Subpass1::diffuseColorInputAttachmentBinding, // 1
+            /*...uint32_t..............binding................*/ SceneVulkanParameters::Subpass1::diffuseColorInputAttachmentBinding,// SceneVulkanParameters::Subpass1::diffuseColorInputAttachmentBinding, // 5
             /*...VkDescriptorType......descriptorType.........*/ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
             /*...uint32_t..............descriptorCount........*/ 1,  //@TODO: Look into whether there are any advantages to using an input attachment array with one descriptor binding.
             /*...VkShaderStageFlags....stageFlags.............*/ VK_SHADER_STAGE_FRAGMENT_BIT,
             /*...const.VkSampler*......pImmutableSamplers.....*/ nullptr
         },
         {
-            /*...uint32_t..............binding................*/ SceneVulkanParameters::Subpass1::normalVectorInputAttachmentBinding, // 2
+            /*...uint32_t..............binding................*/ SceneVulkanParameters::Subpass1::normalVectorInputAttachmentBinding, // 6
             /*...VkDescriptorType......descriptorType.........*/ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
             /*...uint32_t..............descriptorCount........*/ 1,
             /*...VkShaderStageFlags....stageFlags.............*/ VK_SHADER_STAGE_FRAGMENT_BIT,
             /*...const.VkSampler*......pImmutableSamplers.....*/ nullptr
         },
         {
-            /*...uint32_t..............binding................*/ SceneVulkanParameters::Subpass1::positionInputAttachmentBinding, // 3
-            /*...VkDescriptorType......descriptorType.........*/ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-            /*...uint32_t..............descriptorCount........*/ 1,
-            /*...VkShaderStageFlags....stageFlags.............*/ VK_SHADER_STAGE_FRAGMENT_BIT,
-            /*...const.VkSampler*......pImmutableSamplers.....*/ nullptr
-        },
-        {
-            /*...uint32_t..............binding................*/ SceneVulkanParameters::Subpass1::depthImageInputAttachmentBinding, // 4
+            /*...uint32_t..............binding................*/ SceneVulkanParameters::Subpass1::positionInputAttachmentBinding, // 7
             /*...VkDescriptorType......descriptorType.........*/ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
             /*...uint32_t..............descriptorCount........*/ 1,
             /*...VkShaderStageFlags....stageFlags.............*/ VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -219,7 +212,7 @@ VkPipeline CreateSubpass0Pipeline (VkDevice               logicalDevice,
     assert ((sizeof (pInputAttributeDescriptions) / sizeof (VkVertexInputAttributeDescription)) == numVertexAttributes);
 
     // One binding because all vertex attributes are in the same buffer. Thus only one buffer needs a binding.
-    uint32_t numInputBindings = 1;
+    uint32_t numVertexInputBindings = 1;
     VkVertexInputBindingDescription pVertexInputBindingDescriptions[] =
     {
         {
@@ -229,14 +222,14 @@ VkPipeline CreateSubpass0Pipeline (VkDevice               logicalDevice,
             /*..VkVertexInputRate....inputRate....*/ VK_VERTEX_INPUT_RATE_VERTEX
         }
     };
-    assert ((sizeof (pVertexInputBindingDescriptions) / sizeof (VkVertexInputBindingDescription)) == numInputBindings);
+    assert ((sizeof (pVertexInputBindingDescriptions) / sizeof (VkVertexInputBindingDescription)) == numVertexInputBindings);
 
     VkPipelineVertexInputStateCreateInfo   vertexInputStateCreateInfo =
     {
         /*...VkStructureType.............................sType.............................*/ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
         /*...const.void*.................................pNext.............................*/ nullptr,
         /*...VkPipelineVertexInputStateCreateFlags.......flags.............................*/ 0, // Reserved for future use as of vulkan 1.3
-        /*...uint32_t....................................vertexBindingDescriptionCount.....*/ numInputBindings,
+        /*...uint32_t....................................vertexBindingDescriptionCount.....*/ numVertexInputBindings,
         /*...const.VkVertexInputBindingDescription*......pVertexBindingDescriptions........*/ pVertexInputBindingDescriptions,
         /*...uint32_t....................................vertexAttributeDescriptionCount...*/ numVertexAttributes,
         /*...const.VkVertexInputAttributeDescription*....pVertexAttributeDescriptions......*/ pInputAttributeDescriptions
@@ -288,7 +281,7 @@ VkPipeline CreateSubpass0Pipeline (VkDevice               logicalDevice,
         /*...float......................................lineWidth..................*/ 1.0f
     };
 
-    VkPipelineColorBlendAttachmentState pColorBlendAttachmentState[SceneVulkanParameters::Subpass0::numColorAttachments] = {};
+    VkPipelineColorBlendAttachmentState pColorBlendAttachmentState[SceneVulkanParameters::Subpass0::numSubpassColorAttachments] = {};
     pColorBlendAttachmentState[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     pColorBlendAttachmentState[1].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     pColorBlendAttachmentState[2].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -300,7 +293,7 @@ VkPipeline CreateSubpass0Pipeline (VkDevice               logicalDevice,
         /*...VkPipelineColorBlendStateCreateFlags..........flags.................*/ 0,
         /*...VkBool32......................................logicOpEnable.........*/ VK_FALSE,
         /*...VkLogicOp.....................................logicOp...............*/ (VkLogicOp)0, // This value only used if logicOpEnable is VK_TRUE
-        /*...uint32_t......................................attachmentCount.......*/ SceneVulkanParameters::Subpass0::numColorAttachments,
+        /*...uint32_t......................................attachmentCount.......*/ SceneVulkanParameters::Subpass0::numSubpassColorAttachments,
         /*...const.VkPipelineColorBlendAttachmentState*....pAttachments..........*/ pColorBlendAttachmentState,
         /*...float.........................................blendConstants[4].....*/ 0
     };
@@ -355,7 +348,7 @@ VkPipeline CreateSubpass0Pipeline (VkDevice               logicalDevice,
         /*...VkStructureType..........................sType.....................*/ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
         /*...const.void*..............................pNext.....................*/ 0,
         /*...VkPipelineMultisampleStateCreateFlags....flags.....................*/ 0,
-        /*...VkSampleCountFlagBits....................rasterizationSamples......*/ VK_SAMPLE_COUNT_1_BIT,//SceneVulkanParameters::Subpass0::msaaNumSamples,
+        /*...VkSampleCountFlagBits....................rasterizationSamples......*/ SceneVulkanParameters::Subpass0::rasterizationSamples,
         /*...VkBool32.................................sampleShadingEnable.......*/ VK_FALSE,
         /*...float....................................minSampleShading..........*/ 0.0,      // Dont think this is used unless sampleShadingEnable is true. 
         /*...const.VkSampleMask*......................pSampleMask...............*/ 0,        // @VK_SPEC: If pSampleMask is NULL, it is treated as if the mask has all bits set to 1.
@@ -583,7 +576,7 @@ VkPipeline CreateSubpass1Pipeline (VkDevice               logicalDevice,
         /*...VkStructureType..........................sType.....................*/ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
         /*...const.void*..............................pNext.....................*/ 0,
         /*...VkPipelineMultisampleStateCreateFlags....flags.....................*/ 0,
-        /*...VkSampleCountFlagBits....................rasterizationSamples......*/ SceneVulkanParameters::Subpass0::msaaNumSamples,
+        /*...VkSampleCountFlagBits....................rasterizationSamples......*/ SceneVulkanParameters::Subpass1::rasterizationSamples,
         /*...VkBool32.................................sampleShadingEnable.......*/ VK_FALSE,
         /*...float....................................minSampleShading..........*/ 0.0,      // Dont think this is used unless sampleShadingEnable is true. 
         /*...const.VkSampleMask*......................pSampleMask...............*/ 0,        // @VK_SPEC: If pSampleMask is NULL, it is treated as if the mask has all bits set to 1.

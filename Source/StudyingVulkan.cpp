@@ -252,10 +252,9 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
         VkDescriptorSet             subpass1DescriptorSet      = AllocateAndWriteSubpass1DescriptorSet (logicalDevice,
                                                                                                         descriptorPoolHandle,
                                                                                                         pSubpassDescriptorSetLayouts[1],
-                                                                                                        pSwapchainImageResourceSet->diffuseImageViewHandle,
-                                                                                                        pSwapchainImageResourceSet->normalsImageViewHandle,
-                                                                                                        pSwapchainImageResourceSet->positionImageViewHandle,
-                                                                                                        pSwapchainImageResourceSet->depthImageViewHandle,
+                                                                                                        pSwapchainImageResourceSet->pResolveImageViews[0],
+                                                                                                        pSwapchainImageResourceSet->pResolveImageViews[1],
+                                                                                                        pSwapchainImageResourceSet->pResolveImageViews[2],
                                                                                                         uniformBufferInfo.bufferHandle);
 
         pSwapchainImageResourceSet->subpass1DesciptorSetHandle = subpass1DescriptorSet;

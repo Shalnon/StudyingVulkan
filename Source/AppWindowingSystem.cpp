@@ -12,6 +12,8 @@
 **  See the License for the specific language governing permissionsand
 **  limitations under the License.
 */
+
+
 #ifndef APP_WINDOWING_SYSTEM_CPP
 #define APP_WINDOWING_SYSTEM_CPP
 
@@ -209,15 +211,15 @@ void PrintLastWin32Error(const wchar_t * lpszFunction)
 
     if (dw != 0)
     {
-        FormatMessage(
-            FORMAT_MESSAGE_ALLOCATE_BUFFER |
-            FORMAT_MESSAGE_FROM_SYSTEM |
-            FORMAT_MESSAGE_IGNORE_INSERTS,
-            NULL,
-            dw,
-            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-            (LPTSTR)&lpMsgBuf,
-            0, NULL);
+        FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                       FORMAT_MESSAGE_FROM_SYSTEM     |
+                       FORMAT_MESSAGE_IGNORE_INSERTS,
+                       NULL,
+                       dw,
+                       MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                       (LPTSTR)&lpMsgBuf,
+                       0,
+                       NULL);
 
         // Display the error message and exit the process
         LPVOID lpMsgBu      = 0;
@@ -228,16 +230,12 @@ void PrintLastWin32Error(const wchar_t * lpszFunction)
                                            lstrlen((LPCTSTR)lpszFunction) + 40) * sizeof(TCHAR));
 
         StringCchPrintf((LPTSTR)lpDisplayBuf,
-                         LocalSize(lpDisplayBuf) / sizeof(TCHAR),
-                         TEXT("%s failed with error %d: %s"),
-                         lpszFunction, dw, lpMsgBuf);
+                        LocalSize(lpDisplayBuf) / sizeof(TCHAR),
+                        TEXT("%s failed with error %d: %s"),
+                        lpszFunction, dw, lpMsgBuf);
 
         printf("Error: %ls\n", lpDisplayBuf);
         std::cout << "Error:" << reinterpret_cast<char*>(lpDisplayBuf) << std::endl;
-    }
-    else
-    {
-        std::cout << "No error hit yet" << std::endl;
     }
 }
 

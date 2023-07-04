@@ -32,5 +32,11 @@ void main()
 {
     out_color         = in_color;
     out_normal        = in_normal;
-    out_worldPosition = in_worldPosition;
+
+
+    // ensures 1 is 1.0 without losing position data
+    vec4 worldPositionValueOut = in_worldPosition/in_worldPosition.w;
+    worldPositionValueOut.w    = gl_FragCoord.z;
+
+    out_worldPosition = worldPositionValueOut;
 }

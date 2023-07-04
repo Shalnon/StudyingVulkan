@@ -54,9 +54,10 @@ struct PerSwapchainImageResources
     VkImage         positionImageHandle;
     VkImageView     positionImageViewHandle;
 
-    VkDeviceMemory  pResolveAttachmentsMem[SceneVulkanParameters::Subpass0::numColorAttachments];
-    VkImage         pResolveImageHandles[SceneVulkanParameters::Subpass0::numColorAttachments];
-    VkImageView     pResolveImageViews[SceneVulkanParameters::Subpass0::numColorAttachments];
+    VkDeviceMemory  pResolveAttachmentsMem[SceneVulkanParameters::Subpass0::numSubpassColorAttachments];
+    VkImage         pResolveImageHandles[SceneVulkanParameters::Subpass0::numSubpassColorAttachments];
+    VkImageView     pResolveImageViews[SceneVulkanParameters::Subpass0::numSubpassColorAttachments];
+
 
     VkFramebuffer   framebufferHandle;
     VkDescriptorSet subpass1DesciptorSetHandle;
@@ -118,14 +119,15 @@ VkFormat ChooseDepthFormat (VkPhysicalDevice   physicalDeviceHandle,
                             const VkFormat*    pPreferredDepthFormats);
 
 //Need to make one per swapchain image 
-void CreateAndAllocateDepthImage (VkDevice            logicalDeviceHandle,
-                                  VkPhysicalDevice    physicalDeviceHandle,
-                                  uint32_t            queueFamilyIdx,
-                                  VkFormat            imageFormat,
-                                  VkExtent2D          imageDimensions,
-                                  VkDeviceMemory*     pDepthImageMemOut,
-                                  VkImage*            pImageHandleOut,
-                                  VkImageView*        pDepthImageViewHandleOut);
+void CreateAndAllocateDepthImage (VkDevice              logicalDeviceHandle,
+                                  VkPhysicalDevice      physicalDeviceHandle,
+                                  uint32_t              queueFamilyIdx,
+                                  VkFormat              imageFormat,
+                                  VkExtent2D            imageDimensions,
+                                  VkDeviceMemory*       pDepthImageMemOut,
+                                  VkImage*              pImageHandleOut,
+                                  VkImageView*          pDepthImageViewHandleOut,
+                                  VkSampleCountFlagBits sampleCount);
 
 //Need to make one per swapchain image 
 void CreateAndAllocateColorImage (VkDevice              logicalDeviceHandle,
@@ -136,7 +138,8 @@ void CreateAndAllocateColorImage (VkDevice              logicalDeviceHandle,
                                   VkDeviceMemory*       pColorImageMemOut,
                                   VkImage*              pImageHandleOut,
                                   VkImageView*          pColorImageViewHandleOut,
-                                  VkSampleCountFlagBits sampleCount);
+                                  VkSampleCountFlagBits sampleCount,
+                                  VkBool32              canBeInputAttachment); // Tells whether we want this color image to be capable of being used as an input attachment
 
 void CreateFrameBuffers(VkDevice                    logicalDevice,
                         VkRenderPass                renderPass,
@@ -166,7 +169,6 @@ struct PerSubpassRenderParameters
     VkPipeline        pipeline;
     VkPipelineLayout  pipelineLayout;
 };
-
 
 uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                            VkPhysicalDevice             physicalDevice, 
@@ -272,14 +274,13 @@ VkDescriptorSet AllocateAndWriteSubpass1DescriptorSet (VkDevice               lo
                                                        VkImageView            diffuseColorImageViewHandle,
                                                        VkImageView            normalVectorImageViewHandle,
                                                        VkImageView            positionVectorImageViewHandle,
-                                                       VkImageView            depthStencilImageViewHandle,
                                                        VkBuffer               uniformBufferHandle);
 
 
 // Returns memory index of memory type that meets the requirements based on the  memRequirements and requiredPropertyFlags args
 inline uint32_t ChooseMemoryTypeIdx (VkPhysicalDevice      physicalDevice,
                                      VkMemoryPropertyFlags requiredPropertyFlags, // ex: a mask of VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, etc...
-                                     VkMemoryRequirements* memRequirements) //a bitmask and contains one bit set for every supported memory type for the resource. Bit i is set if and only if the memory type i in the VkPhysicalDeviceMemoryProperties structure for the physical device is supported for the resource.
+                                     VkMemoryRequirements* memRequirements) //a bitmask containing one bit set for every supported memory type for the resource. Bit i is set if and only if the memory type i in the VkPhysicalDeviceMemoryProperties structure for the physical device is supported for the resource.
 {
     uint32_t chosenMemTypeIdxOut = UINT32_MAX;
 
@@ -298,7 +299,6 @@ inline uint32_t ChooseMemoryTypeIdx (VkPhysicalDevice      physicalDevice,
         if (isMemTypeSupportedForResource && areRequiredMemPropertiesSupported)
         {
             chosenMemTypeIdxOut = memTypeIdx;
-            //  *pChosenHeapIndexOut = physicalDeviceMemoryProperties.memoryTypes[memTypeIdx].heapIndex;
         }
     }
 
@@ -315,11 +315,12 @@ inline glm::mat4 GetProjection (uint32_t frameWidth,
     float aspectRatio           = float (frameWidth) / float (frameHeight);
     float halfFov               = desiredFov / 2;
     glm::mat4 projectionFromWeb = glm::mat4 ();
-    projectionFromWeb[0][0] = aspectRatio / tanf (halfFov);
-    projectionFromWeb[1][1] = 1 / tanf (halfFov);
-    projectionFromWeb[2][2] = zFar  / (zFar - zNear);
-    projectionFromWeb[2][3] = ((zFar * zNear) / (zFar - zNear));
-    projectionFromWeb[3][2] = -1.0f;
+
+    projectionFromWeb[0][0]     = aspectRatio / tanf (halfFov);
+    projectionFromWeb[1][1]     = 1 / tanf (halfFov);
+    projectionFromWeb[2][2]     = zFar  / (zFar - zNear);
+    projectionFromWeb[2][3]     = ((zFar * zNear) / (zFar - zNear));
+    projectionFromWeb[3][2]     = -1.0f;
 
     return projectionFromWeb;
 }

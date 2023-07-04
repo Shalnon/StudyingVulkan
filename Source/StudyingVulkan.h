@@ -62,7 +62,7 @@ namespace SceneVulkanParameters
     static const uint32_t numDescriptorTypesUsedInScene        = 3;
     static const uint32_t numUboDescriptorsInScene             = 1;
     static const uint32_t numSsboDescriptorsInScene            = 1;
-    static const uint32_t numInputAttachmentDescriptorsInScene = 4;
+    static const uint32_t numInputAttachmentDescriptorsInScene = 3; // images for diffuse color + normal + position
     static const uint32_t verticiesPerPrimitive                = 3; // Triangles
 
     static const uint32_t totalNumDescriporSets = 2;
@@ -80,11 +80,12 @@ namespace SceneVulkanParameters
 
     static const uint32_t numRequiredExtensions   = 1;
     static const char*    requiredDeviceExtensionss[numRequiredExtensions] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+                                                                               //VK_EXT_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_EXTENSION_NAME };
 
     //@NOTE: Ndc bounds on the z axis are [0,1] for vulkan, whereas for opengl it is [-1,1]
     // Parameters used to setup projection matrix 
     static const float horizontal_fov = 70.0f;
-    static const float zNear          = 2.0f;
+    static const float zNear          = 1.0f;
     static const float zFar           = 50.0;
 
     namespace window
@@ -94,79 +95,99 @@ namespace SceneVulkanParameters
     };
     namespace RenderPassParameters
     {
-        static const uint32_t numColorAttachments = 4; // diffuse, normal, position, present
-        static const uint32_t numDepthAttachments = 1; // used as depth attachment in subpass 0, than as an input attachment in subpass 1
-        static const uint32_t numSubpasses        = 2;
-        static const uint32_t totalNumAttachments = numColorAttachments + numDepthAttachments;
+        static const uint32_t numColorAttachments   = 4; // diffuse, normal, position, present
+        static const uint32_t numResolveAttachments = 3;
+        static const uint32_t numDepthAttachments   = 1; // used as depth attachment in subpass 0
+        static const uint32_t numSubpasses          = 2;
+        static const uint32_t totalNumAttachments   = numColorAttachments + numDepthAttachments + numResolveAttachments;
 
-        // Renderpass Color attachments indeces
-        static const uint32_t swapchainColorAttachmentIndex = 0;
-        static const uint32_t diffuseColorAttachmentIndex   = 1;
-        static const uint32_t surfaceNormalAttachmentIndex  = 2;
-        static const uint32_t positionAttachmentIndex       = 3;
-        static const uint32_t depthStencilAttachmentIndex   = 4;
+        // Renderpass attachment indeces
+        static const uint32_t swapchainColorAttachmentIndex  = 0;
+        static const uint32_t diffuseColorAttachmentIndex    = 1;
+        static const uint32_t surfaceNormalAttachmentIndex   = 2;
+        static const uint32_t positionAttachmentIndex        = 3;
+        static const uint32_t depthStencilAttachmentIndex    = 4;
+        static const uint32_t colorResolveAttachmentIndex    = 5;
+        static const uint32_t normalResolveAttachmentIndex   = 6;
+        static const uint32_t positionResolveAttachmentIndex = 7;
     }
     namespace Subpass0
     {
+
+
+        static const VkSampleCountFlagBits rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
         //@note: Subpass 0 doesnt write to the swapchain color attachment.
-        static const uint32_t numColorAttachments = 3; //diffuse color + normal + position gbuffer images
-        static const uint32_t numDepthAttachments = 1;
-        static const uint32_t numInputAttachments = 0;
+        static const uint32_t numSubpassColorAttachments    = 3; //diffuse color + normal + position  gbuffer images
+        static const uint32_t numSubpassResolveAttachments  = numSubpassColorAttachments; // 1 resolve attachment for each color attachment
+        static const uint32_t numDepthAttachments           = 1;
 
         static const uint32_t depthAttachmentIndex = RenderPassParameters::depthStencilAttachmentIndex;
 
-        static const uint32_t numDescriptorSetsUsed = 1;
+        static const uint32_t numDescriptorSetsUsedInSubpass = 1;
+
+        //Num descriptor bindings used by the pipeline in this subpass
+        static const uint32_t numSsboBindings              = 1;
+        static const uint32_t numUBOBindings               = 1;
+        static const uint32_t numInputAttachmentBindings   = 0;
+
 
         // Descriptor set layout binding information
-        static const uint32_t numDescriptorSetLayoutBindings = 2;
+        static const uint32_t numDescriptorSetLayoutBindings = numSsboBindings + numUBOBindings + numInputAttachmentBindings;
         static const uint32_t uniformBufferBinding           = 0; // VK_DESCRIPTOR_TYPE_STORAGE_BUFFER
         static const uint32_t storageBufferBinding           = 1; // VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
 
         //Vertex attrib information for pipeline
-        static const uint32_t numInputBindings    = 1; // Number of vertex attribute buffers we need a binding for
+        static const uint32_t numVertexInputBindings    = 1; // Number of vertex attribute buffers we need a binding for
         static const uint32_t numVertexAttributes = 2; // Number of vertex input attributes the shader will recieve
 
         static const uint32_t vertexLocationAttributePosition = 0;
         static const uint32_t vertexNormalAttributePosition   = 1;
 
-        static const VkSampleCountFlagBits msaaNumSamples = VK_SAMPLE_COUNT_4_BIT;
+        //static const VkSampleCountFlagBits msaaNumSamples = VK_SAMPLE_COUNT_4_BIT;
 
         static const char* pFragShaderPath = "/deferredRendererShaders/subpass0/frag.spv";
         static const char* pVertShaderPath = "/deferredRendererShaders/subpass0/vert.spv";
     }
+
+    // Subpass 1 uses the input attachments, and the UBO. It doesnt use the SSBO
     namespace Subpass1
     {
-        //@note: Subpass 1 DOES write to the swapchain color attachment.
+        static const uint32_t              numDescriptorSetsUsedInSubpass = 1;
+        static const VkSampleCountFlagBits rasterizationSamples           = VK_SAMPLE_COUNT_1_BIT;
+
         static const uint32_t numColorAttachments = 1; // Present image
         static const uint32_t numDepthAttachments = 0; // depth is disabled for subpass 1
-        static const uint32_t numInputAttachments = 4; // diffuse color + normal + position + subpass0 depth
+        static const uint32_t numInputAttachments = 3; // diffuse color + normal + position
 
-        static const uint32_t pColorAttachmentIndeces[numColorAttachments] =
+        static const uint32_t pColorAttachmentIndeces[Subpass1::numColorAttachments] =
         {
             RenderPassParameters::swapchainColorAttachmentIndex
         };
 
-        static const uint32_t numDescriptorSetLayoutBindings     = 5; // 4 input attachments and a ubo
 
         // Descriptor set layout bindings
         static const uint32_t uniformBufferBinding               = 0;
         static const uint32_t diffuseColorInputAttachmentBinding = 1;
         static const uint32_t normalVectorInputAttachmentBinding = 2;
         static const uint32_t positionInputAttachmentBinding     = 3;
-        static const uint32_t depthImageInputAttachmentBinding   = 4; // depth output from subpass 0
+
+        static const uint32_t numUboBindings                     = 1;
+        static const uint32_t numSsboBindings                    = 0;
+        static const uint32_t numDescriptorSetLayoutBindings     = numInputAttachments +
+                                                                   numUboBindings      +
+                                                                   numSsboBindings; // 3 input attachments + a ubo
+
 
         //Vertex attrib information
-        static const uint32_t numInputBindings              = 0; // Number of vertex attribute buffers we need a binding for
+        static const uint32_t numVertexInputBindings        = 0; // Number of vertex attribute buffers we need a binding for
         static const uint32_t numVertexAttributes           = 0; // Number of vertex input attributes the shader will recieve
-
-        static const uint32_t numDescriptorSetsUsed = 1;
 
         static const char* pFragShaderPath = "/deferredRendererShaders/subpass1/frag.spv";
         static const char* pVertShaderPath = "/deferredRendererShaders/subpass1/vert.spv";
     };
 
-    static const uint32_t minSemaphoreListSize    = 64;
-    static const uint32_t semaphoreListGrowthRate = 64;
+   // static const uint32_t minSemaphoreListSize    = 64;
+   // static const uint32_t semaphoreListGrowthRate = 64;
 
 
     static const VkFormat normalVectorGbufferImageFormat   = VK_FORMAT_R16G16B16A16_SNORM;
@@ -177,6 +198,13 @@ namespace SceneVulkanParameters
     static const uint32_t numPreferredDepthFormats                                       = 2;
     static const VkFormat preferredSwapchainImagesFormats[numPreferredSwapchainFormats]  = { VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_B8G8R8A8_SRGB };
     static const VkFormat preferredDeptAttachmentFormats[]                               = { VK_FORMAT_D32_SFLOAT };
+
+    static const VkSampleCountFlagBits depthAttachmentSamples   = VK_SAMPLE_COUNT_4_BIT;
+    static const VkSampleCountFlagBits colorAttachmentSamples   = VK_SAMPLE_COUNT_4_BIT;
+    static const VkSampleCountFlagBits resolveAttachmentSamples = VK_SAMPLE_COUNT_1_BIT;
+    static const VkSampleCountFlagBits presentAttachmentSamples = VK_SAMPLE_COUNT_1_BIT;
+
+    static const VkImageLayout layout_inputAttachmentRead = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
 }
 
 // Defining a struct here that matches the UBO data layout described in the shader.

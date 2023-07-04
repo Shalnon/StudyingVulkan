@@ -60,6 +60,6 @@ void main()
 
     gl_Position           = projectedVertexPosition/projectedVertexPosition.w;
     out_color             = ssbo.colors[gl_InstanceIndex].rgb;
-    out_normal            = vec4(inNormal,1.0) * ubo.normalRotation;
+    out_normal            = vec4(inNormal,1.0) * ubo.normalRotation; 
     out_worldPosition     = worldPosition;
 }
