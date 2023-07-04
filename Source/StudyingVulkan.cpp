@@ -344,15 +344,9 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
         {
             exitKeyPressed = true;
         }
-
-#ifdef DEBUG
-        printf ("\n--Frame %u end--\n",i);
-#endif // DEBUG
-
     }
 
     //@TODO: Enable VK_KHR_present_wait and call vkWaitForPresentKHR so that any pending rendering work finishes before we start destroying things.
-    
     {// Destroying vk objects below.
 
         // Destroy vk resources tracked in PerSwapchainImageResources structures first
