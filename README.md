@@ -1,7 +1,11 @@
 # Vulkan Study - Sean Halnon
 
 [Deffered Renderer - 4xMSAA](https://github.com/Shalnon/StudyingVulkan/tree/DeferredRendering_4xMSAA "Deffered Renderer - 4xMSAA")
+
+
 [Deffered Renderer - noMSAA](https://github.com/Shalnon/StudyingVulkan/tree/Deffered_Renderer_noMSAA "Deffered Renderer - noMSAA")
+
+
 [Simple Triangle](https://github.com/Shalnon/StudyingVulkan/tree/simpleTriangle "Simple Triangle")
 
 ### Overview:
@@ -11,8 +15,8 @@
  
 ## Project Goals
 This project was created with a couple main goals in mind:
-   * Create one of the easiest to read piece of non-trivial vulkan code out there.       
-    * Establish a commenting style that makes it easier to search for where specific vulkan parameters are initalized, and to simplify finding the relevant region of code when a validation error/warning is hit
+   * Create one of the easiest to read piece of non-trivial vulkan code out there.
+   * Establish a commenting style that makes it easier to search for where specific vulkan parameters are initalized, and to simplify finding the relevant region of code when a validation error/warning is hit
 
 ```
 // Example
@@ -28,11 +32,8 @@ This project was created with a couple main goals in mind:
     };
 ```
    * Use a pradominately functional programming model to keep the callstack shallow and reduce the amount of cross rerferencing necessary to understand the purpsoe and intention behind a piece of code.
-
    * Take advantage of subpasses for deferred rendering instead of a series of multiple renderpasses.
-
    * Use the swapchain and Microsoft windowing system more directly, and avoid using libraries such as GLFW.
-
 
 ## Usage
    - Press arrow keys to rotate scene
@@ -67,12 +68,10 @@ This project was created with a couple main goals in mind:
 ```
 
 ## Issues
-   - Background is always black
-   	- clear color seems to be discarded when rendering using full screen quad in second subpass.
-   - Some geometry glitches out when to close or far away from camera
-	- Need to add check GPU for MSAA support. Currently the MSAA example just assumes 4xMSAA is supported.
-
-
+   * Background is always black
+      * Clear color seems to be discarded when rendering using full screen quad in second subpass.
+   * Some geometry glitches out when to close or far away from camera
+	* Need to add check GPU for MSAA support. Currently the MSAA example just assumes 4xMSAA is supported.
 
 Future goals
   # Futher limit number of resources.
