@@ -84,7 +84,7 @@ namespace SceneVulkanParameters
     //@NOTE: Ndc bounds on the z axis are [0,1] for vulkan, whereas for opengl it is [-1,1]
     // Parameters used to setup projection matrix 
     static const float horizontal_fov = 70.0f;
-    static const float zNear          = 2.0f;
+    static const float zNear          = 1.0f;
     static const float zFar           = 50.0;
 
     namespace window
