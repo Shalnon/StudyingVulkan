@@ -214,9 +214,9 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
         /*...mat4...sceneTransform.........*/ sceneTransform,
         /*...vec4...sceneScale.............*/ glm::vec4 (1.0f,   1.0f,  1.0f, 1.0f),
         /*...mat4...projectionMatrix.......*/ projectionMatrix,
-        /*...mat4...normalRotation.........*/ glm::identity<glm::mat4>(),
+        /*...mat4...normalRotation.........*/ glm::identity<glm::mat4> (),
         /*...vec3...ambient_color..........*/ glm::vec4 (0.12f,  0.12f,  0.12f, 1.0f),
-        /*...vec3...lightLocation..........*/ glm::vec4 (-2.0f, -2.0f,  -2.0f, 1.0f),
+        /*...vec3...lightLocation..........*/ glm::vec4 (-2.0f, 4.0f,  -2.0f, 1.0f),
         /*...vec3...lightIntensities.......*/ glm::vec4 (1.0f,   1.0f,  1.0f, 1.0f)
     };
 
