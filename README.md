@@ -11,8 +11,9 @@ Examples are organized as separate branches:
 ### Overview:
   This Repo contains a set of Vulkan API examples illustrating important fundumental usage scenarios.
   * The first 2 projects implement a model viewer with defferred rendering.
-  * The 3rd project prots Khronos' triangle example to my coding style, windowing and build system.
+  * The 3rd project ports Khronos' triangle example to my coding style, windowing and build system.
  
+ #### Screenshot from current project:
 ![noMSAA](https://drive.google.com/uc?export=view&id=1nErmVGOcr034Orh9-6ExPhmkW1GHn6nN)
  
 ## Project Goals
