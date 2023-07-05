@@ -6,13 +6,14 @@ Examples are organized as separate branches:
 
 [Deffered Renderer - noMSAA](https://github.com/Shalnon/StudyingVulkan/tree/Deffered_Renderer_noMSAA "Deffered Renderer - noMSAA")<-- you are here
 
-
 [Simple Triangle](https://github.com/Shalnon/StudyingVulkan/tree/simpleTriangle "Simple Triangle")
 
 ### Overview:
   This Repo contains a set of Vulkan API examples illustrating important fundumental usage scenarios.
   * The first 2 projects implement a model viewer with defferred rendering.
   * The 3rd project prots Khronos' triangle example to my coding style, windowing and build system.
+ 
+![noMSAA](https://drive.google.com/uc?export=view&id=1nErmVGOcr034Orh9-6ExPhmkW1GHn6nN)
  
 ## Project Goals
 This project was created with a couple main goals in mind:
