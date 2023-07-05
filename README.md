@@ -1,4 +1,5 @@
 # Vulkan Study - Sean Halnon
+Examples are organized as separate branches:
 
 [Deffered Renderer - 4xMSAA](https://github.com/Shalnon/StudyingVulkan/tree/DeferredRendering_4xMSAA "Deffered Renderer - 4xMSAA")
 
@@ -40,9 +41,9 @@ This project was created with a couple main goals in mind:
    - Press escape key to close application
 
 ## Requirements
-   - Windows
-	- Vulkan 1.3
-	- Vulkan SDK
+   * Windows
+	* Vulkan 1.3
+	* Vulkan SDK
 
 ## Build
    This project uses cmake.
@@ -74,10 +75,10 @@ This project was created with a couple main goals in mind:
 	* Need to add check GPU for MSAA support. Currently the MSAA example just assumes 4xMSAA is supported.
 
 Future goals
-  # Futher limit number of resources.
-   # Use only 2 sets of swapchain image resources instead of creating as many sets of resources as their are available swapchain images. (assuming that number is > 2)
-   # There likely doesnt need to be as many staging buffer as there are. Creating a smaller number of staging buffers and structuring the code to reuse them would better.
-  # Add texuring support so that diffuse color GBUFFER images include data read from texutre reads rather than a static material specific color value.
-  # Add normal map support so that the surface normals GBUFFER Image can use based on more than per-triangle normal data.
-  # Address remaining @todo items
-  # Create an improved color scheme for wrecking crane model
+  * Futher limit number of resources.
+   * Use only 2 sets of swapchain image resources instead of creating as many sets of resources as their are available swapchain images. (assuming that number is > 2)
+   * There likely doesnt need to be as many staging buffer as there are. Creating a smaller number of staging buffers and structuring the code to reuse them would better.
+  * Add texuring support so that diffuse color GBUFFER images include data read from texutre reads rather than a static material specific color value.
+  * Add normal map support so that the surface normals GBUFFER Image can use based on more than per-triangle normal data.
+  * Address remaining @todo items
+  * Create an improved color scheme for wrecking crane model
