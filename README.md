@@ -14,6 +14,8 @@ Examples are organized as separate branches:
   * The first 2 projects implement a model viewer with defferred rendering.
   * The 3rd project prots Khronos' triangle example to my coding style, windowing and build system.
  
+![4xmsaa](https://drive.google.com/uc?export=view&id=1PjW1O6wcYvLM76xulI2TQ62-6D1-8YH3)
+ 
 ## Project Goals
 This project was created with a couple main goals in mind:
    * Create one of the easiest to read piece of non-trivial vulkan code out there.
