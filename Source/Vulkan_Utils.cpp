@@ -735,10 +735,6 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
         {
             /*...uint32_t.........attachment....*/ positionVectorAttachmentIndex, // 3
             /*...VkImageLayout....layout........*/ VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-        },
-        {
-            /*...uint32_t.........attachment....*/ depthStencilAttachmentIndex, // 4
-            /*...VkImageLayout....layout........*/ VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
         }
     };
 
@@ -776,7 +772,7 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
         }
     };
 
-    static const uint32_t numDependencies                      = 4;
+    static const uint32_t numDependencies                      = 3;
     VkSubpassDependency   subpassDependencies[numDependencies] =
     {
         {
@@ -803,15 +799,6 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
             /*....VkPipelineStageFlags....srcStageMask........*/ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT ,
             /*....VkPipelineStageFlags....dstStageMask........*/ VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
             /*....VkAccessFlags...........srcAccessMask.......*/ VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-            /*....VkAccessFlags...........dstAccessMask.......*/ VK_ACCESS_INPUT_ATTACHMENT_READ_BIT,
-            /*....VkDependencyFlags.......dependencyFlags.....*/ VK_DEPENDENCY_BY_REGION_BIT
-        },
-        { // Subpass dependency allowing the depth attachment to transition to an input attachments
-            /*....uint32_t................srcSubpass..........*/ 0,
-            /*....uint32_t................dstSubpass..........*/ 1,
-            /*....VkPipelineStageFlags....srcStageMask........*/ VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,// VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT?
-            /*....VkPipelineStageFlags....dstStageMask........*/ VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-            /*....VkAccessFlags...........srcAccessMask.......*/ VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
             /*....VkAccessFlags...........dstAccessMask.......*/ VK_ACCESS_INPUT_ATTACHMENT_READ_BIT,
             /*....VkDependencyFlags.......dependencyFlags.....*/ VK_DEPENDENCY_BY_REGION_BIT
         }
@@ -1847,8 +1834,8 @@ VkDescriptorSet AllocateAndWriteSubpass1DescriptorSet (VkDevice               lo
         /*...VkImageLayout....imageLayout...*/ VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
     };
 
-    // Write the descriptor set with info about the resources backing the ubo and 4 input attachments
-    static const uint32_t numDescriptorsToUpdate = SceneVulkanParameters::Subpass1::numDescriptorSetLayoutBindings; //5
+    // Write the descriptor set with info about the resources backing the ubo and 3 input attachments
+    static const uint32_t numDescriptorsToUpdate = SceneVulkanParameters::Subpass1::numDescriptorSetLayoutBindings; //4
     VkWriteDescriptorSet  pDescriptorUpdateWrites[numDescriptorsToUpdate] =
     {
         { // struct describing the descriptor update for the uniform buffer at binding 0
@@ -1896,18 +1883,6 @@ VkDescriptorSet AllocateAndWriteSubpass1DescriptorSet (VkDevice               lo
             /*...uint32_t.........................descriptorCount....*/ 1,
             /*...VkDescriptorType.................descriptorType.....*/ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
             /*...const.VkDescriptorImageInfo*.....pImageInfo.........*/ & positionImageDescriptorInfo,
-            /*...const.VkDescriptorBufferInfo*....pBufferInfo........*/ nullptr,
-            /*...const.VkBufferView*..............pTexelBufferView...*/ nullptr
-        },
-        { // struct describing the descriptor update for the uniform buffer at binding 0
-            /*...VkStructureType..................sType..............*/ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            /*...const.void*......................pNext..............*/ nullptr,
-            /*...VkDescriptorSet..................dstSet.............*/ descriptorSetHandle,
-            /*...uint32_t.........................dstBinding.........*/ SceneVulkanParameters::Subpass1::depthImageInputAttachmentBinding, // 4
-            /*...uint32_t.........................dstArrayElement....*/ 0,
-            /*...uint32_t.........................descriptorCount....*/ 1,
-            /*...VkDescriptorType.................descriptorType.....*/ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-            /*...const.VkDescriptorImageInfo*.....pImageInfo.........*/ &depthImageDescriptorInfo,
             /*...const.VkDescriptorBufferInfo*....pBufferInfo........*/ nullptr,
             /*...const.VkBufferView*..............pTexelBufferView...*/ nullptr
         }

@@ -95,13 +95,6 @@ VkResult CreateDescriptorSetLayout (VkDevice logicalDevice,
             /*...uint32_t..............descriptorCount........*/ 1,
             /*...VkShaderStageFlags....stageFlags.............*/ VK_SHADER_STAGE_FRAGMENT_BIT,
             /*...const.VkSampler*......pImmutableSamplers.....*/ nullptr
-        },
-        {
-            /*...uint32_t..............binding................*/ SceneVulkanParameters::Subpass1::depthImageInputAttachmentBinding, // 4
-            /*...VkDescriptorType......descriptorType.........*/ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-            /*...uint32_t..............descriptorCount........*/ 1,
-            /*...VkShaderStageFlags....stageFlags.............*/ VK_SHADER_STAGE_FRAGMENT_BIT,
-            /*...const.VkSampler*......pImmutableSamplers.....*/ nullptr
         }
     };
     

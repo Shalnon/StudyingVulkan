@@ -486,8 +486,8 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice    physicalDev
                 pIndexBuffMemUintPtr[index0WriteLoc + 1] = firstVertexForMesh + pFace->mIndices[1];
                 pIndexBuffMemUintPtr[index0WriteLoc + 2] = firstVertexForMesh + pFace->mIndices[0];
             }
-            else if (pFace->mNumIndices < 3) {    printf ("Warning: found degenerate primitive!\n"); } // degenerate prim
-            else if (pFace->mNumIndices > 3) {    printf("Warning: found Ngon!\n");                  } // an Ngon
+           // else if (pFace->mNumIndices < 3) {    printf ("Warning: found degenerate primitive!\n"); } // degenerate prim
+           // else if (pFace->mNumIndices > 3) {    printf("Warning: found Ngon!\n");                  } // an Ngon
         } 
 
         sceneTriangleCount += pAiMesh->mNumFaces;

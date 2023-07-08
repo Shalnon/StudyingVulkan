@@ -42,7 +42,6 @@ layout( binding = 0 ) uniform UniformBufferObject
 layout (input_attachment_index=0, set=0, binding=1 ) uniform subpassInput diffuseColorInputAttachment;
 layout (input_attachment_index=1, set=0, binding=2 ) uniform subpassInput normalVectorInputAttachment;
 layout (input_attachment_index=2, set=0, binding=3 ) uniform subpassInput worldPositionInputAttachment;
-layout (input_attachment_index=3, set=0, binding=4 ) uniform subpassInput depthStencilInputAttachment;
 
 
 layout(location = 0) out vec3 fragColor;
@@ -53,7 +52,9 @@ void main()
     vec4 diffuseColor         = subpassLoad(diffuseColorInputAttachment);
     vec4 surfaceNormal        = subpassLoad(normalVectorInputAttachment);
     vec4 surfaceWorldPosition = subpassLoad(worldPositionInputAttachment);
-    vec4 fragDepthStencil     = subpassLoad(depthStencilInputAttachment);
+
+    // subpass 0 writes depth to the w coord of the WorldPosition attachment.
+    float fragDepth    = surfaceWorldPosition.w;
 
     float distanceFromLight = distance(ubo.lightLocation.xyz,  surfaceWorldPosition.xyz);
 	vec3  surfaceToLight    = normalize(ubo.lightLocation.xyz - surfaceWorldPosition.xyz);
@@ -63,5 +64,5 @@ void main()
 
 	vec3 Diffuse = diffuseColor.rgb * ubo.lightIntensities.xyz * Diffuse_Coefficient;
 
-	fragColor = Diffuse + (ubo.ambient_color.rgb * fragDepthStencil.r);
+	fragColor = Diffuse + (ubo.ambient_color.rgb * fragDepth);
 }

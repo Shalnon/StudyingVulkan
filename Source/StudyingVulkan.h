@@ -140,21 +140,20 @@ namespace SceneVulkanParameters
         //@note: Subpass 1 DOES write to the swapchain color attachment.
         static const uint32_t numColorAttachments = 1; // Present image
         static const uint32_t numDepthAttachments = 0; // depth is disabled for subpass 1
-        static const uint32_t numInputAttachments = 4; // diffuse color + normal + position + subpass0 depth
+        static const uint32_t numInputAttachments = 3; // diffuse color + normal + position + subpass0 depth
 
         static const uint32_t pColorAttachmentIndeces[numColorAttachments] =
         {
             RenderPassParameters::swapchainColorAttachmentIndex
         };
 
-        static const uint32_t numDescriptorSetLayoutBindings     = 5; // 4 input attachments and a ubo
+        static const uint32_t numDescriptorSetLayoutBindings     = 4; // 3  input attachments and a ubo
 
         // Descriptor set layout bindings
         static const uint32_t uniformBufferBinding               = 0;
         static const uint32_t diffuseColorInputAttachmentBinding = 1;
         static const uint32_t normalVectorInputAttachmentBinding = 2;
         static const uint32_t positionInputAttachmentBinding     = 3;
-        static const uint32_t depthImageInputAttachmentBinding   = 4; // depth output from subpass 0
 
         //Vertex attrib information
         static const uint32_t numInputBindings              = 0; // Number of vertex attribute buffers we need a binding for
