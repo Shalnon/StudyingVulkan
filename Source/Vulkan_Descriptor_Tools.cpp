@@ -326,7 +326,8 @@ VkPipeline CreateSubpass0Pipeline (VkDevice               logicalDevice,
         /*...VkStructureType.......................sType............*/ VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
         /*...const.void*...........................pNext............*/ 0,
         /*...VkPipelineViewportStateCreateFlags....flags............*/ 0, //reserved for future use as of vk1.3
-        /*...uint32_t..............................viewportCount....*/ 1,
+        /*...uint32_t.........
+        .....................viewportCount....*/ 1,
         /*...const.VkViewport*.....................pViewports.......*/ &viewport,
         /*...uint32_t..............................scissorCount.....*/ 1,
         /*...const.VkRect2D*.......................pScissors........*/ &scissor
@@ -340,7 +341,7 @@ VkPipeline CreateSubpass0Pipeline (VkDevice               logicalDevice,
         /*...VkPipelineDepthStencilStateCreateFlags....flags..................*/ 0,
         /*...VkBool32..................................depthTestEnable........*/ VK_TRUE,
         /*...VkBool32..................................depthWriteEnable.......*/ VK_TRUE,
-        /*...VkCompareOp...............................depthCompareOp.........*/ VK_COMPARE_OP_GREATER,
+        /*...VkCompareOp...............................depthCompareOp.........*/ VK_COMPARE_OP_LESS_OR_EQUAL,
         /*...VkBool32..................................depthBoundsTestEnable..*/ VK_TRUE,
         /*...VkBool32..................................stencilTestEnable......*/ VK_FALSE,
         /*...VkStencilOpState..........................front..................*/ {},

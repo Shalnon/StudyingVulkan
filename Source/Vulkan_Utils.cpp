@@ -1372,7 +1372,7 @@ uint64_t ExecuteRenderLoop (VkDevice                     logicalDevice,
 
     VkClearColorValue colorClearValue = { 0.01f, 0.033f, 0.01f , 1.0f };
 
-    VkClearDepthStencilValue depthClearValue = {/*...float.......depth.....*/ 0.0f,
+    VkClearDepthStencilValue depthClearValue = {/*...float.......depth.....*/ 1.0f,
                                                 /*...uint32_t....stencil...*/ 0 };
  
     PerSwapchainImageResources* pCurrentSwapImageResources = &((*ppPerSwapchainImageResources)[imageIdx]);

@@ -301,20 +301,19 @@ inline uint32_t ChooseMemoryTypeIdx (VkPhysicalDevice      physicalDevice,
 }
 
 
-inline glm::mat4 GetProjection (uint32_t frameWidth,
-                                uint32_t frameHeight,
-                                float    desiredFov)
+inline glm::mat4 GetProjection (float aspectRatio,
+                                float desiredFov)
 {
     float zFar                  = SceneVulkanParameters::zFar;
     float zNear                 = SceneVulkanParameters::zNear;
-    float aspectRatio           = float (frameWidth) / float (frameHeight);
+    //float aspectRatio           = float (frameWidth) / float (frameHeight);
     float halfFov               = desiredFov / 2;
     glm::mat4 projectionFromWeb = glm::mat4 ();
-    projectionFromWeb[0][0] = aspectRatio / tanf (halfFov);
-    projectionFromWeb[1][1] = 1 / tanf (halfFov);
+    projectionFromWeb[0][0] = -aspectRatio / tanf (halfFov);
+    projectionFromWeb[1][1] = -1 / tanf (halfFov); // using negative one to due to Vulkan's flipped viewport
     projectionFromWeb[2][2] = zFar  / (zFar - zNear);
-    projectionFromWeb[2][3] = ((zFar * zNear) / (zFar - zNear));
-    projectionFromWeb[3][2] = -1.0f;
+    projectionFromWeb[2][3] = -1.0f;
+    projectionFromWeb[3][2] = ((zFar * zNear) / (zFar - zNear));
 
     return projectionFromWeb;
 }
