@@ -165,7 +165,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
      
     std::string assetsDirPath = std::string(pAssetDirectory);
     //std::string modelPath     = assetsDirPath + std::string ("\\Models\\monkey_with_color.obj");
-    std::string modelPath = assetsDirPath + std::string ("\\Models\\fullWall\\FULL_WALL_SIM_basic.obj");
+    std::string modelPath = assetsDirPath + std::string ("\\Models\\SteamCrane\\SteamWreckingCrane.obj");
     
 
     printf ("model path = %s\n", modelPath.c_str ());
@@ -177,11 +177,10 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                                                                        /*.uint32_t..........graphicsQueueIndex...*/ queueFamilyIndex,
                                                                                        /*.const.aiScene*....pScene...............*/ pScene);
 
-    const float renderingSurfaceAspectRatio = float (WINDOW_WIDTH) / float (WINDOW_HEIGHT);
-    glm::mat4   projectionMatrix            = glm::perspective (SceneVulkanParameters::horizontal_fov,
-                                                                renderingSurfaceAspectRatio,
-                                                                SceneVulkanParameters::zNear,
-                                                                SceneVulkanParameters::zFar);
+    const float renderingSurfaceAspectRatio = float (WINDOW_HEIGHT) / float (WINDOW_WIDTH);
+
+    glm::mat4   projectionMatrix = GetProjection (renderingSurfaceAspectRatio,
+                                                  SceneVulkanParameters::horizontal_fov);
 
     // Create a vertex and index buffer
     GeometryBufferSet geometrysBuffers = CreateGeometryBuffersAndAABBs (/*.VkPhysicalDevice..physicalDevice.......*/ physicalDevice,
@@ -216,7 +215,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
         /*...mat4...projectionMatrix.......*/ projectionMatrix,
         /*...mat4...normalRotation.........*/ glm::identity<glm::mat4>(),
         /*...vec3...ambient_color..........*/ glm::vec4 (0.12f,  0.12f,  0.12f, 1.0f),
-        /*...vec3...lightLocation..........*/ glm::vec4 (-2.0f, -2.0f,  -2.0f, 1.0f),
+        /*...vec3...lightLocation..........*/ glm::vec4 (-2.0f, 4.0f,  -2.0f, 1.0f),
         /*...vec3...lightIntensities.......*/ glm::vec4 (1.0f,   1.0f,  1.0f, 1.0f)
     };
 

@@ -58,7 +58,7 @@ void main()
 
     vec4 projectedVertexPosition = worldPosition * ubo.projectionMatrix;
 
-    gl_Position           = projectedVertexPosition/projectedVertexPosition.w;
+    gl_Position           = projectedVertexPosition;
     out_color             = ssbo.colors[gl_InstanceIndex].rgb;
     out_normal            = vec4(inNormal,1.0) * ubo.normalRotation; 
     out_worldPosition     = worldPosition;
