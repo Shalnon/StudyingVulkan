@@ -15,7 +15,7 @@ Examples are organized as separate branches:
   * The 3rd project prots Khronos' triangle example to my coding style, windowing and build system.
  
 #### Screenshot from current example
-![4xmsaa](https://drive.google.com/uc?export=view&id=1PjW1O6wcYvLM76xulI2TQ62-6D1-8YH3)  
+![4xmsaa](https://drive.google.com/uc?export=view&id=1QA2deLGV-JO_kfmv_AvpPDvS3FfXR3KG)  
  
 ## Project Goals
 This project was created with a couple main goals in mind:
