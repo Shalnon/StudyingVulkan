@@ -73,8 +73,6 @@ This project was created with a couple main goals in mind:
 ## Issues
    * Background is always black
       * Clear color seems to be discarded when rendering using full screen quad in second subpass.
-   * Some geometry glitches out when to close or far away from camera
-	* Need to add check GPU for MSAA support. Currently the MSAA example just assumes 4xMSAA is supported.
 
 Future goals
   * Futher limit number of resources.
