@@ -16,7 +16,7 @@ Examples are organized as separate branches:
   * The 3rd project ports Khronos' triangle example to my coding style, windowing and build system.
  
  #### Screenshot from current project:
-![noMSAA](https://drive.google.com/uc?export=view&id=1hPElVwnk3XIISojolso9oGK2WCieFvp1)
+![noMSAA](https://drive.google.com/uc?export=view&id=1CC54N7oEdo2NODWzvZZVisyee--MXGWF)
  
 ## Project Goals
 This project was created with a couple main goals in mind:
@@ -75,12 +75,10 @@ This project was created with a couple main goals in mind:
 ## Issues
    * Background is always black
       * Clear color seems to be discarded when rendering using full screen quad in second subpass.
+   * Normals on part of the model need to be corrected in Blender. Some parts of the mesh are black as a result.
 
 Future goals
   * Futher limit number of resources.
    * Use only 2 sets of swapchain image resources instead of creating as many sets of resources as their are available swapchain images. (assuming that number is > 2)
    * There likely doesnt need to be as many staging buffer as there are. Creating a smaller number of staging buffers and structuring the code to reuse them would better.
-  * Add texuring support so that diffuse color GBUFFER images include data read from texutre reads rather than a static material specific color value.
-  * Add normal map support so that the surface normals GBUFFER Image can use based on more than per-triangle normal data.
   * Address remaining @todo items
-  * Create an improved color scheme for wrecking crane model
