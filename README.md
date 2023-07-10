@@ -2,7 +2,7 @@
 
 Examples are organized as separate branches.
 
-### Overview:
+## Overview:
 This Repo contains a set of Vulkan API examples illustrating important fundumental usage scenarios.
 Other than simple triangle, each branch implements a model viewer using a different rendering strategy.
 
