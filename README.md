@@ -35,7 +35,7 @@ This project was created with a couple main goals in mind:
        /*..const.VkVertexInputAttributeDescription*....pVertexAttributeDescriptions......*/ pInputAttributeDescriptions
     };
 ```
-   * Use a pradominately functional programming model to keep the callstack shallow and reduce the amount of cross rerferencing necessary to understand the purpsoe and intention behind a piece of code.
+   * Use a predominately functional programming model to keep the callstack shallow and reduce the amount of cross rerferencing necessary to understand the purpsoe and intention behind a piece of code.
    * Take advantage of subpasses for deferred rendering instead of a series of multiple renderpasses.
    * Use the swapchain and Microsoft windowing system more directly, and avoid using libraries such as GLFW.
 
@@ -74,8 +74,6 @@ This project was created with a couple main goals in mind:
 ## Issues
    * Background is always black
       * Clear color seems to be discarded when rendering using full screen quad in second subpass.
-   * Some geometry glitches out when to close or far away from camera
-	* Need to add check GPU for MSAA support. Currently the MSAA example just assumes 4xMSAA is supported.
 
 Future goals
   * Futher limit number of resources.
