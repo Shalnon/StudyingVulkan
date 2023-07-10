@@ -1,19 +1,18 @@
 # Vulkan Study - Sean Halnon
-Examples are organized as separate branches:
 
-[ForwardRenderer - noMSAA](https://github.com/Shalnon/StudyingVulkan/tree/ForwardRenderer_noMSAA "Forward Renderer - noMSAA")<-- you are here
+Examples are organized as separate branches.
+
+### Overview:
+This Repo contains a set of Vulkan API examples illustrating important fundumental usage scenarios.
+Other than simple triangle, each branch implements a model viewer using a different rendering strategy.
+
+[ForwardRenderer - noMSAA](https://github.com/Shalnon/StudyingVulkan/tree/ForwardRenderer_noMSAA "Forward Renderer - noMSAA")
 
 [Deffered Renderer - 4xMSAA](https://github.com/Shalnon/StudyingVulkan/tree/DeferredRendering_4xMSAA "Deffered Renderer - 4xMSAA")
 
 [Deffered Renderer - noMSAA](https://github.com/Shalnon/StudyingVulkan/tree/Deffered_Renderer_noMSAA "Deffered Renderer - noMSAA")
 
 [Simple Triangle](https://github.com/Shalnon/StudyingVulkan/tree/simpleTriangle "Simple Triangle")
-
-
-### Overview:
-  This Repo contains a set of Vulkan API examples illustrating important fundumental usage scenarios.
-  * The first 2 projects implement a model viewer with defferred rendering.
-  * The 3rd project ports Khronos' triangle example to my coding style, windowing and build system.
  
  #### Screenshot from current project:
 ![noMSAA](https://drive.google.com/uc?export=view&id=1CC54N7oEdo2NODWzvZZVisyee--MXGWF)
