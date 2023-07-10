@@ -20,19 +20,23 @@
 precision highp float;
 //@note: implicitely using GL_KHR_vulkan_glsl
 
-layout(location = 0) in vec3 in_color;
-layout(location = 1) in vec3 in_normal;
-layout(location = 2) in vec3 in_positionOnSurface;
+layout(location = 0) in vec3  in_color;
+layout(location = 1) in float in_distanceFromLight;
+layout(location = 2) in float in_cosaoi;
+
 
 layout(location = 0) out vec3 fragColor;
 
 
-
-layout( binding = 0 ) uniform UniformBufferObject
+layout( binding = 0) uniform UniformBufferObject
 {
     // Scene Transform
     mat4 sceneTransform;
     vec4 sceneScale;
+
+    // Projection matrix
+    mat4 projectionMatrix;
+    mat4 normalRotation;
 
     // Scene ambient color
     vec4  ambient_color;
@@ -42,15 +46,10 @@ layout( binding = 0 ) uniform UniformBufferObject
     vec4 lightIntensities;
 } ubo;
 
-
-
 void main()
 {
-    float distanceFromLight = distance(ubo.lightLocation.xyz,  in_positionOnSurface);
-	vec3  surfaceToLight    = normalize(ubo.lightLocation.xyz- in_positionOnSurface);
-	float cosaoi            = dot(in_normal.xyz, surfaceToLight);
 
-	float Diffuse_Coefficient = max(0.0,cosaoi);
+	float Diffuse_Coefficient = max(0.0,in_cosaoi);
 
 	vec3 Diffuse = in_color * ubo.lightIntensities.xyz * Diffuse_Coefficient;
 

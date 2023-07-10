@@ -349,7 +349,7 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice    physicalDev
     const uint32_t numMeshes = pScene->mNumMeshes;
 
     // Initialize scene aabb with min/max coordinates derived from the first vertex in the first mesh
-    //    Cant initialzie fields with 0, because 0 isnt guarenteed to be inside a meshs actual AABB and could incorrectly set the min or max for some or all axis.
+    //    Cant initialzie fields with 0, because 0 isnt guarenteed to be inside a mesh's actual AABB, and could incorrectly set the min or max for some or all axis.
     VkAabbPositionsKHR sceneAABB =
     {
         /*...float....minX...*/ pScene->mMeshes[0]->mVertices[0].x,
@@ -364,7 +364,7 @@ GeometryBufferSet CreateGeometryBuffersAndAABBs (VkPhysicalDevice    physicalDev
     vulkanAllocatedBufferInfo indexStagingBufferInfo   = {}; // Will correspond to a buffer backed by host visible memory, and will be where vert indices defining primitives will be written
     vulkanAllocatedBufferInfo vertexBufferInfo         = {}; // Will correspond to a buffer backed by gpu local memory, and will be the buffer from which the vertex shader reads vertex data
     vulkanAllocatedBufferInfo indexBufferInfo          = {}; // Will correspond to a buffer backed by gpu local memory, and will contain index data used to determine which vertices form primitives.
-    VkDeviceSize              singleVertexSize         = 0; // Size of all the vertex attributes
+    VkDeviceSize              singleVertexSize         = 0;  // Size of all the vertex attributes
     VkDeviceSize              vertexBufferDataSize     = 0;
     VkDeviceSize              indexBufferDataSize      = 0;
     uint32_t                  sceneTriangleCount       = 0;
@@ -586,7 +586,7 @@ vulkanAllocatedBufferInfo CreateMeshColorsStorageBuffer (VkPhysicalDevice    phy
     // Initialize with size required for the storing the per material values. At this point thats just one color per material.
     VkDeviceSize storageBufferDataSize = numMaterialColors * SceneVulkanParameters::numBytesPerColor;
 
-    //Create a staging buffer which will that the cpu writes color data to
+    //Create a staging buffer that the cpu writes color data to
     vulkanAllocatedBufferInfo storageStagingBufferInfo = CreateAndAllocaStagingBuffer (physicalDevice,
                                                                                        logicalDevice,
                                                                                        storageBufferDataSize,
@@ -612,7 +612,6 @@ vulkanAllocatedBufferInfo CreateMeshColorsStorageBuffer (VkPhysicalDevice    phy
         aiMaterial* pMaterial = pScene->mMaterials[materialIdx];
         aiColor3D   color     = {};
         pMaterial->Get (AI_MATKEY_COLOR_DIFFUSE, color);
-
         //
         const glm::vec3 colorInLinearSpace = { color.r, color.g, color.b };
         glm::vec3       colorInSrgbSpace   = glm::convertLinearToSRGB (colorInLinearSpace);
@@ -645,7 +644,7 @@ vulkanAllocatedBufferInfo CreateMeshColorsStorageBuffer (VkPhysicalDevice    phy
     ExecuteBuffer2BufferCopy (/*...VkPhysicalDevice............physicalDevice........*/ physicalDevice,
                               /*...VkDevice....................logicalDevice.........*/ logicalDevice,
                               /*...VkQueue.....................queue.................*/ queue,
-                              /*...uint32_t....................graphicsQueueIndex......*/ queueFamilyIndex,
+                              /*...uint32_t....................graphicsQueueIndex....*/ queueFamilyIndex,
                               /*...VkDeviceSize................copySize..............*/ storageBufferDataSize,
                               /*...vulkanAllocatedBufferInfo...srcBufferInfo.........*/ storageStagingBufferInfo,   // Src buffer
                               /*...vulkanAllocatedBufferInfo...dstBufferInfo.........*/ colorStorageBufferInfo);    // Dst buffer

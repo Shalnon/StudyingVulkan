@@ -1,0 +1,2 @@
+glslc --target-env=vulkan1.3 -fshader-stage=vert -o .\\forwardRendererShaders\\vert.spv .\\forwardRendererShaders\\forward.vert
+glslc --target-env=vulkan1.3 -fshader-stage=frag -o .\\forwardRendererShaders\\frag.spv .\\forwardRendererShaders\\forward.frag 

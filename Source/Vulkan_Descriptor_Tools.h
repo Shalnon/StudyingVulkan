@@ -21,11 +21,10 @@
 
 // Create descriptor set layout
 VkResult CreateDescriptorSetLayout (VkDevice logicalDevice,
-                                    VkDescriptorSetLayout* subpass0DescriptorSetLayout,
-                                    VkDescriptorSetLayout* subpass1DescriptorSetLayout);
+                                    VkDescriptorSetLayout* subpass0DescriptorSetLayout);
 
 // Create descriptor pool
-VkDescriptorPool CreateDescriptorPool (VkDevice logicalDevice);
+VkDescriptorPool CreateDescriptorPool (VkDevice logicalDevice, uint32_t numSwapChainImages);
 
 
 // Creates pipeline that will be used by the first subpass
@@ -36,14 +35,5 @@ VkPipeline CreateSubpass0Pipeline(VkDevice               logicalDevice,
                                   const char*            fragShaderPath, 
                                   const char*            vertShaderPath,
                                   VkPipelineLayout*      pipelineLayoutHandleOut);
-
-// Creates pipeline that will be used by the second subpass
-VkPipeline CreateSubpass1Pipeline (VkDevice               logicalDevice,
-                                   VkRenderPass           renderpass,
-                                   VkExtent2D*            pExtent,
-                                   VkDescriptorSetLayout  descriptorSetLayoutHandle,
-                                   const char*            fragShaderPath,
-                                   const char*            vertShaderPath,
-                                   VkPipelineLayout*      pPipelineLayoutHandleOut);
 
 #endif // VULKAN_DESCRIPTOR_TOOLS_H

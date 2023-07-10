@@ -112,50 +112,35 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                          /*...PerSwapchainImageResources*..ppPerSwapchainImageResourcesInOut...*/ &pPerSwapchainImageResources);
 
     const uint32_t        numSubpasses                               = SceneVulkanParameters::RenderPassParameters::numSubpasses;
-    VkDescriptorSetLayout pSubpassDescriptorSetLayouts[numSubpasses] = { VK_NULL_HANDLE, VK_NULL_HANDLE };
+    VkDescriptorSetLayout pSubpassDescriptorSetLayouts[numSubpasses] = { VK_NULL_HANDLE };
 
     // Creates the renderpass
     VkRenderPass   renderpassHandle = CreateRenderpass (chosenSurfaceFormat.format, chosenDepthFormat, logicalDevice);
 
     // Creates descriptor set layouts for both descriptor sets.
     CreateDescriptorSetLayout (logicalDevice,
-                               &pSubpassDescriptorSetLayouts[0],
-                               &pSubpassDescriptorSetLayouts[1]);
+                               &pSubpassDescriptorSetLayouts[0]);
 
     // Handles for the pipeline layouts created for each pipeline will be filled in below and than used as an arg to vkCmdBindDescriptorSets when recording the command buffers
-    VkPipelineLayout pPipelineLayoutHandles[numSubpasses] = { VK_NULL_HANDLE, VK_NULL_HANDLE };
+    VkPipelineLayout pPipelineLayoutHandles[numSubpasses] = { VK_NULL_HANDLE };
 
     std::string subpass0FragPath = std::string (pShaderRootDirectory) + std::string (SceneVulkanParameters::Subpass0::pFragShaderPath);
     std::string subpass0VertPath = std::string (pShaderRootDirectory) + std::string (SceneVulkanParameters::Subpass0::pVertShaderPath);
     const char* s0_frag_path = subpass0FragPath.c_str();
     const char* s0_vert_path = subpass0VertPath.c_str ();
 
-    std::string subpass1FragPath = std::string (pShaderRootDirectory) + std::string (SceneVulkanParameters::Subpass1::pFragShaderPath);
-    std::string subpass1VertPath = std::string (pShaderRootDirectory) + std::string (SceneVulkanParameters::Subpass1::pVertShaderPath);
-    const char* s1_frag_path = subpass1FragPath.c_str ();
-    const char* s1_vert_path = subpass1VertPath.c_str ();
 
     printf ("subpass0 - frag: %s\n", s0_frag_path);
     printf ("subpass0 - vert: %s\n", s0_vert_path);
-    printf ("subpass1 - frag: %s\n", s1_frag_path);
-    printf ("subpass1 - vert: %s\n", s1_vert_path);
 
-    // Create the pipeline used by subpass 1 to fill the gbuffer images
-    VkPipeline subpass0Pipeline = CreateSubpass0Pipeline(logicalDevice,
-                                                         renderpassHandle,
-                                                         &actualFrameDimensions,
-                                                         pSubpassDescriptorSetLayouts[0],
-                                                         s0_frag_path,
-                                                         s0_vert_path,
-                                                         &pPipelineLayoutHandles[0]);
-
-    VkPipeline subpass1Pipeline = CreateSubpass1Pipeline (logicalDevice, 
+    // Create the pipeline used by subpass 0
+    VkPipeline subpass0Pipeline = CreateSubpass0Pipeline (logicalDevice,
                                                           renderpassHandle,
                                                           &actualFrameDimensions,
-                                                          pSubpassDescriptorSetLayouts[1],
-                                                          s1_frag_path,
-                                                          s1_vert_path,
-                                                          &pPipelineLayoutHandles[1]);
+                                                          pSubpassDescriptorSetLayouts[0],
+                                                          s0_frag_path,
+                                                          s0_vert_path,
+                                                          &pPipelineLayoutHandles[0]);
 
     CreateFrameBuffers(logicalDevice,
                        renderpassHandle,
@@ -178,18 +163,9 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                                                                        /*.const.aiScene*....pScene...............*/ pScene);
 
     const float renderingSurfaceAspectRatio = float (WINDOW_HEIGHT) / float (WINDOW_WIDTH);
-    //glm::mat4   projectionMatrix            = glm::perspective (SceneVulkanParameters::horizontal_fov,
-    //                                                            renderingSurfaceAspectRatio,
-    //                                                            SceneVulkanParameters::zNear,
-    //                                                            SceneVulkanParameters::zFar);
+    glm::mat4   projectionMatrix            = GetProjection (renderingSurfaceAspectRatio,
+                                                             SceneVulkanParameters::horizontal_fov);
 
-    glm::mat4   projectionMatrix = GetProjection (renderingSurfaceAspectRatio,
-                                                  SceneVulkanParameters::horizontal_fov);
-
-
-    //projectionMatrix = glm::transpose (projectionMatrix);
-    //projectionMatrix[3].w *= -1;
-    //projectionMatrix[2].y *= -1;
 
     // Create a vertex and index buffer
     GeometryBufferSet geometrysBuffers = CreateGeometryBuffersAndAABBs (/*.VkPhysicalDevice..physicalDevice.......*/ physicalDevice,
@@ -223,9 +199,9 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
         /*...vec4...sceneScale.............*/ glm::vec4 (1.0f,   1.0f,  1.0f, 1.0f),
         /*...mat4...projectionMatrix.......*/ projectionMatrix,
         /*...mat4...normalRotation.........*/ glm::identity<glm::mat4> (),
-        /*...vec3...ambient_color..........*/ glm::vec4 (0.12f,  0.12f,  0.12f, 1.0f),
-        /*...vec3...lightLocation..........*/ glm::vec4 (-2.0f, 4.0f,  -2.0f, 1.0f),
-        /*...vec3...lightIntensities.......*/ glm::vec4 (1.0f,   1.0f,  1.0f, 1.0f)
+        /*...vec4...ambient_color..........*/ glm::vec4 (0.12f,  0.12f,  0.12f, 1.0f),
+        /*...vec4...lightLocation..........*/ glm::vec4 (-2.0f, 4.0f,  -2.0f, 1.0f),
+        /*...vec4...lightIntensities.......*/ glm::vec4 (1.0f,   1.0f,  1.0f, 1.0f)
     };
 
     // Creates UBO and fills it with data. Contains scene transform
@@ -236,7 +212,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                                                        &initialUboBufferData,
                                                                        true);
 
-    VkDescriptorPool descriptorPoolHandle  = CreateDescriptorPool (logicalDevice);
+    VkDescriptorPool descriptorPoolHandle  = CreateDescriptorPool (logicalDevice, numSwapChainImages);
 
     // Descriptor set containing a storage buffer and uniform buffer descriptor:
     //   || Only need one descriptor set for the first subpass is needed because the buffers used to back the ssbo and ubo
@@ -247,40 +223,11 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                                                                          uniformBufferInfo.bufferHandle,
                                                                                          colorsStorageBufferInfo.bufferHandle);
 
-    // We will create multiple instances of the resources that are algorithmically tied to a specific swapchain image.
-    //   || Per-swapchain-image descriptor-sets will be created that can be bound when recording commands that will render to said image,
-    //   || Pointing the shader to the correct swapchain-image-specific buffers/images.
-    for (uint32_t swapIdx = 0; swapIdx < numSwapChainImages; swapIdx++)
-    {
-#ifdef DEBUG
-        printf ("Creating descriptor set for swapchainImageResourceSet[%u].\n", swapIdx);
-#endif
-
-        PerSwapchainImageResources* pSwapchainImageResourceSet = &pPerSwapchainImageResources[swapIdx];
-        VkDescriptorSet             subpass1DescriptorSet      = AllocateAndWriteSubpass1DescriptorSet (logicalDevice,
-                                                                                                        descriptorPoolHandle,
-                                                                                                        pSubpassDescriptorSetLayouts[1],
-                                                                                                        pSwapchainImageResourceSet->diffuseImageViewHandle,
-                                                                                                        pSwapchainImageResourceSet->normalsImageViewHandle,
-                                                                                                        pSwapchainImageResourceSet->positionImageViewHandle,
-                                                                                                        pSwapchainImageResourceSet->depthImageViewHandle,
-                                                                                                        uniformBufferInfo.bufferHandle);
-
-        pSwapchainImageResourceSet->subpass1DesciptorSetHandle = subpass1DescriptorSet;
-    }
-
     PerSubpassRenderParameters   subpass0Parameters =
     {
         /*...VkDescriptorSet...descriptorSet....*/ subpass0DescriptorSet,
         /*...VkPipeline........pipeline.........*/ subpass0Pipeline,
         /*...VkPipelineLayout..pipelineLayout...*/ pPipelineLayoutHandles[0] // Needed when binding the descriptor set
-    };
-
-    PerSubpassRenderParameters   subpass1Parameters =
-    {
-        /*...VkDescriptorSet...descriptorSet....*/ VK_NULL_HANDLE, // Set inside render loop. Need a swapchain index first to figure out which descriptor set to bind
-        /*...VkPipeline........pipeline.........*/ subpass1Pipeline,
-        /*...VkPipelineLayout..pipelineLayout...*/ pPipelineLayoutHandles[1] // Needed when binding the descriptor set
     };
 
     bool      exitKeyPressed       = false;
@@ -310,7 +257,6 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                            /*...VkSwapchainKHR...............swapchain......................*/ swapchain,
                            /*...VkQueue......................queue..........................*/ queue,
                            /*...PerSubpassRenderParameters*..pSubpass0Parameters............*/ &subpass0Parameters,
-                           /*...PerSubpassRenderParameters*..pSubpass1Parameters............*/ &subpass1Parameters,
                            /*...uint32_t.....................gfxQueueIdx....................*/ queueFamilyIndex,
                            /*...uint32_t.....................numPreferredSwapchainFormats...*/ numPreferredSurfaceFormats,
                            /*...uint32_t.....................numPreferredDepthFormats.......*/ numPreferredDepthFormats,
@@ -329,6 +275,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
         CheckForAndDispatchWindowEventMessages (); // This makes sure that WndProc gets called when keyboard or mouse buttons are pressed, or any other window events.
 
 
+        // Do keyboard handling
         if (KeyStates::rightArrowKeyPressed)
         {
             currentSceneRotation.y -= rotationRate;
@@ -394,29 +341,6 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                 vkDestroyFramebuffer (logicalDevice, pSwapImageResources->framebufferHandle, nullptr);
             }
 
-            // If nothing has gone wrong already, than it can probably be safely assumed that if the image handle is not null,
-            //   than the memory and view are also not null.
-            if (pSwapImageResources->diffuseImageHandle != VK_NULL_HANDLE)
-            {
-                vkDestroyImage (logicalDevice, pSwapImageResources->diffuseImageHandle, nullptr);
-                vkFreeMemory (logicalDevice, pSwapImageResources->diffuseImageMemoryHandle, nullptr);
-                vkDestroyImageView (logicalDevice, pSwapImageResources->diffuseImageViewHandle, nullptr);
-            }
-
-            if (pSwapImageResources->normalsImageHandle != VK_NULL_HANDLE)
-            {
-                vkDestroyImage (logicalDevice, pSwapImageResources->normalsImageHandle, nullptr);
-                vkFreeMemory (logicalDevice, pSwapImageResources->normalsImageMemoryHandle, nullptr);
-                vkDestroyImageView (logicalDevice, pSwapImageResources->normalsImageViewHandle, nullptr);
-            }
-
-            if (pSwapImageResources->positionImageHandle != VK_NULL_HANDLE)
-            {
-                vkDestroyImage (logicalDevice, pSwapImageResources->positionImageHandle, nullptr);
-                vkFreeMemory (logicalDevice, pSwapImageResources->positionImageMemoryHandle, nullptr);
-                vkDestroyImageView (logicalDevice, pSwapImageResources->positionImageViewHandle, nullptr);
-            }
-
             if (pSwapImageResources->framebufferHandle)
             {
                 vkDestroyFramebuffer (logicalDevice, pSwapImageResources->framebufferHandle, nullptr);
@@ -441,11 +365,6 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
         if (subpass0Pipeline != VK_NULL_HANDLE)
         {
             vkDestroyPipeline (logicalDevice, subpass0Pipeline, nullptr);
-        }
-
-        if (subpass1Pipeline != VK_NULL_HANDLE)
-        {
-            vkDestroyPipeline (logicalDevice, subpass1Pipeline, nullptr);
         }
 
         if (swapchain != VK_NULL_HANDLE)

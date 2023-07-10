@@ -21,9 +21,9 @@ precision highp float;
 layout(location = 0) in  vec3 inPosition;
 layout(location = 1) in  vec3 inNormal;
 
-layout(location = 0)      out vec3 out_color;
-layout(location = 1)      out vec3 out_normal;
-layout(location = 2)      out vec3 out_positionOnSurface;
+layout(location = 0)      out vec3  out_color;
+layout(location = 1)      out float out_distanceFromLight;
+layout(location = 2)      out float out_cosaoi;
 
 
 layout( binding = 0) uniform UniformBufferObject
@@ -31,6 +31,10 @@ layout( binding = 0) uniform UniformBufferObject
     // Scene Transform
     mat4 sceneTransform;
     vec4 sceneScale;
+
+    // Projection matrix
+    mat4 projectionMatrix;
+    mat4 normalRotation;
 
     // Scene ambient color
     vec4  ambient_color;
@@ -47,14 +51,17 @@ layout( binding = 1) readonly buffer MaterialsSSBO
 
 void main()
 {
-    mat4 meshTransform = ubo.sceneTransform;
+    vec4 worldPosition = vec4(inPosition.xyz, 1.0) * ubo.sceneTransform;
 
-    vec4 vpos = vec4(inPosition.xyz, 1.0) * meshTransform;
+    vec4 rotatedNormal = vec4(inNormal,1.0) * ubo.normalRotation;
+    worldPosition *=  ubo.sceneScale;
 
-    out_positionOnSurface = vpos.xyz;
+    float distanceToLight = distance(ubo.lightLocation.xyz, worldPosition.xyz);
+	vec3  surfaceToLight  = normalize(ubo.lightLocation.xyz - worldPosition.xyz);
 
-    vpos *=  ubo.sceneScale;
-    gl_Position           = vpos;
+    out_cosaoi            = dot(rotatedNormal.xyz, surfaceToLight);;
     out_color             = ssbo.colors[gl_InstanceIndex].rgb;
-    out_normal            = inNormal;
+    out_distanceFromLight = distanceToLight;
+
+    gl_Position           = worldPosition * ubo.projectionMatrix;
 }

@@ -41,21 +41,8 @@ struct PerSwapchainImageResources
     VkDeviceMemory  depthImageMemoryHandle;
     VkImage         depthImageHandle;
     VkImageView     depthImageViewHandle;
-
-    VkDeviceMemory  normalsImageMemoryHandle;
-    VkImage         normalsImageHandle;
-    VkImageView     normalsImageViewHandle;
-
-    VkDeviceMemory  diffuseImageMemoryHandle;
-    VkImage         diffuseImageHandle;
-    VkImageView     diffuseImageViewHandle;
-
-    VkDeviceMemory  positionImageMemoryHandle;
-    VkImage         positionImageHandle;
-    VkImageView     positionImageViewHandle;
-
+   
     VkFramebuffer   framebufferHandle;
-    VkDescriptorSet subpass1DesciptorSetHandle;
 
     VkBuffer        bufferUpdatesStagingBuffer;
     VkDeviceMemory  bufferUpdatesStagingMemory;
@@ -168,7 +155,6 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                            VkSwapchainKHR               swapchain,
                            VkQueue                      queue,
                            PerSubpassRenderParameters*  pSubpass0Parameters,
-                           PerSubpassRenderParameters*  pSubpass1Parameters,
                            uint32_t                     gfxQueueIdx,
                            uint32_t                     numPreferredSwapchainFormats,
                            uint32_t                     numPreferredDepthFormats,
@@ -201,7 +187,6 @@ VkSwapchainKHR ReinitializeRenderungSurface(VkDevice                     logical
 VkCommandBuffer RecordRenderGeometryBufferCmds(GeometryBufferSet*          pGeometryBufferSet,
                                                PerSwapchainImageResources* pPerSwapchainImageResources,
                                                PerSubpassRenderParameters* pSubpass0Parameters,
-                                               PerSubpassRenderParameters* pSubpass1Parameters,
                                                vulkanAllocatedBufferInfo*  pUniformBufferInfo,
                                                VkRenderPass                renderPass,
                                                VkExtent2D*                 pExtent,
@@ -259,16 +244,6 @@ VkDescriptorSet AllocateAndWriteSubpass0DescriptorSet (VkDevice               lo
                                                        VkDescriptorSetLayout  descriptorSetLayoutHandle,
                                                        VkBuffer               uniformBufferHandle,
                                                        VkBuffer               storageBufferHandle);
-
-// Allocates a descriptor set with 3 descriptors of type VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT
-VkDescriptorSet AllocateAndWriteSubpass1DescriptorSet (VkDevice               logicalDevice,
-                                                       VkDescriptorPool       descriptorPoolHandle,
-                                                       VkDescriptorSetLayout  descriptorSetLayoutHandle,
-                                                       VkImageView            diffuseColorImageViewHandle,
-                                                       VkImageView            normalVectorImageViewHandle,
-                                                       VkImageView            positionVectorImageViewHandle,
-                                                       VkImageView            depthStencilImageViewHandle,
-                                                       VkBuffer               uniformBufferHandle);
 
 
 // Returns memory index of memory type that meets the requirements based on the  memRequirements and requiredPropertyFlags args

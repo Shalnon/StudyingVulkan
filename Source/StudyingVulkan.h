@@ -62,7 +62,7 @@
 
 namespace SceneVulkanParameters
 {
-    static const uint32_t numDescriptorTypesUsedInScene        = 3;
+    static const uint32_t numDescriptorTypesUsedInScene        = 2; // ssbo, ubo
     static const uint32_t numUboDescriptorsInScene             = 1;
     static const uint32_t numSsboDescriptorsInScene            = 1;
     static const uint32_t numInputAttachmentDescriptorsInScene = 4;
@@ -97,22 +97,20 @@ namespace SceneVulkanParameters
     };
     namespace RenderPassParameters
     {
-        static const uint32_t numColorAttachments = 2; // diffuse, normal, position, present
-        static const uint32_t numDepthAttachments = 1; // used as depth attachment in subpass 0, than as an input attachment in subpass 1
-        static const uint32_t numSubpasses        = 1;
-        static const uint32_t totalNumAttachments = numColorAttachments + numDepthAttachments;
+        static const uint32_t numPresentColorAttachments = 1;
+        static const uint32_t numColorAttachment         = numPresentColorAttachments;
+        static const uint32_t numDepthAttachments        = 1; // used as depth attachment in subpass 0, than as an input attachment in subpass 1
+        static const uint32_t totalNumAttachments        = numColorAttachment + numDepthAttachments;
 
-        // Renderpass Color attachments indeces
+        static const uint32_t numSubpasses               = 1;
+
+        // Renderpass attachment indeces
         static const uint32_t swapchainColorAttachmentIndex = 0;
-        static const uint32_t diffuseColorAttachmentIndex   = 1;
-        static const uint32_t surfaceNormalAttachmentIndex  = 2;
-        static const uint32_t positionAttachmentIndex       = 3;
-        static const uint32_t depthStencilAttachmentIndex   = 4;
+        static const uint32_t depthStencilAttachmentIndex   = 1;
     }
     namespace Subpass0
     {
-        //@note: Subpass 0 doesnt write to the swapchain color attachment.
-        static const uint32_t numColorAttachments = 2; //diffuse color + normal + position gbuffer images
+        static const uint32_t numColorAttachments = 1;
         static const uint32_t numDepthAttachments = 1;
 
         static const uint32_t depthAttachmentIndex = RenderPassParameters::depthStencilAttachmentIndex;
@@ -131,18 +129,12 @@ namespace SceneVulkanParameters
         static const uint32_t vertexLocationAttributePosition = 0;
         static const uint32_t vertexNormalAttributePosition   = 1;
 
-        static const char* pFragShaderPath = "/ForwareRendererShaders/frag.spv";
-        static const char* pVertShaderPath = "/ForwardRendererShaders/vert.spv";
+        static const char* pFragShaderPath = "/forwardRendererShaders/frag.spv";
+        static const char* pVertShaderPath = "/forwardRendererShaders/vert.spv";
     }
-
 
     static const uint32_t minSemaphoreListSize    = 64;
     static const uint32_t semaphoreListGrowthRate = 64;
-
-
-    static const VkFormat normalVectorGbufferImageFormat   = VK_FORMAT_R16G16B16A16_SNORM;
-    static const VkFormat positionVectorGbufferImageFormat = VK_FORMAT_R32G32B32A32_SFLOAT;//VK_FORMAT_R16G16B16A16_SFLOAT;
-    static const VkFormat diffuseColorGbufferImageFormat   = VK_FORMAT_B8G8R8A8_UNORM;
 
     static const uint32_t numPreferredSwapchainFormats                                   = 2;
     static const uint32_t numPreferredDepthFormats                                       = 2;
@@ -183,7 +175,7 @@ struct AttributeInfo
     VkFormat format;           // The format of the data : determines which data goes to which xyzw component
 };
 
-// All attributes will come from the same buffer for now
+// All attributes will come from the same buffer
 static AttributeInfo s_VertexShaderAttributes[] =
 {
     { // POSITION ATTRIBUTE
