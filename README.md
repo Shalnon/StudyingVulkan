@@ -1,7 +1,7 @@
 # Vulkan Study - Sean Halnon
 Examples are organized as separate branches:
 
-[ForwardRenderer - noMSAA](https://github.com/Shalnon/StudyingVulkan.git "Forward Renderer - noMSAA")<-- you are here
+[ForwardRenderer - noMSAA](https://github.com/Shalnon/StudyingVulkan/tree/ForwardRenderer_noMSAA "Forward Renderer - noMSAA")<-- you are here
 
 [Deffered Renderer - 4xMSAA](https://github.com/Shalnon/StudyingVulkan/tree/DeferredRendering_4xMSAA "Deffered Renderer - 4xMSAA")
 
