@@ -46,7 +46,7 @@ VkResult CreateDescriptorSetLayout (VkDevice logicalDevice,
     *******************************************/
 
     const uint32_t numSubpass0LayoutBindings = SceneVulkanParameters::Subpass0::numDescriptorSetLayoutBindings; // Subpass 0: uses an SSBO and a UBO
-    const uint32_t numSubpass1LayoutBindings = SceneVulkanParameters::Subpass1::numDescriptorSetLayoutBindings; // Subpass 1: Uses 4 input attachments and the same ubo
+    const uint32_t numSubpass1LayoutBindings = SceneVulkanParameters::Subpass1::numDescriptorSetLayoutBindings; // Subpass 1: Uses 3 input attachments and the same ubo
 
     VkDescriptorSetLayoutBinding pDescriptorSet0BindingsLayout[numSubpass0LayoutBindings] =
     {

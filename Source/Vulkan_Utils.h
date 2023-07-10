@@ -54,9 +54,9 @@ struct PerSwapchainImageResources
     VkImage         positionImageHandle;
     VkImageView     positionImageViewHandle;
 
-    VkDeviceMemory  pResolveAttachmentsMem[SceneVulkanParameters::Subpass0::numSubpassColorAttachments];
-    VkImage         pResolveImageHandles[SceneVulkanParameters::Subpass0::numSubpassColorAttachments];
-    VkImageView     pResolveImageViews[SceneVulkanParameters::Subpass0::numSubpassColorAttachments];
+    VkDeviceMemory  pResolveAttachmentsMem[SceneVulkanParameters::Subpass0::numSubpassResolveAttachments];
+    VkImage         pResolveImageHandles[SceneVulkanParameters::Subpass0::numSubpassResolveAttachments];
+    VkImageView     pResolveImageViews[SceneVulkanParameters::Subpass0::numSubpassResolveAttachments];
 
 
     VkFramebuffer   framebufferHandle;
@@ -267,7 +267,7 @@ VkDescriptorSet AllocateAndWriteSubpass0DescriptorSet (VkDevice               lo
                                                        VkBuffer               uniformBufferHandle,
                                                        VkBuffer               storageBufferHandle);
 
-// Allocates a descriptor set with 3 descriptors of type VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT
+// Allocates a descriptor set with 3 descriptors of type VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT and one of type VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
 VkDescriptorSet AllocateAndWriteSubpass1DescriptorSet (VkDevice               logicalDevice,
                                                        VkDescriptorPool       descriptorPoolHandle,
                                                        VkDescriptorSetLayout  descriptorSetLayoutHandle,
@@ -315,7 +315,7 @@ inline glm::mat4 GetProjection (float aspectRatio,
     float halfFov               = desiredFov / 2;
     glm::mat4 projectionFromWeb = glm::mat4 ();
     projectionFromWeb[0][0] = -aspectRatio / tanf (halfFov);
-    projectionFromWeb[1][1] = -1 / tanf (halfFov); // using negative one to due to Vulkan's flipped viewport
+    projectionFromWeb[1][1] = -1 / tanf (halfFov); // using  -1 due to Vulkan's flipped(relative to GL) viewport
     projectionFromWeb[2][2] = zFar  / (zFar - zNear);
     projectionFromWeb[2][3] = -1.0f;
     projectionFromWeb[3][2] = ((zFar * zNear) / (zFar - zNear));

@@ -1,5 +1,10 @@
 # Vulkan Study - Sean Halnon
-Examples are organized as separate branches:
+
+Examples are organized as separate branches.
+
+### Overview:
+This Repo contains a set of Vulkan API examples illustrating important fundumental usage scenarios.
+Other than simple triangle, each branch implements a model viewer using a different rendering strategy.
 
 [ForwardRenderer - noMSAA](https://github.com/Shalnon/StudyingVulkan/tree/ForwardRenderer_noMSAA "Forward Renderer - noMSAA")
 
@@ -7,13 +12,7 @@ Examples are organized as separate branches:
 
 [Deffered Renderer - noMSAA](https://github.com/Shalnon/StudyingVulkan/tree/Deffered_Renderer_noMSAA "Deffered Renderer - noMSAA")
 
-
 [Simple Triangle](https://github.com/Shalnon/StudyingVulkan/tree/simpleTriangle "Simple Triangle")
-
-### Overview:
-  This Repo contains a set of Vulkan API examples illustrating important fundumental usage scenarios.
-  * The first 2 projects implement a model viewer with defferred rendering.
-  * The 3rd project ports Khronos' triangle example to my coding style, windowing and build system.
  
 #### Screenshot from current example
 ![4xmsaa](https://drive.google.com/uc?export=view&id=1QA2deLGV-JO_kfmv_AvpPDvS3FfXR3KG)  
@@ -46,8 +45,8 @@ This project was created with a couple main goals in mind:
 
 ## Requirements
    * Windows
-	* Vulkan 1.3
-	* Vulkan SDK
+   * Vulkan 1.3
+   * Vulkan SDK
 
 ## Build
    This project uses cmake.
@@ -85,4 +84,4 @@ Future goals
   * Add texuring support so that diffuse color GBUFFER images include data read from texutre reads rather than a static material specific color value.
   * Add normal map support so that the surface normals GBUFFER Image can use based on more than per-triangle normal data.
   * Address remaining @todo items
-  * Create an improved color scheme for wrecking crane model
+  * Fix messed up normals present in the model file.
