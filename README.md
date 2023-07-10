@@ -14,7 +14,7 @@ Examples are organized as separate branches:
   * The 3rd project ports Khronos' triangle example to my coding style, windowing and build system.
  
  #### Screenshot from current project:
-![noMSAA](https://drive.google.com/uc?export=view&id=1nErmVGOcr034Orh9-6ExPhmkW1GHn6nN)
+![noMSAA](https://drive.google.com/uc?export=view&id=1hPElVwnk3XIISojolso9oGK2WCieFvp1)
  
 ## Project Goals
 This project was created with a couple main goals in mind:
@@ -73,8 +73,6 @@ This project was created with a couple main goals in mind:
 ## Issues
    * Background is always black
       * Clear color seems to be discarded when rendering using full screen quad in second subpass.
-   * Some geometry glitches out when to close or far away from camera
-	* Need to add check GPU for MSAA support. Currently the MSAA example just assumes 4xMSAA is supported.
 
 Future goals
   * Futher limit number of resources.
