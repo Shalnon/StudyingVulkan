@@ -193,15 +193,13 @@ bool CreatePhysicalDeviceAndQueue(VkInstance                instance,
                                   VkDevice*                 pLogicalDeviceOut,
                                   uint32_t*                 pQueueIndexOut)
 {
-    VkResult         result;
-
+    VkResult          result           = VK_INCOMPLETE;
     uint32_t          deviceCount      = GetPhysicalDeviceCount(instance);
     VkPhysicalDevice* pPhysicalDevices = static_cast<VkPhysicalDevice*>(calloc(sizeof(VkPhysicalDevice), deviceCount));
     assert(pPhysicalDevices);
 
     //Fill in pPhysicalDevices array
     result = vkEnumeratePhysicalDevices(instance, &deviceCount, pPhysicalDevices);
-
 
     assert(result == VK_SUCCESS);
 
@@ -210,37 +208,35 @@ bool CreatePhysicalDeviceAndQueue(VkInstance                instance,
     bool     FoundSuitableQueueDeviceCombo = false;
     uint32_t deviceIdx                     = 0;
 
-    VkPhysicalDeviceFeatures         physicalDeviceFeatures    = {};
-    VkPhysicalDeviceProperties       physicalDeviceProperties  = {};
-    //VkPhysicalDeviceFeatures2        physicalDeviceFeatures2   = {};
-    //
-    //VkPhysicalDeviceMultisampledRenderToSingleSampledFeaturesEXT multiSampleRenderToSingleSample =
-    //{
-    //    /*...VkStructureType....sType...............................*/ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_FEATURES_EXT,
-    //    /*...void*..............pNext...............................*/ nullptr,
-    //    /*...VkBool32...........multisampledRenderToSingleSampled...*/ VK_TRUE
-    //};
-     //physicalDeviceFeatures2.pNext = reinterpret_cast<void*>(&multiSampleRenderToSingleSample);
+    VkPhysicalDeviceProperties       physicalDeviceProperties       = {};
+    VkPhysicalDeviceFeatures2        physicalDeviceFeatures2        = {};
+    VkPhysicalDeviceVulkan13Features physicalDeviceVulkan13Features = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES, };
 
     while ((FoundSuitableQueueDeviceCombo == false) && (deviceIdx < deviceCount))
     {
+        physicalDeviceProperties = {};
+        physicalDeviceFeatures2  = {};
+
+        if (SceneVulkanParameters::enableSynchronization2Feature == VK_TRUE)
+        {
+            physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+            physicalDeviceFeatures2.pNext = &physicalDeviceVulkan13Features;
+        }
+
         VkPhysicalDevice physicalDevice = pPhysicalDevices[deviceIdx];
 
-        physicalDeviceFeatures   = {};
-        physicalDeviceProperties = {};
-
-        vkGetPhysicalDeviceFeatures(physicalDevice, &physicalDeviceFeatures);
+        vkGetPhysicalDeviceFeatures (physicalDevice, &(physicalDeviceFeatures2.features)); // According to the spec, the call to vkGetPhysicalDeviceFeatures2 should fill in physicalDeviceFeatures2.features, however on my current driver leaves it empty(rtx3080). So this explicit call is needed
         vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
-        //vkGetPhysicalDeviceFeatures2KHR (physicalDevice, &physicalDeviceFeatures2);
-//
-//        if (multiSampleRenderToSingleSample.multisampledRenderToSingleSampled == VK_TRUE)
-//        {
-//            printf ("multisampledRenderToSingleSampled is SUPPORTED by gpu[%u]\n", deviceIdx);
-//        }
-//        else
-//        {
-//            printf ("multisampledRenderToSingleSampled is UNSUPPORTED by gpu[%u]\n", deviceIdx);
-//        }
+
+        if (SceneVulkanParameters::enableSynchronization2Feature == VK_TRUE)
+        {
+            vkGetPhysicalDeviceFeatures2 (physicalDevice, &physicalDeviceFeatures2);  // This is supposed to fill in physicalDeviceFeatures2, and  physicalDeviceVulkan13Features which is in the pNext chain of physicalDeviceFeatures2.
+        }
+
+        printf ("Device api version: %u.%u.%u\n", VK_VERSION_MAJOR(physicalDeviceProperties.apiVersion),
+                                                  VK_API_VERSION_MINOR(physicalDeviceProperties.apiVersion),
+                                                  VK_API_VERSION_PATCH(physicalDeviceProperties.apiVersion));
+
 
         uint32_t                 queueFamilyPropertyCount = GetPhysicalDeviceQueueFamilyPropertyCount(physicalDevice);//queue family property count is the count of queue families i think
         VkQueueFamilyProperties* pQueueFamilyProperties   = static_cast<VkQueueFamilyProperties*>(calloc(queueFamilyPropertyCount, sizeof(VkQueueFamilyProperties)));
@@ -284,34 +280,40 @@ bool CreatePhysicalDeviceAndQueue(VkInstance                instance,
         /*..const.float*................pQueuePriorities.....*/ &queuePriority
     };
 
-    VkPhysicalDeviceVulkan13Features vulkan13Features =
+    if (physicalDeviceVulkan13Features.synchronization2 == VK_TRUE) { printf ("Vulkan13Features.synchronization2 is supported!\n"); }
+
+    // Assert to make sure that synchronization 2 is supported if were planning on using it.
+    assert ((physicalDeviceVulkan13Features.synchronization2 == VK_TRUE) || (SceneVulkanParameters::enableSynchronization2Feature == VK_FALSE));
+
+    physicalDeviceVulkan13Features =
     {
-        /*...VkStructureType....sType................................................*/ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-        /*...void*..............pNext................................................*/ nullptr,
-        /*...VkBool32...........robustImageAccess....................................*/ false,
-        /*...VkBool32...........inlineUniformBlock...................................*/ false,
-        /*...VkBool32...........descriptorBindingInlineUniformBlockUpdateAfterBind...*/ false,
-        /*...VkBool32...........pipelineCreationCacheControl.........................*/ false,
-        /*...VkBool32...........privateData..........................................*/ false,
-        /*...VkBool32...........shaderDemoteToHelperInvocation.......................*/ false,
-        /*...VkBool32...........shaderTerminateInvocation............................*/ false,
-        /*...VkBool32...........subgroupSizeControl..................................*/ false,
-        /*...VkBool32...........computeFullSubgroups.................................*/ false,
-        /*...VkBool32...........synchronization2.....................................*/ false, // Enabling synchronization2
-        /*...VkBool32...........textureCompressionASTC_HDR...........................*/ false,
-        /*...VkBool32...........shaderZeroInitializeWorkgroupMemory..................*/ false,
-        /*...VkBool32...........dynamicRendering.....................................*/ false,
-        /*...VkBool32...........shaderIntegerDotProduct..............................*/ false,
-        /*...VkBool32...........maintenance4.........................................*/ false,
+        /*..VkStructureType..sType................................................*/ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+        /*..void*............pNext................................................*/ VK_FALSE,
+        /*..VkBool32.........robustImageAccess....................................*/ VK_FALSE,
+        /*..VkBool32.........inlineUniformBlock...................................*/ VK_FALSE,
+        /*..VkBool32.........descriptorBindingInlineUniformBlockUpdateAfterBind...*/ VK_FALSE,
+        /*..VkBool32.........pipelineCreationCacheControl.........................*/ VK_FALSE,
+        /*..VkBool32.........privateData..........................................*/ VK_FALSE,
+        /*..VkBool32.........shaderDemoteToHelperInvocation.......................*/ VK_FALSE,
+        /*..VkBool32.........shaderTerminateInvocation............................*/ VK_FALSE,
+        /*..VkBool32.........subgroupSizeControl..................................*/ VK_FALSE,
+        /*..VkBool32.........computeFullSubgroups.................................*/ VK_FALSE,
+        /*..VkBool32.........synchronization2.....................................*/ SceneVulkanParameters::enableSynchronization2Feature,
+        /*..VkBool32.........textureCompressionASTC_HDR...........................*/ VK_FALSE,
+        /*..VkBool32.........shaderZeroInitializeWorkgroupMemory..................*/ VK_FALSE,
+        /*..VkBool32.........dynamicRendering.....................................*/ VK_FALSE,
+        /*..VkBool32.........shaderIntegerDotProduct..............................*/ VK_FALSE,
+        /*..VkBool32.........maintenance4.........................................*/ VK_FALSE,
     };
 
-    VkPhysicalDeviceFeatures featuresToEnable = {};
-    featuresToEnable.depthBounds = true;
+    VkPhysicalDeviceFeatures featuresToEnable             = {};
+                             featuresToEnable.depthBounds = true;
 
+    const void*        pNextChain       = SceneVulkanParameters::enableSynchronization2Feature ? &physicalDeviceVulkan13Features : nullptr;
     VkDeviceCreateInfo deviceCreateInfo =
     {
         /*....VkStructureType....................sType.......................*/ VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-        /*....const.void*........................pNext.......................*/ &vulkan13Features,
+        /*....const.void*........................pNext.......................*/ pNextChain,
         /*....VkDeviceCreateFlags................flags.......................*/ 0,
         /*....uint32_t...........................queueCreateInfoCount........*/ 1,
         /*....const.VkDeviceQueueCreateInfo*.....pQueueCreateInfos...........*/ &queueInfo,
@@ -588,7 +590,7 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
                                      SceneVulkanParameters::colorAttachmentSamples,
                                      VK_FALSE); // cant be used as an input attachment
 
-        // Create image that will contain surface normal vectors
+        // Create image that will contain sample world position locations
         VkImage*        pPositionImage               = &( pPerSwapchainImageResources[swapIdx].positionImageHandle       );
         VkDeviceMemory* pPositionImageMem            = &( pPerSwapchainImageResources[swapIdx].positionImageMemoryHandle );
         VkImageView*    pPositionImageView           = &( pPerSwapchainImageResources[swapIdx].positionImageViewHandle   );
@@ -743,22 +745,25 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
     VkFormat resolveFormats[] = { swapChainFormat,
                                   SceneVulkanParameters::normalVectorGbufferImageFormat,
                                   SceneVulkanParameters::positionVectorGbufferImageFormat };
+
+#if DEBUG
+    assert ((sizeof (resolveFormats) / sizeof (VkFormat)) == SceneVulkanParameters::Subpass0::numSubpassResolveAttachments);
+#endif
                                   
 
     for (uint32_t i = 0; i < SceneVulkanParameters::Subpass0::numSubpassResolveAttachments; i++)
     {
-
         pColorResolveAttachments[i] =
         {
             /*..VkAttachmentDescriptionFlags....flags............*/ 0,
             /*..VkFormat........................format...........*/ resolveFormats[i],
             /*..VkSampleCountFlagBits...........samples..........*/ SceneVulkanParameters::resolveAttachmentSamples, // Resolve attachment gets the average of the 4 samples from a corresponding color attachment
             /*..VkAttachmentLoadOp..............loadOp...........*/ VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-            /*..VkAttachmentStoreOp.............storeOp..........*/ VK_ATTACHMENT_STORE_OP_STORE,
+            /*..VkAttachmentStoreOp.............storeOp..........*/ VK_ATTACHMENT_STORE_OP_DONT_CARE, // the gbuffer images arent used outside of the renderpass, so this store op doesnt matter since the store op occurs at the end of the renderpass.
             /*..VkAttachmentLoadOp..............stencilLoadOp....*/ VK_ATTACHMENT_LOAD_OP_DONT_CARE,  // Not using stencil so dont care
             /*..VkAttachmentStoreOp.............stencilStoreOp...*/ VK_ATTACHMENT_STORE_OP_DONT_CARE, // Not using stencil so dont care
             /*..VkImageLayout...................initialLayout....*/ VK_IMAGE_LAYOUT_UNDEFINED,
-            /*..VkImageLayout...................finalLayout......*/ VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL // Layout used for input attachments
+            /*..VkImageLayout...................finalLayout......*/ VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
         };
     }
 
@@ -852,19 +857,18 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
         }
     };
 
-    static const uint32_t numDependencies                      = 3;
-    VkSubpassDependency   subpassDependencies[numDependencies] =
+    VkSubpassDependency   subpassDependencies[] =
     {
-        {
+        { // This dependency ensures that previous reads and writes of the color attachments have completed, and are both availabl/visible before subpass 0
             /*....uint32_t................srcSubpass..........*/ VK_SUBPASS_EXTERNAL,
             /*....uint32_t................dstSubpass..........*/ 0,
-            /*....VkPipelineStageFlags....srcStageMask........*/ VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            /*....VkPipelineStageFlags....srcStageMask........*/ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
             /*....VkPipelineStageFlags....dstStageMask........*/ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            /*....VkAccessFlags...........srcAccessMask.......*/ VK_ACCESS_SHADER_READ_BIT, // From khronos sample: "Since we changed the image layout, we need to make the memory visible to color attachment to modify."
-            /*....VkAccessFlags...........dstAccessMask.......*/  VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, //not sure if the read bnit is needed
+            /*....VkAccessFlags...........srcAccessMask.......*/ VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+            /*....VkAccessFlags...........dstAccessMask.......*/ VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
             /*....VkDependencyFlags.......dependencyFlags.....*/ VK_DEPENDENCY_BY_REGION_BIT
         },
-        {
+        { // This dependency ensures that previous reads and writes of the depth attachment have completed, and are both availabl/visible before subpass 0
             /*....uint32_t................srcSubpass..........*/ VK_SUBPASS_EXTERNAL,
             /*....uint32_t................dstSubpass..........*/ 0,
             /*....VkPipelineStageFlags....srcStageMask........*/ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
@@ -873,26 +877,19 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
             /*....VkAccessFlags...........dstAccessMask.......*/ VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
             /*....VkDependencyFlags.......dependencyFlags.....*/ VK_DEPENDENCY_BY_REGION_BIT
         },
-        { // Subpass dependency allowing diffuse and normal color attachments to transition to an input attachments
-            /*....uint32_t................srcSubpass..........*/ 1,
+        { // This dependency ensures resolves to the single sample attachments in subpass 0 have completed before the single sampled attachments are read as input attachments in subpass 1
+            /*....uint32_t................srcSubpass..........*/ 0,
             /*....uint32_t................dstSubpass..........*/ 1,
             /*....VkPipelineStageFlags....srcStageMask........*/ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            /*....VkPipelineStageFlags....dstStageMask........*/ VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            /*....VkPipelineStageFlags....dstStageMask........*/ VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,// | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
             /*....VkAccessFlags...........srcAccessMask.......*/ VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-            /*....VkAccessFlags...........dstAccessMask.......*/ VK_ACCESS_INPUT_ATTACHMENT_READ_BIT | VK_ACCESS_SHADER_READ_BIT,
+            /*....VkAccessFlags...........dstAccessMask.......*/ VK_ACCESS_INPUT_ATTACHMENT_READ_BIT,
             /*....VkDependencyFlags.......dependencyFlags.....*/ VK_DEPENDENCY_BY_REGION_BIT
-        },
+        }
     };
-#ifdef DEBUG
-    assert (numDependencies == sizeof (subpassDependencies) / sizeof (VkSubpassDependency);
-    assert (memcmp (&pAttachmentDescriptions[swapchainColorAttachmentIndex], &presentAttachmentDescription, sizeof (VkAttachmentDescription)) == 0);
-    assert (memcmp (&pAttachmentDescriptions[diffuseColorAttachmentIndex], &colorAttachmentDescription, sizeof (VkAttachmentDescription)) == 0);
-    assert (memcmp (&pAttachmentDescriptions[surfaceNormalAttachmentIndex], &normalAttachmentDescription, sizeof (VkAttachmentDescription)) == 0);
-    assert (memcmp (&pAttachmentDescriptions[positionVectorAttachmentIndex], &positionAttachmentDescription, sizeof (VkAttachmentDescription)) == 0);
-    assert (memcmp (&pAttachmentDescriptions[depthStencilAttachmentIndex], &depthAttachmentDescription, sizeof (VkAttachmentDescription)) == 0);
-#endif
+    static const uint32_t numDependencies = sizeof(subpassDependencies)/sizeof(VkSubpassDependency);
 
-    // Using initializer list initialization here so that if totalNumAttachments changes, the poroject wont build unless this is edited
+    // Renderpass attachment descriptions.
     VkAttachmentDescription pAttachmentDescriptions[SceneVulkanParameters::RenderPassParameters::totalNumAttachments] =
     {
         presentAttachmentDescription,
@@ -904,6 +901,22 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
         pColorResolveAttachments[1],
         pColorResolveAttachments[2],
     };
+
+#ifdef DEBUG
+    // Make sure the number of members being initialized above matches VkAttachmentDescription pAttachmentDescriptions, ensuring no empty descriptions are part of the array.
+    for (uint32_t i = 0; i < SceneVulkanParameters::RenderPassParameters::totalNumAttachments; i++)
+    {
+        assert (pAttachmentDescriptions[i].samples != 0);
+    }
+
+    // Making sure the attachment descriptions are at the correct index:
+    assert (numDependencies == sizeof (subpassDependencies) / sizeof (VkSubpassDependency);
+    assert (memcmp (&pAttachmentDescriptions[swapchainColorAttachmentIndex], &presentAttachmentDescription,  sizeof (VkAttachmentDescription)) == 0);
+    assert (memcmp (&pAttachmentDescriptions[diffuseColorAttachmentIndex  ], &colorAttachmentDescription,    sizeof (VkAttachmentDescription)) == 0);
+    assert (memcmp (&pAttachmentDescriptions[surfaceNormalAttachmentIndex ], &normalAttachmentDescription,   sizeof (VkAttachmentDescription)) == 0);
+    assert (memcmp (&pAttachmentDescriptions[positionVectorAttachmentIndex], &positionAttachmentDescription, sizeof (VkAttachmentDescription)) == 0);
+    assert (memcmp (&pAttachmentDescriptions[depthStencilAttachmentIndex  ], &depthAttachmentDescription,    sizeof (VkAttachmentDescription)) == 0);
+#endif
 
     VkRenderPassCreateInfo renderPassCreateInfo =
     {
@@ -932,7 +945,6 @@ struct AlignedAllocation
     uint8_t* alignedBaseAddress;     // base address which satisfies the requested alignment, and which has alignedSize num bytes allocated starting there.
     size_t   alignedSize;            // size of allocation starting at alignedBaseAddress
 };
-
 /*
 inline AlignedAllocation AlignedAlloc(uint32_t baseAddrAlignment,  // in bytes. Must be 1, 4, 8 or 16 for now
                                       uint32_t allocSize)
@@ -1172,12 +1184,17 @@ void CreateAndAllocateColorImage (VkDevice              logicalDeviceHandle,
         /*...uint32_t.................arrayLayers.............*/ 1,
         /*...VkSampleCountFlagBits....samples.................*/ sampleCount, // if i want to use more than 1, i need to check the value the driver returns in VkPhysicalDeviceProperties::limits::framebufferDepthSampleCounts
         /*...VkImageTiling............tiling..................*/ VK_IMAGE_TILING_OPTIMAL,
-        /*...VkImageUsageFlags........usage...................*/ VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
+        /*...VkImageUsageFlags........usage...................*/ VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
         /*...VkSharingMode............sharingMode.............*/ VK_SHARING_MODE_EXCLUSIVE,
         /*...uint32_t.................queueFamilyIndexCount...*/ 1,
         /*...const.uint32_t*..........pQueueFamilyIndices.....*/ &queueFamilyIdx,
         /*...VkImageLayout............initialLayout...........*/ VK_IMAGE_LAYOUT_UNDEFINED
     };
+
+    if (canBeInputAttachment == VK_TRUE)
+    {
+        imageCreateInfo.usage |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+    }
 
     result = vkCreateImage (/*...VkDevice.........................device........*/ logicalDeviceHandle,
                             /*...const.VkImageCreateInfo*.........pCreateInfo...*/ &imageCreateInfo,
@@ -1285,7 +1302,7 @@ void CreateFrameBuffers(VkDevice                    logicalDevice,
         pAttachmentImageViews[SceneVulkanParameters::RenderPassParameters::positionAttachmentIndex      ] = pSwapImgResourceSet->positionImageViewHandle;
         pAttachmentImageViews[SceneVulkanParameters::RenderPassParameters::depthStencilAttachmentIndex  ] = pSwapImgResourceSet->depthImageViewHandle;
 
-        // Resolve attachments
+        // Attachments Used as Resolve attachments in subpass 0, and input attachments in subpass 1
         pAttachmentImageViews[SceneVulkanParameters::RenderPassParameters::colorResolveAttachmentIndex   ] = pSwapImgResourceSet->pResolveImageViews[0];
         pAttachmentImageViews[SceneVulkanParameters::RenderPassParameters::normalResolveAttachmentIndex  ] = pSwapImgResourceSet->pResolveImageViews[1];
         pAttachmentImageViews[SceneVulkanParameters::RenderPassParameters::positionResolveAttachmentIndex] = pSwapImgResourceSet->pResolveImageViews[2];
@@ -1888,21 +1905,21 @@ VkDescriptorSet AllocateAndWriteSubpass1DescriptorSet (VkDevice               lo
     {
         /*...VkSampler........sampler.......*/ VK_NULL_HANDLE,
         /*...VkImageView......imageView.....*/ diffuseColorImageViewHandle,
-        /*...VkImageLayout....imageLayout...*/ VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
+        /*...VkImageLayout....imageLayout...*/ VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
     };
 
     VkDescriptorImageInfo normalsColorInputAttachmentDescriptorInfo
     {
         /*...VkSampler........sampler.......*/ VK_NULL_HANDLE,
         /*...VkImageView......imageView.....*/ normalVectorImageViewHandle,
-        /*...VkImageLayout....imageLayout...*/ VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
+        /*...VkImageLayout....imageLayout...*/ VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
     };
 
     VkDescriptorImageInfo positionInputAttachmentDescriptorInfo
     {
         /*...VkSampler........sampler.......*/ VK_NULL_HANDLE,
         /*...VkImageView......imageView.....*/ positionVectorImageViewHandle,
-        /*...VkImageLayout....imageLayout...*/ VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL
+        /*...VkImageLayout....imageLayout...*/ VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
     };
 
     // Write the descriptor set with info about the resources backing the ubo and 4 input attachments

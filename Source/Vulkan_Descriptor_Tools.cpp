@@ -76,21 +76,21 @@ VkResult CreateDescriptorSetLayout (VkDevice logicalDevice,
             /*...const.VkSampler*......pImmutableSamplers.....*/ nullptr
         },
         {
-            /*...uint32_t..............binding................*/ SceneVulkanParameters::Subpass1::diffuseColorInputAttachmentBinding,// SceneVulkanParameters::Subpass1::diffuseColorInputAttachmentBinding, // 5
+            /*...uint32_t..............binding................*/ SceneVulkanParameters::Subpass1::diffuseColorInputAttachmentBinding,// 1
             /*...VkDescriptorType......descriptorType.........*/ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
             /*...uint32_t..............descriptorCount........*/ 1,  //@TODO: Look into whether there are any advantages to using an input attachment array with one descriptor binding.
             /*...VkShaderStageFlags....stageFlags.............*/ VK_SHADER_STAGE_FRAGMENT_BIT,
             /*...const.VkSampler*......pImmutableSamplers.....*/ nullptr
         },
         {
-            /*...uint32_t..............binding................*/ SceneVulkanParameters::Subpass1::normalVectorInputAttachmentBinding, // 6
+            /*...uint32_t..............binding................*/ SceneVulkanParameters::Subpass1::normalVectorInputAttachmentBinding, // 2
             /*...VkDescriptorType......descriptorType.........*/ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
             /*...uint32_t..............descriptorCount........*/ 1,
             /*...VkShaderStageFlags....stageFlags.............*/ VK_SHADER_STAGE_FRAGMENT_BIT,
             /*...const.VkSampler*......pImmutableSamplers.....*/ nullptr
         },
         {
-            /*...uint32_t..............binding................*/ SceneVulkanParameters::Subpass1::positionInputAttachmentBinding, // 7
+            /*...uint32_t..............binding................*/ SceneVulkanParameters::Subpass1::positionInputAttachmentBinding, // 3
             /*...VkDescriptorType......descriptorType.........*/ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
             /*...uint32_t..............descriptorCount........*/ 1,
             /*...VkShaderStageFlags....stageFlags.............*/ VK_SHADER_STAGE_FRAGMENT_BIT,

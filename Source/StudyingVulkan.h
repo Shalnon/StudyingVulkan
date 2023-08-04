@@ -91,6 +91,9 @@ namespace SceneVulkanParameters
     static const float zNear          = 1.0f;
     static const float zFar           = 50.0;
 
+    // enabling this allows usage of some additional VkImageLayouts. Not currently needed, so setting to disabled and saving for future use
+    static const VkBool32 enableSynchronization2Feature = VK_FALSE;
+
     namespace window
     {
         static const uint32_t width  = WINDOW_WIDTH;
@@ -206,8 +209,6 @@ namespace SceneVulkanParameters
     static const VkSampleCountFlagBits colorAttachmentSamples   = VK_SAMPLE_COUNT_4_BIT;
     static const VkSampleCountFlagBits resolveAttachmentSamples = VK_SAMPLE_COUNT_1_BIT;
     static const VkSampleCountFlagBits presentAttachmentSamples = VK_SAMPLE_COUNT_1_BIT;
-
-    static const VkImageLayout layout_inputAttachmentRead = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
 }
 
 // Defining a struct here that matches the UBO data layout described in the shader.
