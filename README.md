@@ -1,5 +1,6 @@
 # Vulkan Study - Sean Halnon
 
+Code and Art by Sean Halnon.
 Examples are organized as separate branches.
 
 ## Overview:
