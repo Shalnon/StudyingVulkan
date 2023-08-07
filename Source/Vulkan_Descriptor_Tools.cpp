@@ -16,7 +16,7 @@
 #define VULKAN_DESCRIPTOR_TOOLS_CPP
 
 #include "Vulkan_Descriptor_Tools.h"
-
+#include <glm\glm.hpp>
 
 VkResult CreateDescriptorSetLayout (VkDevice logicalDevice,
                                     VkDescriptorSetLayout* subpass0DescriptorSetLayout,
@@ -129,16 +129,16 @@ VkResult CreateDescriptorSetLayout (VkDevice logicalDevice,
 }
 
 // Creates a descriptor pool that allocates enough descriptors for all descriptor sets that will be used
-VkDescriptorPool CreateDescriptorPool (VkDevice logicalDevice)
+VkDescriptorPool CreateDescriptorPool (VkDevice logicalDevice,
+                                       uint32_t numSwapchainImages)
 {
     VkResult         result               = VK_INCOMPLETE;
     VkDescriptorPool descriptorPoolHandle = VK_NULL_HANDLE;
 
-    //@TODO: Replace the random " * 3 " with an argument regarding the number of swapchain images used
-    const uint32_t numDescriptorTypes            =     SceneVulkanParameters::numDescriptorTypesUsedInScene;
-    const uint32_t numUboDescriptors             = 3 * SceneVulkanParameters::numUboDescriptorsInScene;
-    const uint32_t numSsboDescriptors            = 3 * SceneVulkanParameters::numSsboDescriptorsInScene;
-    const uint32_t numInputAttachmentDescriptors = 3 * SceneVulkanParameters::numInputAttachmentDescriptorsInScene;
+    const uint32_t numDescriptorTypes            = SceneVulkanParameters::numDescriptorTypesUsedInScene;
+    const uint32_t numUboDescriptors             = numSwapchainImages * SceneVulkanParameters::numUboDescriptorsInScene;
+    const uint32_t numSsboDescriptors            = numSwapchainImages * SceneVulkanParameters::numSsboDescriptorsInScene;
+    const uint32_t numInputAttachmentDescriptors = numSwapchainImages * SceneVulkanParameters::numInputAttachmentDescriptorsInScene;
 
 
     VkDescriptorPoolSize pDescriptorPoolSizes[numDescriptorTypes] =
@@ -162,7 +162,7 @@ VkDescriptorPool CreateDescriptorPool (VkDevice logicalDevice)
         /*...VkStructureType................sType...........*/ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
         /*...const.void*....................pNext...........*/ nullptr,
         /*...VkDescriptorPoolCreateFlags....flags...........*/ 0,
-        /*...uint32_t.......................maxSets.........*/ SceneVulkanParameters::totalNumDescriporSets * 3,
+        /*...uint32_t.......................maxSets.........*/ SceneVulkanParameters::numDescriptorSetsUsedPerFrame * numSwapchainImages,
         /*...uint32_t.......................poolSizeCount...*/ numDescriptorTypes, // Using one VkDescriptorPoolSize struct per descriptor type
         /*...const.VkDescriptorPoolSize*....pPoolSizes......*/ pDescriptorPoolSizes
     };

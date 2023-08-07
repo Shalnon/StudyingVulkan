@@ -804,13 +804,6 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat,  VkFormat depthFormat,  
         }
     };
 
-    /*VkAttachmentDescription pAttachmentDescriptions[SceneVulkanParameters::RenderPassParameters::totalNumAttachments] = {};
-    //pAttachmentDescriptions[swapchainColorAttachmentIndex] = presentAttachmentDescription;
-    //pAttachmentDescriptions[diffuseColorAttachmentIndex  ] = colorAttachmentDescription;
-    //pAttachmentDescriptions[surfaceNormalAttachmentIndex ] = normalAttachmentDescription;
-    //pAttachmentDescriptions[positionVectorAttachmentIndex] = positionAttachmentDescription;
-    //pAttachmentDescriptions[depthStencilAttachmentIndex  ] = depthAttachmentDescription;*/
-
     // Using initializer list initialization here so that if totalNumAttachments changes, the poroject wont build unless this is edited
     VkAttachmentDescription pAttachmentDescriptions[SceneVulkanParameters::RenderPassParameters::totalNumAttachments] =
     {

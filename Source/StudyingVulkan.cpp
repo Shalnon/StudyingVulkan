@@ -164,8 +164,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                        pPerSwapchainImageResources);
      
     std::string assetsDirPath = std::string(pAssetDirectory);
-    //std::string modelPath     = assetsDirPath + std::string ("\\Models\\monkey_with_color.obj");
-    std::string modelPath = assetsDirPath + std::string ("\\Models\\SteamCrane\\SteamWreckingCrane.obj");
+    std::string modelPath     = assetsDirPath + std::string ("\\Models\\SteamCrane\\SteamWreckingCrane.obj");
     
 
     printf ("model path = %s\n", modelPath.c_str ());
@@ -178,18 +177,8 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                                                                        /*.const.aiScene*....pScene...............*/ pScene);
 
     const float renderingSurfaceAspectRatio = float (WINDOW_HEIGHT) / float (WINDOW_WIDTH);
-    //glm::mat4   projectionMatrix            = glm::perspective (SceneVulkanParameters::horizontal_fov,
-    //                                                            renderingSurfaceAspectRatio,
-    //                                                            SceneVulkanParameters::zNear,
-    //                                                            SceneVulkanParameters::zFar);
-
-    glm::mat4   projectionMatrix = GetProjection (renderingSurfaceAspectRatio,
-                                                  SceneVulkanParameters::horizontal_fov);
-
-
-    //projectionMatrix = glm::transpose (projectionMatrix);
-    //projectionMatrix[3].w *= -1;
-    //projectionMatrix[2].y *= -1;
+    glm::mat4   projectionMatrix            = GetProjection (renderingSurfaceAspectRatio,
+                                                             SceneVulkanParameters::horizontal_fov);
 
     // Create a vertex and index buffer
     GeometryBufferSet geometrysBuffers = CreateGeometryBuffersAndAABBs (/*.VkPhysicalDevice..physicalDevice.......*/ physicalDevice,
@@ -236,7 +225,8 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                                                        &initialUboBufferData,
                                                                        true);
 
-    VkDescriptorPool descriptorPoolHandle  = CreateDescriptorPool (logicalDevice);
+    // Allocates a descriptor pool with enough descriptors to back all the desctorSets we need.
+    VkDescriptorPool descriptorPoolHandle  = CreateDescriptorPool (logicalDevice, numSwapChainImages);
 
     // Descriptor set containing a storage buffer and uniform buffer descriptor:
     //   || Only need one descriptor set for the first subpass is needed because the buffers used to back the ssbo and ubo

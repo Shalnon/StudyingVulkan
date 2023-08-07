@@ -68,7 +68,7 @@ namespace SceneVulkanParameters
     static const uint32_t numInputAttachmentDescriptorsInScene = 4;
     static const uint32_t verticiesPerPrimitive                = 3; // Triangles
 
-    static const uint32_t totalNumDescriporSets = 2;
+    static const uint32_t numDescriptorSetsUsedPerFrame      = 2;
 
     static const uint32_t numCoordsPerVertexPosition = 3;
     static const uint32_t numCoordsPerVertexNormal   = 3;

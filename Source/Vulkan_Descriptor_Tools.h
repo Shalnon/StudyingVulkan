@@ -17,15 +17,18 @@
 #define VULKAN_DESCRIPTOR_TOOLS_H
 
 #include "Vulkan_Utils.h"
-#include <glm\glm.hpp>
+#include <stdint.h>
 
 // Create descriptor set layout
 VkResult CreateDescriptorSetLayout (VkDevice logicalDevice,
                                     VkDescriptorSetLayout* subpass0DescriptorSetLayout,
                                     VkDescriptorSetLayout* subpass1DescriptorSetLayout);
-
-// Create descriptor pool
-VkDescriptorPool CreateDescriptorPool (VkDevice logicalDevice);
+// Create Descriptor Pool
+// 
+// @Note: Since at any given time there may be one or more frames in flight, each swapchain image needs its own corresponding set of input attachments and other resources. (since their contents will be different for each swapchain image)
+//           Because of this, we will need enough descriptors available in the pool to have a separate descriptor sets for each swapchain image we are using.
+VkDescriptorPool CreateDescriptorPool (VkDevice logicalDevice,
+                                       uint32_t numSwapchainImages);
 
 
 // Creates pipeline that will be used by the first subpass
