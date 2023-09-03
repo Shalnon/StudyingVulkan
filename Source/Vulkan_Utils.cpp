@@ -380,7 +380,7 @@ bool CreatePhysicalDeviceAndQueue(VkInstance                instance,
             assert(pQueueFamilyProperties != 0);
 
             if ((deviceSupportsSurface == TRUE) &&
-                (pQueueFamilyProperties[queueIndex].queueFlags & VK_QUEUE_GRAPHICS_BIT))
+                (pQueueFamilyProperties[queueIndex].queueFlags & VK_QUEUE_COMPUTE_BIT))
             {
                 chosenQueueFamilyIndex        = queueIndex;
                 chosenDeviceIndex             = deviceIdx;
@@ -541,9 +541,6 @@ void InitializeSwapchain(VkPhysicalDevice             physicalDevice,
         pPerSwapchainImageResources = static_cast<PerSwapchainImageResources*>(calloc(imageCount, sizeof(PerSwapchainImageResources)));
     }
 
-
-     
-
     for (uint32_t i = 0; i < imageCount; i++)
     {
         pPerSwapchainImageResources[i].queue_index = graphicsQueueIndex;
@@ -643,6 +640,58 @@ VkSurfaceFormatKHR ChooseSwapchainFormat(VkSurfaceFormatKHR* pSupportedSwapchain
     return chosenFormat;
 }
 
+
+// Returns memory index of memory type that meets the requirements based on the  memRequirements and requiredPropertyFlags args
+inline uint32_t ChooseMemoryTypeIdx (VkPhysicalDevice      physicalDevice,
+                                     VkMemoryPropertyFlags requiredPropertyFlags, // ex: a mask of VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, etc...
+                                     VkMemoryRequirements* memRequirements) //a bitmask containing one bit set for every supported memory type for the resource. Bit i is set if and only if the memory type i in the VkPhysicalDeviceMemoryProperties structure for the physical device is supported for the resource.
+{
+    uint32_t chosenMemTypeIdxOut = UINT32_MAX;
+
+    assert (requiredPropertyFlags != 0);
+    VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties = {};
+    vkGetPhysicalDeviceMemoryProperties (physicalDevice, &physicalDeviceMemoryProperties);
+
+    for (uint32_t memTypeIdx = 0; memTypeIdx < physicalDeviceMemoryProperties.memoryTypeCount; memTypeIdx++)
+    {
+        VkMemoryPropertyFlags flags = physicalDeviceMemoryProperties.memoryTypes[memTypeIdx].propertyFlags;
+        uint32_t              supportedMemTypesBitMask = memRequirements->memoryTypeBits;
+
+        bool isMemTypeSupportedForResource = ((memRequirements->memoryTypeBits & (1 << memTypeIdx)) > 0) ? true : false;
+        bool areRequiredMemPropertiesSupported = ((flags & requiredPropertyFlags) == requiredPropertyFlags) ? true : false;
+
+        if (isMemTypeSupportedForResource && areRequiredMemPropertiesSupported)
+        {
+            chosenMemTypeIdxOut = memTypeIdx;
+        }
+    }
+
+    return chosenMemTypeIdxOut;
+}
+
+VkDeviceMemory AllocateVkBufferMemory (VkPhysicalDevice      physicalDevice,
+                                              VkDevice              logicalDevice,
+                                              VkMemoryPropertyFlags requiredPropertyFlags,
+                                              VkMemoryRequirements* pBufferMemoryRequirements)
+{
+    uint32_t             memTypeIndex = ChooseMemoryTypeIdx (physicalDevice, requiredPropertyFlags, pBufferMemoryRequirements);
+    VkMemoryAllocateInfo allocateInfo =
+    {
+        /*...VkStructureType....sType..............*/ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        /*...const.void*........pNext..............*/ 0,
+        /*...VkDeviceSize.......allocationSize.....*/ pBufferMemoryRequirements->size,
+        /*...uint32_t...........memoryTypeIndex....*/ memTypeIndex
+    };
+
+    VkDeviceMemory deviceMem = VK_NULL_HANDLE;
+    VkResult       result = vkAllocateMemory (logicalDevice, &allocateInfo, nullptr, &deviceMem);
+
+    assert (result == VK_SUCCESS);
+    assert (deviceMem != VK_NULL_HANDLE);
+
+    return deviceMem;
+}
+
 VkRenderPass CreateRenderpass(VkFormat swapChainFormat, VkDevice logicalDevice)
 {
     VkAttachmentDescription attachmentDescription =
@@ -706,38 +755,6 @@ VkRenderPass CreateRenderpass(VkFormat swapChainFormat, VkDevice logicalDevice)
     return renderpass;
 }
 
-struct AlignedAllocation
-{
-    uint8_t* pRawAllocatiotBaseAddr; // address returned from malloc/calloc
-    uint8_t  alignment;              // requested alignment
-    uint8_t* alignedBaseAddress;     // base address which satisfies the requested alignment, and which has alignedSize num bytes allocated starting there.
-    size_t   alignedSize;            // size of allocation starting at alignedBaseAddress
-};
-/*
-inline AlignedAllocation AlignedAlloc(uint32_t baseAddrAlignment,  // in bytes. Must be 1, 4, 8 or 16 for now
-                                      uint32_t allocSize)
-{
-    assert((baseAddrAlignment == 1) ||
-           (baseAddrAlignment == 4) ||
-           (baseAddrAlignment == 8) ||
-           (baseAddrAlignment == 16));
-
-    assert(allocSize % baseAddrAlignment == 0);
-    
-    uint64_t rawAllocSize = static_cast<uint64_t>(allocSize) + static_cast<uint64_t>(baseAddrAlignment); //Adding alignment num bytes to the size ensures theres an aligned address with enough space
-    void*    pAllocation  = calloc(rawAllocSize, 1);
-
-    uint64_t  rawBaseAddr = reinterpret_cast<uint64_t>(pAllocation);
-    uint64_t  remainder   = rawBaseAddr % baseAddrAlignment; //this probably doesnt need to be uint64_t. probs could even just use an uint8_t
-    uint64_t  alignedBaseAddr = rawBaseAddr + remainder;
-
-    AlignedAllocation alignedAlloc      = {};
-    alignedAlloc.pRawAllocatiotBaseAddr = static_cast<uint8_t*>(pAllocation);
-    alignedAlloc.alignedBaseAddress     = reinterpret_cast<uint8_t*>(alignedBaseAddr);
-    alignedAlloc.alignedSize             = (rawBaseAddr + rawAllocSize) - alignedBaseAddr; // subtract aligned base addr, from addr of last byte in allocation
-
-    return alignedAlloc;
-}*/
 
 /// <summary>
 /// Tales a VkDevice and a path to a binary .spv file and uses it to create a module.
@@ -745,7 +762,7 @@ inline AlignedAllocation AlignedAlloc(uint32_t baseAddrAlignment,  // in bytes. 
 /// <param name="logicalDevice">- A VkDevice</param>
 /// <param name="spvPath">- binary .spv file. likely produced via glslc</param>
 /// <returns>A newly created shader module based off of the .spv</returns>
-VkShaderModule CreateShaderModule(VkDevice logicalDevice, const char* spvPath, bool isFrag, bool isVert)
+VkShaderModule CreateShaderModule(VkDevice logicalDevice, const char* spvPath)
 {
 
     std::ifstream shaderSourceInputStream(spvPath, std::ifstream::binary | std::ios::ate); //std::ios::ate start At The End 
@@ -758,20 +775,6 @@ VkShaderModule CreateShaderModule(VkDevice logicalDevice, const char* spvPath, b
     uint32_t*      pCode     = static_cast<uint32_t*>(calloc(1, codeSize));
     assert(pCode);
     shaderSourceInputStream.read(reinterpret_cast<char*>(pCode), codeSize);
-
-    /*const uint32_t* pCode = 0;
-    size_t  codeSizeB = 0;
-    
-    if (isVert == true)
-    {
-        pCode = g_VertShader;
-        codeSizeB = sizeof(g_VertShader);
-    }
-    else if (isFrag == true)
-    {
-        pCode = g_FragShader;
-        codeSizeB = sizeof(g_FragShader);
-    }*/
 
     VkShaderModule           shaderModule           = VK_NULL_HANDLE;
     VkShaderModuleCreateInfo shaderModuleCreateInfo =
@@ -943,8 +946,8 @@ VkPipeline CreatePipeline(VkDevice logicalDevice, VkRenderPass renderpass, VkExt
 
     VkShaderModule pShaderModules[2];
 
-    pShaderModules[fragmentShaderIdx] = CreateShaderModule(logicalDevice, fragShaderPath,true, false);
-    pShaderModules[vertexShaderIdx]   = CreateShaderModule(logicalDevice, vertShaderPath, false, true);
+    pShaderModules[fragmentShaderIdx] = CreateShaderModule(logicalDevice, fragShaderPath);
+    pShaderModules[vertexShaderIdx]   = CreateShaderModule(logicalDevice, vertShaderPath);
 
 
     VkPipelineShaderStageCreateInfo pShaderStageCreateInfos[numStages] =

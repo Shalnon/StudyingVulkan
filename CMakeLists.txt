@@ -22,6 +22,8 @@ add_executable (StudyingVulkan "Source/AppWindowingSystem.cpp"
                                "Source/Vulkan_Utils.cpp"
                                "Source/Vulkan_Utils.h"
                                "Source/Vulkan_enum_strings.h"
+                               "Source/Vulkan_compute.h"
+                               "Source/Vulkan_compute.cpp"
                                "Source/WinResources.rc"
                                "Source/resource.h")
 

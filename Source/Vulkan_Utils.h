@@ -1,4 +1,3 @@
-#pragma once
 #ifndef VULKAN_UTILS_H
 #define VULKAN_UTILS_H
 #include "StudyingVulkan.h"
@@ -42,6 +41,25 @@ struct PerSwapchainImageResources
     VkImageView     imageView;
     VkFramebuffer   framebufferHandle;
 };
+
+struct vulkanAllocatedBufferInfo
+{
+    VkBuffer       bufferHandle;
+    VkDeviceMemory memoryHandle;
+    VkDeviceSize   buffersize;
+    uint32_t       offset;
+};
+
+// Returns memory index of memory type that meets the requirements based on the  memRequirements and requiredPropertyFlags args
+inline uint32_t ChooseMemoryTypeIdx (VkPhysicalDevice      physicalDevice,
+                                     VkMemoryPropertyFlags requiredPropertyFlags, // ex: a mask of VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, etc...
+                                     VkMemoryRequirements* memRequirements); //a bitmask containing one bit set for every supported memory type for the resource. Bit i is set if and only if the memory type i in the VkPhysicalDeviceMemoryProperties structure for the physical device is supported for the resource.
+
+
+VkDeviceMemory AllocateVkBufferMemory (VkPhysicalDevice      physicalDevice,
+                                       VkDevice              logicalDevice,
+                                       VkMemoryPropertyFlags requiredPropertyFlags,
+                                       VkMemoryRequirements* pBufferMemoryRequirements);
 
 
 inline uint32_t GetPhysicalDeviceCount(VkInstance instance);

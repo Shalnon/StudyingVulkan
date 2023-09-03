@@ -6,6 +6,7 @@
 #include "AppWindowingSystem.h"
 #include "resource.h"
 #include "Vulkan_Synchronization.h"
+#include "Vulkan_compute.h"
 
 int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -25,6 +26,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
 
     std::string vertexShaderPath   = std::string(VERT_PATH);
     std::string fragmentShaderPath = std::string(FRAG_PATH);
+    std::string computeShaderPath  =  std::string(COMP_PATH);
 
     printf("Vertex shader path: %s\n",   vertexShaderPath.c_str());
     printf("Fragment shader path: %s\n", fragmentShaderPath.c_str());
@@ -51,6 +53,17 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                  /*..VkQueue*...................*/ &queue,
                                  /*..VkDevice*..................*/ &logicalDevice,
                                  /*..uint32_t*..................*/ &queueIndex);
+
+
+    // Create and dispatch computer shader once
+    RunComputeExample (computeShaderPath.c_str(), 
+                       physicalDevice,
+                       logicalDevice,
+                       queueIndex,
+                       queue);
+
+
+
 
     // Make sure we got queue index from the above function.
     assert (queueIndex != UINT32_MAX);
