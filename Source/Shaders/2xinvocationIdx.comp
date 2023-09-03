@@ -1,6 +1,7 @@
 #version 450
+#extension GL_EXT_scalar_block_layout : require
 
-layout(std430, binding = 0 ) readonly buffer ubo_dataIn
+layout(std430, binding = 0 ) readonly uniform ubo_dataIn
 {
     //uvec4 dwordArray[32];
     uint dwordArray[128];

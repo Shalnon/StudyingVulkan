@@ -420,7 +420,7 @@ VkDescriptorSet AllocateAndWriteDescriptorSet (VkDevice               logicalDev
             /*...uint32_t.........................dstBinding.........*/ 0, // ubo binding in descriptor layout
             /*...uint32_t.........................dstArrayElement....*/ 0,
             /*...uint32_t.........................descriptorCount....*/ 1,
-            /*...VkDescriptorType.................descriptorType.....*/ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            /*...VkDescriptorType.................descriptorType.....*/ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             /*...const.VkDescriptorImageInfo*.....pImageInfo.........*/ nullptr,
             /*...const.VkDescriptorBufferInfo*....pBufferInfo........*/ &uniformBufferDescriptorInfo,
             /*...const.VkBufferView*..............pTexelBufferView...*/ nullptr
@@ -547,7 +547,7 @@ void RunComputeExample (const char*      pComputeShaderPath,
 
     for (uint32_t i = 0; i < ComputeParameters::inputArraySize; i++)
     {
-        printf ("results[%u] = %u\n", i, pCompResults[i]);
+        printf ("results[%xu] = %x\n", i, pCompResults[i]);
     }
 }
 
