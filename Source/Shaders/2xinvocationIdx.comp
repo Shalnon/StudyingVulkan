@@ -1,0 +1,45 @@
+#version 450
+
+layout(std430, binding = 0 ) readonly buffer ubo_dataIn
+{
+    //uvec4 dwordArray[32];
+    uint dwordArray[128];
+}ubo;
+
+layout( binding = 1) buffer ssboDataOut
+ {
+    uint numsOut[128];
+ }ssbo;
+ 
+ layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;  // is this right? how does Local_size_x relate to dispatch size?
+
+
+ void main() 
+{
+    const uint numIdx = gl_GlobalInvocationID.x;
+    const uint dwordIdx = (numIdx >= 4) ? numIdx/4 : 0;
+    const uint byteIdx  = numIdx % 4;
+
+    //uint dword     = ubo.dwordArray[numIdx];
+
+   // uint mask      = 0xff << (byteIdx * 8);
+   // uint byteValue = dword & mask;
+   // byteValue = byteValue >> (byteIdx * 8);
+
+    // glslc -fshader-stage=comp --target-env=vulkan1.3 -o computeShader.spv  2xinvocationIdx.comp
+   // if(gl_GlobalInvocationID.x < ubo.numPackedchars)
+   // {
+        //uint binIdx = (byteValue  >=  ubo.binSize) ?  (byteValue / ubo.binSize) : 0;
+        //atomicAdd(ssbo.numsOut[gl_GlobalInvocationID.x], 1);
+
+        uint compIndex =  numIdx % 4;
+        ssbo.numsOut[gl_GlobalInvocationID.x] = ubo.dwordArray[gl_GlobalInvocationID.x];
+    //}
+    //else
+    //{
+    //    ssbo.numsOut[gl_GlobalInvocationID.x] = 696969;
+    //}
+
+    //use atomic operations to increment the "nums in this bin" variable in the output ssbo
+
+}
