@@ -1,3 +1,17 @@
+/* Copyright 2023 Sean Halnon
+**
+** Licensed under the Apache License, Version 2.0 (the "License");
+** you may not use this file except in compliance with the License.
+**  You may obtain a copy of the License at
+**
+**  http://www.apache.org/licenses/LICENSE-2.0
+**
+** Unless required by applicable law or agreed to in writing, software
+**  distributed under the License is distributed on an "AS IS" BASIS,
+**  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+**  See the License for the specific language governing permissionsand
+**  limitations under the License.
+*/
 #ifndef STUDYINGVULKAN_H
 #define STUDYINGVULKAN_H
 
@@ -8,7 +22,6 @@
 //#define WIN32_LEAN_AND_MEAN   
 #include <windows.h>
 #include <filesystem>
-#pragma once
 #include <fstream>
 #include <cstdlib>
 
@@ -31,25 +44,16 @@
 	#define VK_EXPORTED_FUNCTION(func) extern PFN_##func func;
 #endif
 
-
-
-
 // Ceiling aligns a number
 #define ALIGN(num, alignment) (num + (alignment - (num % alignment)))
 
 #define WINDOW_WIDTH  1280
 #define WINDOW_HEIGHT 720
 
-//C:\Users\shaln\source\repos\StudyingVulkan\StudyingVulkan\Shaders\Khronos
-#define FRAG_PATH "C:\\git\\CmakeExperiments\\StudyingVulkan\\StudyingVulkan\\Source\\Shaders\\Khronos\\frag.spv"
-#define VERT_PATH "C:\\git\\CmakeExperiments\\StudyingVulkan\\StudyingVulkan\\Source\\Shaders\\Khronos\\vert.spv"
-#define COMP_PATH "C:\\git\\CmakeExperiments\\StudyingVulkan\\StudyingVulkan\\Source\\Shaders\\computeShader.spv"
+#define FRAG_PATH "frag.spv"
+#define VERT_PATH "vert.spv"
+#define COMP_PATH "calc_histogram.spv"
 
 #define NUM_PREFERRED_SURFACE_FORMATS 2
 #define PREFERRED_SURRFACE_FORMATS  { VK_FORMAT_R8G8B8A8_SRGB,  VK_FORMAT_B8G8R8A8_SRGB }
-
-
-extern uint32_t g_FragShader[];
-extern uint32_t g_VertShader[];
-
 #endif

@@ -1,6 +1,21 @@
+/* Copyright 2023 Sean Halnon
+**
+** Licensed under the Apache License, Version 2.0 (the "License");
+** you may not use this file except in compliance with the License.
+**  You may obtain a copy of the License at
+**
+**  http://www.apache.org/licenses/LICENSE-2.0
+**
+** Unless required by applicable law or agreed to in writing, software
+**  distributed under the License is distributed on an "AS IS" BASIS,
+**  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+**  See the License for the specific language governing permissionsand
+**  limitations under the License.
+*/
+
 #ifndef VULKAN_UTILS_H
 #define VULKAN_UTILS_H
-#include "StudyingVulkan.h"
+#include "BucketSearchVisualization.h"
 #include "Vulkan_Synchronization.h"
 
 
@@ -67,7 +82,27 @@ vulkanAllocatedBufferInfo CreateAndAllocaStagingBuffer (VkPhysicalDevice physica
                                                         uint32_t         queueIndex);
 
 void* MapBufferMemory (vulkanAllocatedBufferInfo bufferInfo,
-                       VkDevice                  logicalDevice);
+                              VkDevice                  logicalDevice);
+
+void ExecuteBuffer2BufferCopy (VkPhysicalDevice          physicalDevice,
+                               VkDevice                  logicalDevice,
+                               VkQueue                   queue,
+                               uint32_t                  graphicsQueueIndex,
+                               VkDeviceSize              copySize,
+                               vulkanAllocatedBufferInfo srcBufferInfo,
+                               vulkanAllocatedBufferInfo dstBufferInfo);
+
+VkCommandBuffer CreateAndAllocateCommandBuffer (VkPhysicalDevice physicalDevice,
+                                                VkDevice         logicalDevice,
+                                                uint32_t         queueIndex,
+                                                VkQueue          queueHandle,
+                                                VkCommandPool*   pCommandPoolOut);
+
+VkDescriptorSet AllocateAndWriteDescriptorSet (VkDevice               logicalDevice,
+                                               VkDescriptorPool       descriptorPoolHandle,
+                                               VkDescriptorSetLayout  descriptorSetLayoutHandle,
+                                               VkBuffer               uniformBufferHandle,
+                                               VkBuffer               storageBufferHandle);
 
 VkDeviceMemory AllocateVkBufferMemory (VkPhysicalDevice      physicalDevice,
                                        VkDevice              logicalDevice,

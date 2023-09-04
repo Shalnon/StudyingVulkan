@@ -1,10 +1,25 @@
+/* Copyright 2023 Sean Halnon
+**
+** Licensed under the Apache License, Version 2.0 (the "License");
+** you may not use this file except in compliance with the License.
+**  You may obtain a copy of the License at
+**
+**  http://www.apache.org/licenses/LICENSE-2.0
+**
+** Unless required by applicable law or agreed to in writing, software
+**  distributed under the License is distributed on an "AS IS" BASIS,
+**  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+**  See the License for the specific language governing permissionsand
+**  limitations under the License.
+*/
 #ifndef VULKAN_COMPUTE_CPP
 #define VULKAN_COMPUTE_CPP
 
-#include "Vulkan_Utils.h"
 #include "Vulkan_compute.h"
 #include <time.h>
 
+size_t ComputeParameters::binSize = ComputeParameters::defaultBinSize; // |EXTERN| bin size initialization. default value may be overwritten in main if a
+                                                                       //          different bin size is passed to the application via a command line arg
 
 VkPipeline CreateComputePipeline (VkDevice               logicalDevice,
                                   const char*            pComputeShaderPath,
@@ -93,123 +108,6 @@ VkPipeline CreateComputePipeline (VkDevice               logicalDevice,
                                        /*...VkPipeline*.................................pPipelines........*/ &pipeline);
 
     return pipeline;
-}
-
-void ExecuteBuffer2BufferCopy (VkPhysicalDevice          physicalDevice,
-                               VkDevice                  logicalDevice,
-                               VkQueue                   queue,
-                               uint32_t                  graphicsQueueIndex,
-                               VkDeviceSize              copySize,
-                               vulkanAllocatedBufferInfo srcBufferInfo,
-                               vulkanAllocatedBufferInfo dstBufferInfo)
-{
-    VkCommandPoolCreateInfo commandPoolCreateInfo =
-    {
-        /*..VkStructureType.............sType.................*/ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-        /*..const.void*.................pNext.................*/ 0,
-        /*..VkCommandPoolCreateFlags....flags.................*/ VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-        /*..uint32_t....................queueFamilyIndex......*/ graphicsQueueIndex
-    };
-
-    VkCommandPool commandPool = VK_NULL_HANDLE;
-    VkResult      result = vkCreateCommandPool (logicalDevice, &commandPoolCreateInfo, 0, &commandPool);
-    assert (result == VK_SUCCESS);
-
-    VkCommandBuffer             bufferCopyCmdBuffer = VK_NULL_HANDLE;
-    VkCommandBufferAllocateInfo commandBufferAllocateInfo =
-    {
-        /*..VkStructureType.........sType................*/ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-        /*..const.void*.............pNext................*/ 0,
-        /*..VkCommandPool...........commandPool..........*/ commandPool,
-        /*..VkCommandBufferLevel....level................*/ VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-        /*..uint32_t................commandBufferCount...*/ 1
-    };
-
-    result = vkAllocateCommandBuffers (/*...VkDevice...........................device...........*/ logicalDevice,
-                                       /*...const.VkCommandBufferAllocateInfo*.pAllocateInfo....*/ &commandBufferAllocateInfo,
-                                       /*...VkCommandBuffer*...................pCommandBuffers..*/ &bufferCopyCmdBuffer);
-
-    VkCommandBufferBeginInfo cmdBuffBeginInfo =
-    {
-        /*..VkStructureType..........................sType................*/ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        /*..const.void*..............................pNext................*/ 0,
-        /*..VkCommandBufferUsageFlags................flags................*/ VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-        /*..const.VkCommandBufferInheritanceInfo*....pInheritanceInfo.....*/ 0
-    };
-
-    // Record the copy command
-    vkBeginCommandBuffer (bufferCopyCmdBuffer, &cmdBuffBeginInfo);
-    {
-        VkBufferCopy copyInfo =
-        {
-            /*...VkDeviceSize....srcOffset...*/ srcBufferInfo.offset,
-            /*...VkDeviceSize....dstOffset...*/ dstBufferInfo.offset,
-            /*...VkDeviceSize....size........*/ copySize
-        };
-
-        vkCmdCopyBuffer (/*...VkCommandBuffer.............................commandBuffer...*/ bufferCopyCmdBuffer,
-                         /*...VkBuffer....................................srcBuffer.......*/ srcBufferInfo.bufferHandle,
-                         /*...VkBuffer....................................dstBuffer.......*/ dstBufferInfo.bufferHandle,
-                         /*...uint32_t....................................regionCount.....*/ 1,
-                         /*...const.VkBufferCopy*.........................pRegions........*/ &copyInfo);
-    }
-    vkEndCommandBuffer (bufferCopyCmdBuffer);
-
-    VkSubmitInfo submitInfo =
-    {
-        /*...VkStructureType................sType...................*/ VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        /*...const.void*....................pNext...................*/ nullptr,
-        /*...uint32_t.......................waitSemaphoreCount......*/ 0,
-        /*...const.VkSemaphore*.............pWaitSemaphores.........*/ nullptr,
-        /*...const.VkPipelineStageFlags*....pWaitDstStageMask.......*/ nullptr,
-        /*...uint32_t.......................commandBufferCount......*/ 1,
-        /*...const.VkCommandBuffer*.........pCommandBuffers.........*/ &bufferCopyCmdBuffer,
-        /*...uint32_t.......................signalSemaphoreCount....*/ 0,
-        /*...const.VkSemaphore*.............pSignalSemaphores.......*/ nullptr
-    };
-
-    vkQueueSubmit (queue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle (queue);
-
-    vkFreeCommandBuffers (logicalDevice, commandPool, 1, &bufferCopyCmdBuffer);
-}
-
-
-inline VkCommandBuffer CreateAndAllocateCommandBuffer (VkPhysicalDevice physicalDevice,
-                                                       VkDevice         logicalDevice,
-                                                       uint32_t         queueIndex,
-                                                       VkQueue          queueHandle,
-                                                       VkCommandPool*   pCommandPoolOut)
-{
-    VkCommandPoolCreateInfo commandPoolCreateInfo =
-    {
-        /*..VkStructureType.............sType.................*/ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-        /*..const.void*.................pNext.................*/ 0,
-        /*..VkCommandPoolCreateFlags....flags.................*/ VK_COMMAND_POOL_CREATE_TRANSIENT_BIT, //why not re-use command buffers? look into this later. @TODO
-        /*..uint32_t....................queueFamilyIndex......*/ queueIndex
-    };
-
-    VkCommandPool commandPool = VK_NULL_HANDLE;
-    VkResult      result      = vkCreateCommandPool (logicalDevice, &commandPoolCreateInfo, 0, &commandPool);
-    assert (result == VK_SUCCESS);
-
-
-    VkCommandBufferAllocateInfo commandBufferAllocateInfo =
-    {
-        /*..VkStructureType.........sType................*/ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-        /*..const.void*.............pNext................*/ 0,
-        /*..VkCommandPool...........commandPool..........*/ commandPool,
-        /*..VkCommandBufferLevel....level................*/ VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-        /*..uint32_t................commandBufferCount...*/ 1
-    };
-
-    VkCommandBuffer commandBufferHandle = VK_NULL_HANDLE;
-    // Allocate a command buffer so that it can be used later be used to present this image to screen.
-    result = vkAllocateCommandBuffers ( /*...VkDevice...........................device...........*/ logicalDevice,
-                                        /*...const.VkCommandBufferAllocateInfo*.pAllocateInfo....*/ &commandBufferAllocateInfo,
-                                        /*...VkCommandBuffer*...................pCommandBuffers..*/ &commandBufferHandle);
-
-    return commandBufferHandle;
 }
 
 inline void RecordDispatch (VkPhysicalDevice physicalDevice,
@@ -413,7 +311,7 @@ void RunComputeExample (const char*            pComputeShaderPath,
     vulkanAllocatedBufferInfo uboStagingBufferInfo  = CreateAndAllocaStagingBuffer (physicalDevice, logicalDevice, uboSize, queueIndex);
     vulkanAllocatedBufferInfo ssboStagingBufferInfo = CreateAndAllocaStagingBuffer (physicalDevice, logicalDevice, ssboSize, queueIndex);
     uint32_t numPackedChars = ComputeParameters::minInputArraySize +
-                              ( rand () % (ComputeParameters::maxInputArraySize - ComputeParameters::minInputArraySize));
+                              ( rand() % (ComputeParameters::maxInputArraySize - ComputeParameters::minInputArraySize));
 
     vkQueueWaitIdle (queueHandle);
 
@@ -431,7 +329,6 @@ void RunComputeExample (const char*            pComputeShaderPath,
     }
 
     vkUnmapMemory (logicalDevice, uboStagingBufferInfo.memoryHandle);
-    // Write data to buffers...
 
     vkQueueWaitIdle (queueHandle);
 

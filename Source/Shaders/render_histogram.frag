@@ -13,21 +13,15 @@
 **  limitations under the License.
 */
 
-#ifndef CONFIG_H_IN
-#define CONFIG_H_IN
+#version 420
 
+precision mediump float;
 
-#define VERSION_MAJOR 0
-#define VERSION_MINOR 1
-#define VERSION_PATCH 0
+layout(location = 0) in vec3 in_color;
 
-#define PROJECT_NAME        "StudyingVulkan"
-#define SHADER_ROOT_DIR     "C:/git/CmakeExperiments/StudyingVulkan/StudyingVulkan/Source/Shaders/" 
-#define ASSET_DIR           "C:/git/CmakeExperiments/StudyingVulkan/StudyingVulkan/Assets"
-#define DEBUG_PRINTS_ENABLE 0
+layout(location = 0) out vec4 out_color;
 
-static const char* pShaderRootDirectory = SHADER_ROOT_DIR;
-static const char* pAssetDirectory      = ASSET_DIR;
- 
-
-#endif //CONFIG_H_IN
+void main()
+{
+	out_color = vec4(in_color, 1.0);
+}

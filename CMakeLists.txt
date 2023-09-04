@@ -1,3 +1,18 @@
+# Copyright 2023 Sean Halnon
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#  http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissionsand
+#  limitations under the License.
+
+
 # CMakeList.txt : Top-level CMake project file, do global configuration
 # and include sub-projects here.
 #
@@ -5,18 +20,18 @@ cmake_minimum_required (VERSION 3.11)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-project ("StudyingVulkan")
+project ("BucketSearchVisualization-VulkanCompute")
 
 
 # Add source to this project's executable.
 add_executable (StudyingVulkan "Source/AppWindowingSystem.cpp"
                                "Source/AppWindowingSystem.h"
-                               "Source/Shaders/Khronos/frag.spv"
-                               "Source/Shaders/Khronos/triangle.frag"
-                               "Source/Shaders/Khronos/triangle.vert"
-                               "Source/Shaders/Khronos/vert.spv"
-                               "Source/StudyingVulkan.cpp"
-                               "Source/StudyingVulkan.h"
+                               "Source/Shaders/frag.spv"
+                               "Source/Shaders/render_histogram.frag"
+                               "Source/Shaders/render_histogram.vert"
+                               "Source/Shaders/vert.spv"
+                               "Source/BucketSearchVisualization.cpp"
+                               "Source/BucketSearchVisualization.h"
                                "Source/Vulkan_Synchronization.cpp"
                                "Source/Vulkan_Synchronization.h"
                                "Source/Vulkan_Utils.cpp"

@@ -1,12 +1,26 @@
-// StudyingVulkan.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
+/* Copyright 2023 Sean Halnon
+**
+** Licensed under the Apache License, Version 2.0 (the "License");
+** you may not use this file except in compliance with the License.
+**  You may obtain a copy of the License at
+**
+**  http://www.apache.org/licenses/LICENSE-2.0
+**
+** Unless required by applicable law or agreed to in writing, software
+**  distributed under the License is distributed on an "AS IS" BASIS,
+**  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+**  See the License for the specific language governing permissionsand
+**  limitations under the License.
+*/
 
-#include "StudyingVulkan.h"
+#include "BucketSearchVisualization.h"
 #include "Vulkan_Utils.h"
 #include "AppWindowingSystem.h"
 #include "resource.h"
 #include "Vulkan_Synchronization.h"
 #include "Vulkan_compute.h"
+#include "config.h"
+#include <string>
 
 int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -24,9 +38,9 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
    
     printf("current path = %s\n", pCurrentPath.c_str());
 
-    std::string vertexShaderPath   = std::string(VERT_PATH);
-    std::string fragmentShaderPath = std::string(FRAG_PATH);
-    std::string computeShaderPath  =  std::string(COMP_PATH);
+    std::string vertexShaderPath   = std::string (SHADER_ROOT_DIR) + std::string(VERT_PATH);
+    std::string fragmentShaderPath = std::string (SHADER_ROOT_DIR) + std::string(FRAG_PATH);
+    std::string computeShaderPath  = std::string (SHADER_ROOT_DIR) + std::string (COMP_PATH);
 
     printf("Vertex shader path: %s\n",   vertexShaderPath.c_str());
     printf("Fragment shader path: %s\n", fragmentShaderPath.c_str());
@@ -56,6 +70,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
 
 
     std::vector<uint32_t> histogram = {};
+
     // Create and dispatch computer shader once
     RunComputeExample (computeShaderPath.c_str(), 
                        physicalDevice,
@@ -142,7 +157,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     printf("executed renderloop\n");
     for (uint32_t i = 0; i < numFramesToRender; i++)
     {
-        ExecuteRenderLoop (/*.VkDevice.....................logicalDevice................*/ logicalDevice,
+        ExecuteRenderLoop ( /*.VkDevice.....................logicalDevice................*/ logicalDevice,
                             /*.VkPhysicalDevice.............physicalDevice,..............*/ physicalDevice,
                             /*.VkSwapchainKHR...............swapchain....................*/ swapchain,
                             /*.VkQueue......................queue........................*/ queue,
@@ -232,7 +247,21 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
 /// if we didnt have this, and just used wWinMain as the entry point, we would need to use the
 ///   visual studio windows application subsystem, and we would need to create our own console.
 ///    a console we create wont have the vulkan layer output present, and it wont get captured easily by vulkan configurator.
-int main ()
+int main (int argc, char* argv[])
  {
+    if (argc > 0)
+    {
+        for (uint32_t i = 1; i < argc; i++)
+        {
+            size_t argAsNum = std::stoi (std::string(argv[i]));
+            if ((argAsNum > ComputeParameters::minBinSize) && (argAsNum <= ComputeParameters::maxBinSize))
+            {
+                ComputeParameters::binSize = argAsNum;
+                break;
+            }
+        }
+
+        printf ("Using a bin size of %u\n", ComputeParameters::binSize);
+    }
     return wWinMain (GetModuleHandle (NULL), NULL, GetCommandLineW (), SW_SHOWNORMAL);
  }

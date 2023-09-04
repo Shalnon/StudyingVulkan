@@ -13,21 +13,24 @@
 **  limitations under the License.
 */
 
-#ifndef CONFIG_H_IN
-#define CONFIG_H_IN
+#version 420
 
 
-#define VERSION_MAJOR 0
-#define VERSION_MINOR 1
-#define VERSION_PATCH 0
+ //glslc --target-env=vulkan1.3 -fshader-stage=vert -o vert.spv triangle.vert 
+precision highp float;
 
-#define PROJECT_NAME        "StudyingVulkan"
-#define SHADER_ROOT_DIR     "C:/git/CmakeExperiments/StudyingVulkan/StudyingVulkan/Source/Shaders/" 
-#define ASSET_DIR           "C:/git/CmakeExperiments/StudyingVulkan/StudyingVulkan/Assets"
-#define DEBUG_PRINTS_ENABLE 0
+layout(location = 0) in  vec3 inPosition;
+layout(location = 0) out vec3 out_color;
 
-static const char* pShaderRootDirectory = SHADER_ROOT_DIR;
-static const char* pAssetDirectory      = ASSET_DIR;
- 
+vec3 triangle_colors[3] = vec3[](
+    vec3(1.0, 0.0, 0.0),
+    vec3(0.0, 1.0, 0.0),
+    vec3(0.0, 0.0, 1.0)
+);
 
-#endif //CONFIG_H_IN
+void main()
+{
+    gl_Position = vec4(inPosition.xyz, 1.0);
+
+    out_color = triangle_colors[gl_VertexIndex%3];
+}

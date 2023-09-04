@@ -1,7 +1,21 @@
+/* Copyright 2023 Sean Halnon
+**
+** Licensed under the Apache License, Version 2.0 (the "License");
+** you may not use this file except in compliance with the License.
+**  You may obtain a copy of the License at
+**
+**  http://www.apache.org/licenses/LICENSE-2.0
+**
+** Unless required by applicable law or agreed to in writing, software
+**  distributed under the License is distributed on an "AS IS" BASIS,
+**  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+**  See the License for the specific language governing permissionsand
+**  limitations under the License.
+*/
 #ifndef VULKAN_COMPUTE_H
 #define VULKAN_COMPUTE_H
 
-#include "StudyingVulkan.h"
+#include "BucketSearchVisualization.h"
 #include "Vulkan_Utils.h"
 #include "AppWindowingSystem.h"
 #include "resource.h"
@@ -11,9 +25,15 @@
 
 namespace ComputeParameters
 {
-    static const size_t binSize               = 3; // can range from  2 - 128
-    static const size_t inputArraySize        = 128;//always a multiple of 4
-    static const size_t numBytesPerNum        = 1;
+    extern size_t binSize; // can range from  2 - 128
+
+    static const size_t defaultBinSize = 4;
+    static const size_t minBinSize     = 1;
+    static const size_t maxBinSize     = 32;
+
+
+    static const size_t inputArraySize = 128;//always a multiple of 4
+    static const size_t numBytesPerNum = 1;
 
     static const size_t maxInputArraySize = 128;
     static const size_t minInputArraySize = 64;
