@@ -213,12 +213,12 @@ inline VkCommandBuffer CreateAndAllocateCommandBuffer (VkPhysicalDevice physical
 }
 
 inline void RecordDispatch (VkPhysicalDevice physicalDevice,
-                     VkDevice         logicalDevice,
-                     VkCommandBuffer  cmdBuffer,
-                     VkPipeline       computePipeline,
-                     VkPipelineLayout pipelineLayout,
-                     VkDescriptorSet  descriptorSet,
-                     uint32_t         numWorkgroupsDispatched)
+                            VkDevice         logicalDevice,
+                            VkCommandBuffer  cmdBuffer,
+                            VkPipeline       computePipeline,
+                            VkPipelineLayout pipelineLayout,
+                            VkDescriptorSet  descriptorSet,
+                            uint32_t         numWorkgroupsDispatched)
 {
     VkCommandBufferBeginInfo cmdBufferBeginInfo =
     {
@@ -408,21 +408,22 @@ void RunComputeExample (const char*            pComputeShaderPath,
                                                                             VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                                                                             queueIndex);
 
+    srand (time (nullptr));
+
     vulkanAllocatedBufferInfo uboStagingBufferInfo  = CreateAndAllocaStagingBuffer (physicalDevice, logicalDevice, uboSize, queueIndex);
     vulkanAllocatedBufferInfo ssboStagingBufferInfo = CreateAndAllocaStagingBuffer (physicalDevice, logicalDevice, ssboSize, queueIndex);
+    uint32_t numPackedChars = ComputeParameters::minInputArraySize +
+                              ( rand () % (ComputeParameters::maxInputArraySize - ComputeParameters::minInputArraySize));
 
     vkQueueWaitIdle (queueHandle);
 
     ComputeParameters::UboDataLayout* pUboData = static_cast<ComputeParameters::UboDataLayout*>(MapBufferMemory (uboStagingBufferInfo, logicalDevice));
-    uint32_t numRange     = ComputeParameters::numRangeMax - ComputeParameters::numRangeMin;
 
-    uint8_t nums[4] = { 0xAA, 0xBB, 0xCC, 0xDD };
+    pUboData->numPackedChars = numPackedChars; //ComputeParameters::inputArraySize;
+    pUboData->binSize        = ComputeParameters::binSize;
+    printf ("Input array will contain %u packed uint8 numbers\n", pUboData->numPackedChars);
 
-    pUboData->binSize = ComputeParameters::binSize;
-
-    srand (time (nullptr));
-
-    for (uint8_t i = 0; i < ComputeParameters::inputArraySize; i++)
+    for (uint8_t i = 0; i < numPackedChars; i++)
     {
         uint8_t num = rand() % ComputeParameters::numRangeMax;
         pUboData->numArray[i] = num;// nums[i % 4];
@@ -489,10 +490,12 @@ void RunComputeExample (const char*            pComputeShaderPath,
 
     uint32_t* pCompResults = static_cast<uint32_t*>(MapBufferMemory (ssboStagingBufferInfo, logicalDevice));
 
-    uint32_t numBins = ComputeParameters::inputArraySize / ComputeParameters::binSize;
+    uint32_t numBins = numPackedChars / ComputeParameters::binSize;
     for (uint32_t i = 0; i < numBins; i++)
     {
-        printf ("results[%xu] = %u\n", i, pCompResults[i]);
+        uint32_t binRangeMin = ComputeParameters::binSize * i;
+
+        printf ("bin %u (%u - %u): %u\n", i, binRangeMin, binRangeMin + ComputeParameters::binSize,pCompResults[i]);
         histogram_out.push_back (pCompResults[i]);
     }
 

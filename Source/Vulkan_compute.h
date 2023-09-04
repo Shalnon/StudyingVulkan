@@ -15,6 +15,9 @@ namespace ComputeParameters
     static const size_t inputArraySize        = 128;//always a multiple of 4
     static const size_t numBytesPerNum        = 1;
 
+    static const size_t maxInputArraySize = 128;
+    static const size_t minInputArraySize = 64;
+
     static const uint8_t numRangeMin = 0;
     static const uint8_t numRangeMax = 255;
 
@@ -27,7 +30,7 @@ namespace ComputeParameters
     struct UboDataLayout
     {
         uint32_t binSize;
-        //uint32_t numPackedChars;
+        uint32_t numPackedChars;
         uint8_t  numArray[inputArraySize];
     };
 }

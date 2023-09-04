@@ -5,7 +5,8 @@
 layout(std430, binding = 0 ) readonly uniform ubo_dataIn
 {
     uint binSize;
-    uint dwordArray[128];
+    uint numPackedChars;
+    uint dwordArray[32];
 }ubo;
 
 layout( binding = 1) buffer ssboDataOut
@@ -15,18 +16,22 @@ layout( binding = 1) buffer ssboDataOut
  
  layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 
-
  void main() 
 {
-    const uint numIdx = gl_GlobalInvocationID.x;
-    const uint dwordIdx = numIdx/4;
-    const uint byteIdx  = numIdx % 4;
+    if(gl_GlobalInvocationID.x < ubo.numPackedChars)
+    {
+        const uint numIdx   = gl_GlobalInvocationID.x;
+        const uint dwordIdx = numIdx/4;
+        const uint byteIdx  = numIdx % 4;
 
-    uint dword     = ubo.dwordArray[dwordIdx];
-    uint byteValue = (dword >> (byteIdx * 8)) & 0xff;
-    uint binIdx = (byteValue  >=  ubo.binSize) ?  (byteValue / ubo.binSize) : 0;
+        uint dword     = ubo.dwordArray[dwordIdx];
+        uint byteValue = (dword >> (byteIdx * 8)) & 0xff;
+        uint binIdx    = (byteValue  >=  ubo.binSize) ?  (byteValue / ubo.binSize) : 0;
 
-    atomicAdd(ssbo.numsOut[binIdx], 1);
-
-
+        atomicAdd(ssbo.numsOut[binIdx], 1);
+    }
+    else
+    {
+        ssbo.numsOut[gl_GlobalInvocationID.x] = 696969;
+    }
 }
