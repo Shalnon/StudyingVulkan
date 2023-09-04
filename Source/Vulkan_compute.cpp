@@ -3,7 +3,7 @@
 
 #include "Vulkan_Utils.h"
 #include "Vulkan_compute.h"
-
+#include <time.h>
 
 
 VkPipeline CreateComputePipeline (VkDevice               logicalDevice,
@@ -351,6 +351,43 @@ VkDescriptorSet AllocateAndWriteDescriptorSet (VkDevice               logicalDev
     return descriptorSetHandle;
 }
 
+std::vector<Bar> CreateBarGraphMesh (uint32_t* pBarHeights, uint32_t numBars)
+{
+    static const float s_screenWidth = 2;
+    static const float s_floorHeight = 0.9;
+
+    std::vector<Bar> bars = {};
+
+    uint32_t tallestBar  = 0;
+    uint32_t smallestBar = 255;
+    for (uint32_t i = 0; i < numBars; i++)
+    {
+        if (pBarHeights[i] > tallestBar)  { tallestBar = pBarHeights[i]; }
+        if (pBarHeights[i] < smallestBar) { smallestBar = pBarHeights[i]; }
+    }
+
+
+    float heightUnit        = 1.8 / static_cast<float>(tallestBar);
+    float marginBetweenBars = 0.003;
+    float barWidth          = (s_screenWidth / numBars);
+    float strideBetweenBars = barWidth - marginBetweenBars;
+
+    glm::vec3 currentBarPosition = glm::vec3 (-0.9f, -1.9f, 0.0f);
+
+    for (uint32_t i = 0; i < numBars; i++)
+    {
+        float currentBarsHeight = pBarHeights[i] * heightUnit;
+
+        bars.push_back (Bar (currentBarsHeight, barWidth, currentBarPosition, s_floorHeight));
+
+        currentBarPosition.x += strideBetweenBars;
+    }
+
+
+    return bars;
+}
+
+
 void RunComputeExample (const char*            pComputeShaderPath,
                         VkPhysicalDevice       physicalDevice,
                         VkDevice               logicalDevice,
@@ -383,9 +420,11 @@ void RunComputeExample (const char*            pComputeShaderPath,
 
     pUboData->binSize = ComputeParameters::binSize;
 
+    srand (time (nullptr));
+
     for (uint8_t i = 0; i < ComputeParameters::inputArraySize; i++)
     {
-        uint8_t num = rand () % ComputeParameters::numRangeMax;
+        uint8_t num = rand() % ComputeParameters::numRangeMax;
         pUboData->numArray[i] = num;// nums[i % 4];
         printf ("inputNumArray[%u] = %x\n", i, num);
     }
@@ -459,55 +498,4 @@ void RunComputeExample (const char*            pComputeShaderPath,
 
     vkUnmapMemory (logicalDevice, ssboStagingBufferInfo.memoryHandle);
 }
-
-
-
-
-std::vector<Bar> CreateBarGraphMesh (uint32_t* pBarHeights, uint32_t numBars)
-{
-    static const float s_MaxBarGraphHeight = 1.5;
-    static const float s_LeftMargin  = 0.1;
-    static const float s_RightMargin = 0.1;
-    static const float s_TopMargin   = 0.1;
-    static const float s_BottomMargin = 0.13;
-    static const float s_screenHeight = 2;
-    static const float s_screenWidth = 2;
-
-    static const float s_floorHeight = 0.9;
-
-    std::vector<Bar> bars = {};
-
-    uint32_t tallestBar = 0;
-    uint32_t smallestBar = 255;
-    for (uint32_t i = 0; i < numBars; i++)
-    {
-        if (pBarHeights[i] > tallestBar)  { tallestBar = pBarHeights[i]; }
-        if (pBarHeights[i] < smallestBar) { smallestBar = pBarHeights[i]; }
-    }
-
-
-
-    float heightUnit = 1.8 / static_cast<float>(tallestBar);
-    
-    float marginBetweenBars = 0.003;
-
-    float barWidth          = (s_screenWidth / numBars);
-    float strideBetweenBars = barWidth - marginBetweenBars;
-
-    glm::vec3 currentBarPosition = glm::vec3 (-0.9f, -1.9f, 0.0f);// glm::vec3 (-0.9f, -0.9f, 0.0f);
-
-    for (uint32_t i = 0; i < numBars; i++)
-    {
-        float currentBarsHeight = pBarHeights[i] * heightUnit;
-
-        bars.push_back (Bar (currentBarsHeight, barWidth, currentBarPosition, s_floorHeight));
-
-        currentBarPosition.x += strideBetweenBars;
-
-    }
-
-
-    return bars;
-}
-
 #endif

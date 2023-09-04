@@ -65,9 +65,9 @@ public:
         verts[0] = glm::vec3 (maxX, -minY, 0.5);
         verts[1] = glm::vec3 (minX, -maxY, 0.5);
         verts[2] = glm::vec3 (minX, -minY, 0.5);
-        verts[3] = glm::vec3 (maxX, -maxY, 0.5);
+        verts[3] = glm::vec3 (maxX, -minY, 0.5);
         verts[4] = glm::vec3 (minX, -maxY, 0.5);
-        verts[5] = glm::vec3 (maxX, -minY, 0.5);
+        verts[5] = glm::vec3 (maxX, -maxY, 0.5);
 
     }
     glm::vec3 verts[6];

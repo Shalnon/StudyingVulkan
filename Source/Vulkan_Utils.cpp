@@ -1410,12 +1410,7 @@ void RenderTriangle(uint32_t                    swapChainImageIdx,
                     vulkanAllocatedBufferInfo   vertexBuffer,
                     uint32_t                    numTriangles)
 {
-    VkClearValue clearValArray[] =
-    {
-        {0.01f, 0.01f, 0.033f, 1.0f},
-        {0.01f, 0.033f, 0.01f, 1.0f},
-        {0.033f, 0.01f, 0.01f, 1.0f}
-    };
+    VkClearValue clearVal = { 0.01f, 0.01f, 0.033f, 1.0f };
 
     VkFramebuffer   framebuffer   = pPerSwapchainImageResources[swapChainImageIdx].framebufferHandle;
     VkCommandBuffer commandBuffer = pPerSwapchainImageResources[swapChainImageIdx].commandBuffer;
@@ -1446,7 +1441,7 @@ void RenderTriangle(uint32_t                    swapChainImageIdx,
         /*...VkFramebuffer..........framebuffer........*/ framebuffer,
         /*...VkRect2D...............renderArea.........*/ renderArea,
         /*...uint32_t...............clearValueCount....*/ 1,
-        /*...const.VkClearValue*....pClearValues.......*/ &clearValArray[frameIdx%3]
+        /*...const.VkClearValue*....pClearValues.......*/ & clearVal
     };
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);

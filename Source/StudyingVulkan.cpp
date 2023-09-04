@@ -83,10 +83,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
     {
         for (uint32_t i = 0; i < 6; i++)
         {
-            glm::vec3 v = bar.verts[i];
-
-           // v += glm::vec3 (-0.5, 0.25, 0.0);
-            pVertexBufferMem[numVerticesWritten++] = v;
+            pVertexBufferMem[numVerticesWritten++] = bar.verts[i];
 
         }
     }
@@ -159,8 +156,8 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                             /*.uint32_t*....................pNumSwapchainImages..........*/ &numSwapChainImages,
                             /*.VkExtent2D*..................pFramebufferExtent...........*/ &actualFrameDimensions,
                             /*.uint32_t.....................frameIdx.....................*/ i,
-                                vertexBuffer,
-                                histogram.size() * 2);
+                            /*.vulkanAllocatedBufferInfo....vertexBuffer.................*/ vertexBuffer,
+                            /*.uint32_t.....................numTriangles.................*/ histogram.size() * 2);
     }
    
     // Destroying vk objects below. Using a random scope here just so it can be collapsed easily in an IDE
