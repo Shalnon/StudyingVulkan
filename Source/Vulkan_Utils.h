@@ -55,6 +55,19 @@ inline uint32_t ChooseMemoryTypeIdx (VkPhysicalDevice      physicalDevice,
                                      VkMemoryPropertyFlags requiredPropertyFlags, // ex: a mask of VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, etc...
                                      VkMemoryRequirements* memRequirements); //a bitmask containing one bit set for every supported memory type for the resource. Bit i is set if and only if the memory type i in the VkPhysicalDeviceMemoryProperties structure for the physical device is supported for the resource.
 
+vulkanAllocatedBufferInfo CreateAndAllocateDeviceLocalBuffer (VkPhysicalDevice   physicalDevice,
+                                                              VkDevice           logicalDevice,
+                                                              VkDeviceSize       bufferSizeInBytes,
+                                                              VkBufferUsageFlags bufferUsage,
+                                                              uint32_t           queueIndex);
+
+vulkanAllocatedBufferInfo CreateAndAllocaStagingBuffer (VkPhysicalDevice physicalDevice,
+                                                        VkDevice         logicalDevice,
+                                                        VkDeviceSize     bufferSizeInBytes,
+                                                        uint32_t         queueIndex);
+
+void* MapBufferMemory (vulkanAllocatedBufferInfo bufferInfo,
+                       VkDevice                  logicalDevice);
 
 VkDeviceMemory AllocateVkBufferMemory (VkPhysicalDevice      physicalDevice,
                                        VkDevice              logicalDevice,
@@ -132,7 +145,9 @@ uint64_t ExecuteRenderLoop(VkDevice                     logicalDevice,
                            PerSwapchainImageResources** pPerFrameResources,
                            uint32_t*                    pNumSwapchainImages,
                            VkExtent2D*                  pExtent,
-                           uint32_t                     frameIdx);
+                           uint32_t                     frameIdx,
+                           vulkanAllocatedBufferInfo    vertexBuffer,
+                           uint32_t                     numTriangles);
 
 VkSwapchainKHR ReinitializeRenderungSurface(VkDevice                     logicalDevice,
                                             VkPhysicalDevice             physicalDevice,
@@ -155,7 +170,9 @@ void RenderTriangle(uint32_t                    swapChainImageIdx,
                     VkSwapchainKHR              swapchain,
                     VkQueue                     queue,
                     VkExtent2D*                 pExtent,
-                    uint32_t                    frameIdx);
+                    uint32_t                    frameIdx,
+                    vulkanAllocatedBufferInfo   vertexBuffer,
+                    uint32_t                    numTriangles);
 
 VkResult PresentImage(VkSwapchainKHR swapchain,
                       uint32_t       swapchainImageIndex,

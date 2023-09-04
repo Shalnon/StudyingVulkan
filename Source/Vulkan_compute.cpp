@@ -1,8 +1,10 @@
 #ifndef VULKAN_COMPUTE_CPP
 #define VULKAN_COMPUTE_CPP
 
-#include "Vulkan_compute.h"
 #include "Vulkan_Utils.h"
+#include "Vulkan_compute.h"
+
+
 
 VkPipeline CreateComputePipeline (VkDevice               logicalDevice,
                                   const char*            pComputeShaderPath,
@@ -91,106 +93,6 @@ VkPipeline CreateComputePipeline (VkDevice               logicalDevice,
                                        /*...VkPipeline*.................................pPipelines........*/ &pipeline);
 
     return pipeline;
-}
-
-
-vulkanAllocatedBufferInfo CreateAndAllocateDeviceLocalBuffer (VkPhysicalDevice   physicalDevice,
-                                                              VkDevice           logicalDevice,
-                                                              VkDeviceSize       bufferSizeInBytes,
-                                                              VkBufferUsageFlags bufferUsage,
-                                                              uint32_t           queueIndex)
-{
-    VkBuffer           bufferHandle     = VK_NULL_HANDLE;
-    VkBufferCreateInfo bufferCreateInfo =
-    {
-        /*...VkStructureType........sType.....................*/ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-        /*...const.void*............pNext.....................*/ 0, //reminder: buffer device address struct would need to go here if using that feature
-        /*...VkBufferCreateFlags....flags.....................*/ 0,
-        /*...VkDeviceSize...........size......................*/ bufferSizeInBytes,
-        /*...VkBufferUsageFlags.....usage.....................*/ bufferUsage,
-        /*...VkSharingMode..........sharingMode...............*/ VK_SHARING_MODE_EXCLUSIVE,
-        /*...uint32_t...............queueFamilyIndexCount.....*/ 1,
-        /*...const.uint32_t*........pQueueFamilyIndices.......*/ &queueIndex
-    };
-
-    VkResult             result                = vkCreateBuffer (logicalDevice, &bufferCreateInfo, 0, &bufferHandle);
-    VkMemoryRequirements bufferMemRequirements = {};
-    vkGetBufferMemoryRequirements (logicalDevice, bufferHandle, &bufferMemRequirements);
-
-    VkDeviceMemory mem = AllocateVkBufferMemory (physicalDevice,
-                                                 logicalDevice,
-                                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                                 &bufferMemRequirements);
-
-    vkBindBufferMemory (logicalDevice, bufferHandle, mem, 0);
-
-    return {/*...VkBuffer.......bufferHandle......*/ bufferHandle,
-        /*...VkDeviceMemory.memoryHandle......*/ mem,
-        /*...VkDeviceSize...buffersize........*/ bufferMemRequirements.size,
-        /*...uint32_t.......offset............*/ 0 };
-}
-
-vulkanAllocatedBufferInfo CreateAndAllocaStagingBuffer (VkPhysicalDevice physicalDevice,
-                                                        VkDevice         logicalDevice,
-                                                        VkDeviceSize     bufferSizeInBytes,
-                                                       uint32_t         queueIndex)
-{
-    // Create staging buffer first
-    VkBuffer           stagingBufferHandle = VK_NULL_HANDLE;
-    VkBufferCreateInfo stagingBufferCreateInfo =
-    {
-        /*...VkStructureType........sType.....................*/ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-        /*...const.void*............pNext.....................*/ 0, //reminder: buffer device address struct would need to go here if using that feature
-        /*...VkBufferCreateFlags....flags.....................*/ 0,
-        /*...VkDeviceSize...........size......................*/ bufferSizeInBytes,
-        /*...VkBufferUsageFlags.....usage.....................*/ VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT ,
-        /*...VkSharingMode..........sharingMode...............*/ VK_SHARING_MODE_EXCLUSIVE,
-        /*...uint32_t...............queueFamilyIndexCount.....*/ 1,
-        /*...const.uint32_t*........pQueueFamilyIndices.......*/ &queueIndex
-    };
-
-    // Create the staging buffer
-    VkResult result = vkCreateBuffer (logicalDevice,
-                                      &stagingBufferCreateInfo,
-                                      nullptr,
-                                      &stagingBufferHandle);
-
-    // Get the memory requirements and check that they meet our needs
-    VkMemoryRequirements stagingBufferMemRequirements = {};
-    vkGetBufferMemoryRequirements (logicalDevice, stagingBufferHandle, &stagingBufferMemRequirements);
-    assert (bufferSizeInBytes <= stagingBufferMemRequirements.size);
-
-    // Allocate memory for the buffer.
-    VkDeviceMemory stagingMem = AllocateVkBufferMemory (physicalDevice,
-                                                        logicalDevice,
-                                                        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                                                        &stagingBufferMemRequirements);
-    assert (stagingMem != VK_NULL_HANDLE);
-
-    // Bind the allocated memory to the buffer
-    vkBindBufferMemory (logicalDevice, stagingBufferHandle, stagingMem, 0);
-
-    return {/*...VkBuffer.......bufferHandle......*/ stagingBufferHandle,
-            /*...VkDeviceMemory.memoryHandle......*/ stagingMem,
-            /*...VkDeviceSize...buffersize........*/ stagingBufferMemRequirements.size,
-            /*...uint32_t.......offset............*/ 0 };
-}
-
-// light-weight inline function for mapping buffer memory and getting a cpu ptr to it.
-inline void* MapBufferMemory (vulkanAllocatedBufferInfo bufferInfo,
-                              VkDevice                  logicalDevice)
-{
-    void* pMem = nullptr;
-    vkMapMemory (/*...VkDevice...........device...*/ logicalDevice,
-                 /*...VkDeviceMemory.....memory...*/ bufferInfo.memoryHandle,
-                 /*...VkDeviceSize.......offset...*/ bufferInfo.offset,
-                 /*...VkDeviceSize.......size.....*/ bufferInfo.buffersize,
-                 /*...VkMemoryMapFlags...flags....*/ 0, //@spec:  "reserved for future use"
-                 /*...void**.............ppData...*/ &pMem);
-
-    assert (pMem);
-
-    return pMem;
 }
 
 void ExecuteBuffer2BufferCopy (VkPhysicalDevice          physicalDevice,
@@ -310,7 +212,7 @@ inline VkCommandBuffer CreateAndAllocateCommandBuffer (VkPhysicalDevice physical
     return commandBufferHandle;
 }
 
-void RecordDispatch (VkPhysicalDevice physicalDevice,
+inline void RecordDispatch (VkPhysicalDevice physicalDevice,
                      VkDevice         logicalDevice,
                      VkCommandBuffer  cmdBuffer,
                      VkPipeline       computePipeline,
@@ -449,11 +351,12 @@ VkDescriptorSet AllocateAndWriteDescriptorSet (VkDevice               logicalDev
     return descriptorSetHandle;
 }
 
-void RunComputeExample (const char*      pComputeShaderPath,
-                        VkPhysicalDevice physicalDevice,
-                        VkDevice         logicalDevice,
-                        uint32_t         queueIndex,
-                        VkQueue          queueHandle)
+void RunComputeExample (const char*            pComputeShaderPath,
+                        VkPhysicalDevice       physicalDevice,
+                        VkDevice               logicalDevice,
+                        uint32_t               queueIndex,
+                        VkQueue                queueHandle,
+                        std::vector<uint32_t>& histogram_out)
 {
     uint32_t uboSize = sizeof(ComputeParameters::UboDataLayout); // fix this
     vulkanAllocatedBufferInfo uboInfo = CreateAndAllocateDeviceLocalBuffer (physicalDevice,
@@ -473,15 +376,17 @@ void RunComputeExample (const char*      pComputeShaderPath,
 
     vkQueueWaitIdle (queueHandle);
 
-    uint32_t* pUboData = static_cast<uint32_t*>(MapBufferMemory (uboStagingBufferInfo, logicalDevice));
+    ComputeParameters::UboDataLayout* pUboData = static_cast<ComputeParameters::UboDataLayout*>(MapBufferMemory (uboStagingBufferInfo, logicalDevice));
     uint32_t numRange     = ComputeParameters::numRangeMax - ComputeParameters::numRangeMin;
 
     uint8_t nums[4] = { 0xAA, 0xBB, 0xCC, 0xDD };
 
-    for (uint32_t i = 0; i < ComputeParameters::inputArraySize; i++)
+    pUboData->binSize = ComputeParameters::binSize;
+
+    for (uint8_t i = 0; i < ComputeParameters::inputArraySize; i++)
     {
-        uint32_t num = i;// rand () % ComputeParameters::numRangeMax;
-        pUboData[i] = num;// nums[i % 4];
+        uint8_t num = rand () % ComputeParameters::numRangeMax;
+        pUboData->numArray[i] = num;// nums[i % 4];
         printf ("inputNumArray[%u] = %x\n", i, num);
     }
 
@@ -527,7 +432,7 @@ void RunComputeExample (const char*      pComputeShaderPath,
         /*...VkStructureType................sType...................*/ VK_STRUCTURE_TYPE_SUBMIT_INFO,
         /*...const.void*....................pNext...................*/ 0,
         /*...uint32_t.......................waitSemaphoreCount......*/ 0,
-        /*...const.VkSemaphore*.............pWaitSemaphores.........*/nullptr, // Only execute work when this semaphore is in a signaled state
+        /*...const.VkSemaphore*.............pWaitSemaphores.........*/ nullptr, // Only execute work when this semaphore is in a signaled state
         /*...const.VkPipelineStageFlags*....pWaitDstStageMask.......*/ &waitStage,
         /*...uint32_t.......................commandBufferCount......*/ 1,
         /*...const.VkCommandBuffer*.........pCommandBuffers.........*/ &cmdBuffer,
@@ -545,10 +450,64 @@ void RunComputeExample (const char*      pComputeShaderPath,
 
     uint32_t* pCompResults = static_cast<uint32_t*>(MapBufferMemory (ssboStagingBufferInfo, logicalDevice));
 
-    for (uint32_t i = 0; i < ComputeParameters::inputArraySize; i++)
+    uint32_t numBins = ComputeParameters::inputArraySize / ComputeParameters::binSize;
+    for (uint32_t i = 0; i < numBins; i++)
     {
-        printf ("results[%xu] = %x\n", i, pCompResults[i]);
+        printf ("results[%xu] = %u\n", i, pCompResults[i]);
+        histogram_out.push_back (pCompResults[i]);
     }
+
+    vkUnmapMemory (logicalDevice, ssboStagingBufferInfo.memoryHandle);
+}
+
+
+
+
+std::vector<Bar> CreateBarGraphMesh (uint32_t* pBarHeights, uint32_t numBars)
+{
+    static const float s_MaxBarGraphHeight = 1.5;
+    static const float s_LeftMargin  = 0.1;
+    static const float s_RightMargin = 0.1;
+    static const float s_TopMargin   = 0.1;
+    static const float s_BottomMargin = 0.13;
+    static const float s_screenHeight = 2;
+    static const float s_screenWidth = 2;
+
+    static const float s_floorHeight = 0.9;
+
+    std::vector<Bar> bars = {};
+
+    uint32_t tallestBar = 0;
+    uint32_t smallestBar = 255;
+    for (uint32_t i = 0; i < numBars; i++)
+    {
+        if (pBarHeights[i] > tallestBar)  { tallestBar = pBarHeights[i]; }
+        if (pBarHeights[i] < smallestBar) { smallestBar = pBarHeights[i]; }
+    }
+
+
+
+    float heightUnit = 1.8 / static_cast<float>(tallestBar);
+    
+    float marginBetweenBars = 0.003;
+
+    float barWidth          = (s_screenWidth / numBars);
+    float strideBetweenBars = barWidth - marginBetweenBars;
+
+    glm::vec3 currentBarPosition = glm::vec3 (-0.9f, -1.9f, 0.0f);// glm::vec3 (-0.9f, -0.9f, 0.0f);
+
+    for (uint32_t i = 0; i < numBars; i++)
+    {
+        float currentBarsHeight = pBarHeights[i] * heightUnit;
+
+        bars.push_back (Bar (currentBarsHeight, barWidth, currentBarPosition, s_floorHeight));
+
+        currentBarPosition.x += strideBetweenBars;
+
+    }
+
+
+    return bars;
 }
 
 #endif

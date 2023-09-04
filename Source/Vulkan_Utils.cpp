@@ -797,20 +797,35 @@ VkShaderModule CreateShaderModule(VkDevice logicalDevice, const char* spvPath)
 
 VkPipeline CreatePipeline(VkDevice logicalDevice, VkRenderPass renderpass, VkExtent2D* pExtent, const char* fragShaderPath, const char* vertShaderPath)
 {
-    //From Khronos sample: | Create a blank pipeline layout.                                       |
-    //                     | We are not binding any resources to the pipeline in this first sample.|
+    // one attribute: : position
+    VkVertexInputAttributeDescription vertexInputAttributeDescription =
+    {
+        /*...uint32_t....location....*/ 0,
+        /*...uint32_t....binding.....*/ 0,
+        /*...VkFormat....format......*/ VK_FORMAT_R32G32B32_SFLOAT,
+        /*...uint32_t....offset......*/ 0
+    };
 
-    VkPipelineLayout                       pipelineLayout             = VK_NULL_HANDLE;
+    // One binding because all vertex attributes are in the same buffer. Thus only one buffer needs a binding.
+    uint32_t numVertexInputBindings = 1;
+    VkVertexInputBindingDescription pVertexInputBindingDescriptions[] =
+    {
+        {
+            /*..uint32_t.............binding......*/ 0,
+            /*..uint32_t.............stride.......*/ sizeof(float[3]),
+            /*..VkVertexInputRate....inputRate....*/ VK_VERTEX_INPUT_RATE_VERTEX
+        }
+    };
 
     VkPipelineVertexInputStateCreateInfo   vertexInputStateCreateInfo =
     {
         /*...VkStructureType.............................sType.............................*/ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
         /*...const.void*.................................pNext.............................*/ 0,
         /*...VkPipelineVertexInputStateCreateFlags.......flags.............................*/ 0,
-        /*...uint32_t....................................vertexBindingDescriptionCount.....*/ 0,
-        /*...const.VkVertexInputBindingDescription*......pVertexBindingDescriptions........*/ nullptr,
-        /*...uint32_t....................................vertexAttributeDescriptionCount...*/ 0,
-        /*...const.VkVertexInputAttributeDescription*....pVertexAttributeDescriptions......*/ nullptr
+        /*...uint32_t....................................vertexBindingDescriptionCount.....*/ 1,
+        /*...const.VkVertexInputBindingDescription*......pVertexBindingDescriptions........*/ pVertexInputBindingDescriptions,
+        /*...uint32_t....................................vertexAttributeDescriptionCount...*/ 1,
+        /*...const.VkVertexInputAttributeDescription*....pVertexAttributeDescriptions......*/ & vertexInputAttributeDescription
     };
 
     VkPipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo =
@@ -833,7 +848,8 @@ VkPipeline CreatePipeline(VkDevice logicalDevice, VkRenderPass renderpass, VkExt
         /*...const.VkPushConstantRange*......pPushConstantRanges........*/ nullptr
     };
 
-    //@VKSPEC: "Access to descriptor sets from a pipeline is accomplished through a pipeline layout." : https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkPipelineLayout.html
+    VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+
     VkResult result = vkCreatePipelineLayout(logicalDevice, &layoutCreateInfo, 0, &pipelineLayout);
     assert(result == VK_SUCCESS);
 
@@ -845,7 +861,7 @@ VkPipeline CreatePipeline(VkDevice logicalDevice, VkRenderPass renderpass, VkExt
         /*...VkBool32...................................depthClampEnable...........*/ VK_FALSE,
         /*...VkBool32...................................rasterizerDiscardEnable....*/ VK_FALSE,
         /*...VkPolygonMode..............................polygonMode................*/ VK_POLYGON_MODE_FILL, //VK_POLYGON_MODE_FILL  = 0, so dont actually need to explicitly set it technically.
-        /*...VkCullModeFlags............................cullMode...................*/ VK_CULL_MODE_BACK_BIT,
+        /*...VkCullModeFlags............................cullMode...................*/ VK_CULL_MODE_NONE,
         /*...VkFrontFace................................frontFace..................*/ VK_FRONT_FACE_CLOCKWISE,
         /*...VkBool32...................................depthBiasEnable............*/ VK_FALSE,
         /*...float......................................depthBiasConstantFactor....*/ 0.0,
@@ -1136,7 +1152,9 @@ uint64_t ExecuteRenderLoop(VkDevice                    logicalDevice,
                            PerSwapchainImageResources** ppPerSwapchainImageResources,
                            uint32_t*                   pNumSwapchainImages,
                            VkExtent2D*                 pExtent,
-                           uint32_t                    frameIdx)
+                           uint32_t                    frameIdx,
+                           vulkanAllocatedBufferInfo   vertexBuffer,
+                           uint32_t                    numTriangles)
 {
     uint64_t time     = 0;
     VkResult result   = VK_INCOMPLETE;
@@ -1182,7 +1200,9 @@ uint64_t ExecuteRenderLoop(VkDevice                    logicalDevice,
                    swapchain,
                    queue,
                    pExtent,
-                   frameIdx);
+                   frameIdx,
+                   vertexBuffer,
+                   numTriangles);
 
     // present image
     result = PresentImage(swapchain, imageIdx, pPerFrameResources[imageIdx].releaseSwapchainImageSemaphore, queue);
@@ -1280,6 +1300,105 @@ VkSwapchainKHR ReinitializeRenderungSurface(VkDevice         logicalDevice,
     return newSwapChain;
 }
 
+vulkanAllocatedBufferInfo CreateAndAllocateDeviceLocalBuffer (VkPhysicalDevice   physicalDevice,
+                                                              VkDevice           logicalDevice,
+                                                              VkDeviceSize       bufferSizeInBytes,
+                                                              VkBufferUsageFlags bufferUsage,
+                                                              uint32_t           queueIndex)
+{
+    VkBuffer           bufferHandle = VK_NULL_HANDLE;
+    VkBufferCreateInfo bufferCreateInfo =
+    {
+        /*...VkStructureType........sType.....................*/ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        /*...const.void*............pNext.....................*/ 0, //reminder: buffer device address struct would need to go here if using that feature
+        /*...VkBufferCreateFlags....flags.....................*/ 0,
+        /*...VkDeviceSize...........size......................*/ bufferSizeInBytes,
+        /*...VkBufferUsageFlags.....usage.....................*/ bufferUsage,
+        /*...VkSharingMode..........sharingMode...............*/ VK_SHARING_MODE_EXCLUSIVE,
+        /*...uint32_t...............queueFamilyIndexCount.....*/ 1,
+        /*...const.uint32_t*........pQueueFamilyIndices.......*/ &queueIndex
+    };
+
+    VkResult             result = vkCreateBuffer (logicalDevice, &bufferCreateInfo, 0, &bufferHandle);
+    VkMemoryRequirements bufferMemRequirements = {};
+    vkGetBufferMemoryRequirements (logicalDevice, bufferHandle, &bufferMemRequirements);
+
+    VkDeviceMemory mem = AllocateVkBufferMemory (physicalDevice,
+                                                 logicalDevice,
+                                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                                 &bufferMemRequirements);
+
+    vkBindBufferMemory (logicalDevice, bufferHandle, mem, 0);
+
+    return {/*...VkBuffer.......bufferHandle......*/ bufferHandle,
+        /*...VkDeviceMemory.memoryHandle......*/ mem,
+        /*...VkDeviceSize...buffersize........*/ bufferMemRequirements.size,
+        /*...uint32_t.......offset............*/ 0 };
+}
+
+vulkanAllocatedBufferInfo CreateAndAllocaStagingBuffer (VkPhysicalDevice physicalDevice,
+                                                        VkDevice         logicalDevice,
+                                                        VkDeviceSize     bufferSizeInBytes,
+                                                        uint32_t         queueIndex)
+{
+    // Create staging buffer first
+    VkBuffer           stagingBufferHandle = VK_NULL_HANDLE;
+    VkBufferCreateInfo stagingBufferCreateInfo =
+    {
+        /*...VkStructureType........sType.....................*/ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        /*...const.void*............pNext.....................*/ 0, //reminder: buffer device address struct would need to go here if using that feature
+        /*...VkBufferCreateFlags....flags.....................*/ 0,
+        /*...VkDeviceSize...........size......................*/ bufferSizeInBytes,
+        /*...VkBufferUsageFlags.....usage.....................*/ VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT ,
+        /*...VkSharingMode..........sharingMode...............*/ VK_SHARING_MODE_EXCLUSIVE,
+        /*...uint32_t...............queueFamilyIndexCount.....*/ 1,
+        /*...const.uint32_t*........pQueueFamilyIndices.......*/ &queueIndex
+    };
+
+    // Create the staging buffer
+    VkResult result = vkCreateBuffer (logicalDevice,
+                                      &stagingBufferCreateInfo,
+                                      nullptr,
+                                      &stagingBufferHandle);
+
+    // Get the memory requirements and check that they meet our needs
+    VkMemoryRequirements stagingBufferMemRequirements = {};
+    vkGetBufferMemoryRequirements (logicalDevice, stagingBufferHandle, &stagingBufferMemRequirements);
+    assert (bufferSizeInBytes <= stagingBufferMemRequirements.size);
+
+    // Allocate memory for the buffer.
+    VkDeviceMemory stagingMem = AllocateVkBufferMemory (physicalDevice,
+                                                        logicalDevice,
+                                                        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+                                                        &stagingBufferMemRequirements);
+    assert (stagingMem != VK_NULL_HANDLE);
+
+    // Bind the allocated memory to the buffer
+    vkBindBufferMemory (logicalDevice, stagingBufferHandle, stagingMem, 0);
+
+    return {/*...VkBuffer.......bufferHandle......*/ stagingBufferHandle,
+        /*...VkDeviceMemory.memoryHandle......*/ stagingMem,
+        /*...VkDeviceSize...buffersize........*/ stagingBufferMemRequirements.size,
+        /*...uint32_t.......offset............*/ 0 };
+}
+
+// light-weight inline function for mapping buffer memory and getting a cpu ptr to it.
+void* MapBufferMemory (vulkanAllocatedBufferInfo bufferInfo,
+                              VkDevice                  logicalDevice)
+{
+    void* pMem = nullptr;
+    vkMapMemory (/*...VkDevice...........device...*/ logicalDevice,
+                 /*...VkDeviceMemory.....memory...*/ bufferInfo.memoryHandle,
+                 /*...VkDeviceSize.......offset...*/ bufferInfo.offset,
+                 /*...VkDeviceSize.......size.....*/ bufferInfo.buffersize,
+                 /*...VkMemoryMapFlags...flags....*/ 0, //@spec:  "reserved for future use"
+                 /*...void**.............ppData...*/ &pMem);
+
+    assert (pMem);
+
+    return pMem;
+}
+
 void RenderTriangle(uint32_t                    swapChainImageIdx,
                     VkRenderPass                renderPass,
                     VkPipeline                  pipeline,
@@ -1287,7 +1406,9 @@ void RenderTriangle(uint32_t                    swapChainImageIdx,
                     VkSwapchainKHR              swapchain,
                     VkQueue                     queue,
                     VkExtent2D*                 pExtent,
-                    uint32_t                    frameIdx)
+                    uint32_t                    frameIdx,
+                    vulkanAllocatedBufferInfo   vertexBuffer,
+                    uint32_t                    numTriangles)
 {
     VkClearValue clearValArray[] =
     {
@@ -1351,8 +1472,14 @@ void RenderTriangle(uint32_t                    swapChainImageIdx,
     };
 
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+    VkDeviceSize offsets = 0;
+    vkCmdBindVertexBuffers (/*..VkCommandBuffer........commandBuffer...*/ commandBuffer,
+                            /*..uint32_t...............firstBinding....*/ 0,
+                            /*..uint32_t...............bindingCount....*/ 1,
+                            /*..const.VkBuffer*........pBuffers........*/ &(vertexBuffer.bufferHandle),
+                            /*..const.VkDeviceSize*....pOffsets........*/ &offsets);
 
-    vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+    vkCmdDraw(commandBuffer, numTriangles * 3, 1, 0, 0);
 
     vkCmdEndRenderPass(commandBuffer);
 

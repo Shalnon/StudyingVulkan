@@ -55,16 +55,47 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                                  /*..uint32_t*..................*/ &queueIndex);
 
 
+    std::vector<uint32_t> histogram = {};
     // Create and dispatch computer shader once
     RunComputeExample (computeShaderPath.c_str(), 
                        physicalDevice,
                        logicalDevice,
                        queueIndex,
-                       queue);
+                       queue,
+                       histogram);
 
+    uint32_t                  numVertices  = histogram.size () * 6;
+    uint32_t                  bufferSize   = numVertices * sizeof (glm::vec3);
+    vulkanAllocatedBufferInfo vertexBuffer = CreateAndAllocateDeviceLocalBuffer (physicalDevice,
+                                                                                 logicalDevice,
+                                                                                 bufferSize,
+                                                                                 VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                                                                                 queueIndex);
 
+    std::vector<Bar> barGraphMeshData = CreateBarGraphMesh (histogram.data (), histogram.size ());
 
+    vulkanAllocatedBufferInfo vertexStagingBuffer = CreateAndAllocaStagingBuffer (physicalDevice, logicalDevice, bufferSize, queueIndex);
 
+    glm::vec3* pVertexBufferMem = static_cast<glm::vec3*>(MapBufferMemory (vertexStagingBuffer, logicalDevice));
+    uint32_t   numVerticesWritten = 0;
+
+    for (Bar& bar : barGraphMeshData)
+    {
+        for (uint32_t i = 0; i < 6; i++)
+        {
+            glm::vec3 v = bar.verts[i];
+
+           // v += glm::vec3 (-0.5, 0.25, 0.0);
+            pVertexBufferMem[numVerticesWritten++] = v;
+
+        }
+    }
+
+    vkUnmapMemory (logicalDevice, vertexStagingBuffer.memoryHandle);
+
+    ExecuteBuffer2BufferCopy (physicalDevice, logicalDevice, queue, queueIndex, bufferSize, vertexStagingBuffer, vertexBuffer);
+
+    vkQueueWaitIdle (queue);
     // Make sure we got queue index from the above function.
     assert (queueIndex != UINT32_MAX);
 
@@ -109,6 +140,7 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                        pPerSwapchainImageResources);
 
     uint32_t numFramesToRender = 5;
+
     
     printf("executed renderloop\n");
     for (uint32_t i = 0; i < numFramesToRender; i++)
@@ -126,7 +158,9 @@ int APIENTRY wWinMain(_In_    HINSTANCE hInstance,
                             /*.PerSwapchainImageResources**.ppPerSwapchainImageResources.*/ &pPerSwapchainImageResources,
                             /*.uint32_t*....................pNumSwapchainImages..........*/ &numSwapChainImages,
                             /*.VkExtent2D*..................pFramebufferExtent...........*/ &actualFrameDimensions,
-                            /*.uint32_t.....................frameIdx.....................*/ i                     );
+                            /*.uint32_t.....................frameIdx.....................*/ i,
+                                vertexBuffer,
+                                histogram.size() * 2);
     }
    
     // Destroying vk objects below. Using a random scope here just so it can be collapsed easily in an IDE
